@@ -712,66 +712,59 @@
   .modal-close:hover { color: #333; }
 
   .modal-title {
-    font-family: 'Oswald', sans-serif;
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     font-weight: 700;
     color: #1a1a2e;
-    margin-bottom: 4px;
-    letter-spacing: 0.06em;
-  }
-
-  .modal-subtitle {
-    font-size: 0.78rem;
-    color: #c0392b;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    margin-bottom: 20px;
+    margin-bottom: 16px;
     padding-bottom: 14px;
-    border-bottom: 2px solid #c0392b;
+    border-bottom: 2px solid #f0f2f5;
+    display: flex;
+    align-items: center;
+    gap: 8px;
   }
 
   .modal-section {
-    margin-bottom: 20px;
+    margin-bottom: 18px;
   }
 
   .modal-section:last-child { margin-bottom: 0; }
 
   .modal-section-title {
-    font-size: 0.88rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #fff;
     background: #1a1a2e;
-    border-radius: 6px;
-    padding: 5px 12px;
+    border-radius: 5px;
+    padding: 4px 10px;
     margin-bottom: 10px;
     display: inline-block;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
   }
 
-  .modal-list {
-    list-style: none;
-    padding: 0;
-  }
-
-  .modal-list li {
-    font-size: 0.85rem;
-    color: #444;
-    padding: 5px 0 5px 18px;
-    position: relative;
-    line-height: 1.5;
+  .tip-item {
+    padding: 8px 0;
     border-bottom: 1px solid #f0f2f5;
   }
 
-  .modal-list li:last-child { border-bottom: none; }
+  .tip-item:last-child { border-bottom: none; }
 
-  .modal-list li::before {
-    content: '▸';
-    position: absolute;
-    left: 0;
-    color: #c0392b;
-    font-size: 0.75rem;
-    top: 6px;
+  .tip-title {
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #2176ae;
+    margin-bottom: 3px;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+  }
+
+  .tip-title.red { color: #c0392b; }
+
+  .tip-desc {
+    font-size: 0.81rem;
+    color: #555;
+    line-height: 1.6;
+    padding-left: 18px;
   }
 
   /* ===== LIVE MODE ===== */
@@ -987,37 +980,65 @@
 <div class="modal-overlay" id="help-modal" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal-box">
     <button class="modal-close" onclick="document.getElementById('help-modal').classList.remove('open')">×</button>
-    <div class="modal-title">TSG Metronome &amp; Tuner</div>
-    <div class="modal-subtitle">使い方ガイド</div>
+    <div class="modal-title">💡 これ、知ってましたか？</div>
 
     <div class="modal-section">
       <div class="modal-section-title">🎵 Metronome</div>
-      <ul class="modal-list">
-        <li>知ってましたか？ <strong>TAPボタン</strong>を曲に合わせてリズムよく叩くだけでBPMを自動検出できます。CDを聴きながら合わせると便利です。</li>
-        <li>知ってましたか？ <strong>GROOVE / SUBDIVISION</strong>を開くと8分・16分・シャッフルなど11パターンが使えます。シャッフルは「Shuffle Feel」スライダーで跳ね感を調整できるので、ジャズのスイング感の練習にも最適です。</li>
-        <li>知ってましたか？ 拍子を<strong>5拍子・7拍子</strong>に設定すると変拍子の練習ができます。難しいリズムも反復すれば必ず身につきます。</li>
-        <li>知ってましたか？ <strong>MUTEボタン</strong>を使えば音を出さずにペンダムとドットの動きだけでテンポを確認できます。夜間の練習や、バンドリハでクリックを目視したいときに役立ちます。</li>
-      </ul>
+
+      <div class="tip-item">
+        <div class="tip-title">🎹 TAPボタンでテンポを自動検出できます</div>
+        <div class="tip-desc">曲に合わせてTAPボタンをリズムよく叩くだけでBPMを自動検出できます。CDを聴きながら合わせると便利です。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title red">🎶 シャッフルの跳ね感を細かく調整できます</div>
+        <div class="tip-desc">GROOVE / SUBDIVISIONを開くと8分・16分・シャッフルなど11パターンが使えます。「Shuffle Feel」スライダーで跳ね感を調整できるので、ジャズのスイング感の練習にも最適です。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">🥁 変拍子の練習もできます</div>
+        <div class="tip-desc">拍子を5拍子・7拍子に設定すると変拍子の練習ができます。難しいリズムも反復すれば必ず身につきます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title red">🔇 MUTEで音を出さずにテンポを目視確認</div>
+        <div class="tip-desc">MUTEボタンを使えばペンダムとドットの動きだけでテンポを確認できます。夜間の練習や、バンドリハでクリックを目視したいときに役立ちます。</div>
+      </div>
     </div>
 
     <div class="modal-section">
       <div class="modal-section-title">🎸 Tuner</div>
-      <ul class="modal-list">
-        <li>知ってましたか？ チューニングは<strong>6弦（低いE）から順に合わせる</strong>と全体が安定しやすくなります。高い弦から合わせると張力のバランスが崩れやすいのでご注意を。</li>
-        <li>知ってましたか？ ゲージが左に振れているときは音が<strong>低すぎる（♭）</strong>サインです。ペグを少し締めて音を上げましょう。右に振れているなら緩めて下げます。</li>
-        <li>知ってましたか？ <strong>静かな環境</strong>で使うほど精度が上がります。周囲の音が多いと誤検出しやすいので、できれば楽器以外の音を減らしてから使いましょう。</li>
-        <li>知ってましたか？ 「IN TUNE」が出てもすぐ弾かず、<strong>もう一度弾き直して再確認</strong>する習慣をつけると、より精度の高いチューニングができます。</li>
-      </ul>
+
+      <div class="tip-item">
+        <div class="tip-title">🎸 6弦から合わせると安定します</div>
+        <div class="tip-desc">チューニングは6弦（低いE）から順に合わせると全体が安定しやすくなります。高い弦から合わせると張力のバランスが崩れやすいのでご注意を。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title red">◀▶ ゲージの見方</div>
+        <div class="tip-desc">ゲージが左に振れているときは音が低すぎる（♭）サインです。ペグを少し締めて音を上げましょう。右に振れているなら緩めて下げます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">🎤 静かな環境ほど精度が上がります</div>
+        <div class="tip-desc">周囲の音が多いと誤検出しやすいので、できれば楽器以外の音を減らしてから使いましょう。</div>
+      </div>
     </div>
 
     <div class="modal-section">
       <div class="modal-section-title">🎤 Live</div>
-      <ul class="modal-list">
-        <li>知ってましたか？ 各スロットに<strong>曲名とBPMを事前登録</strong>しておけば、本番中はボタン一つでテンポを即座に切り替えられます。慌てず、スムーズな進行が可能です。</li>
-        <li>知ってましたか？ <strong>MUTEしたままペンダムを目視</strong>するだけでテンポを確認できます。音を出せないシーンでも安心して使えます。</li>
-        <li>知ってましたか？ セットリストは<strong>JSONファイルとして保存</strong>できます。「今月のライブ」「来月のライブ」と複数のセットリストを管理して必要なときに読み込めます。</li>
-        <li>知ってましたか？ ページを更新してもセットリストのデータは<strong>自動的に復元</strong>されます。うっかりブラウザをリロードしても登録内容は消えません。</li>
-      </ul>
+
+      <div class="tip-item">
+        <div class="tip-title">📋 曲名とBPMを事前登録しておけます</div>
+        <div class="tip-desc">各スロットに曲名とBPMを登録しておけば、本番中はボタン一つでテンポを即座に切り替えられます。慌てずスムーズな進行が可能です。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title red">👁 音を出さずにテンポを目視確認できます</div>
+        <div class="tip-desc">MUTEしたままペンダムを目視するだけでテンポを確認できます。音を出せないシーンでも安心して使えます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">💾 複数のセットリストを管理できます</div>
+        <div class="tip-desc">セットリストはJSONファイルとして保存できます。「今月のライブ」「来月のライブ」と管理して、必要なときに読み込めます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title red">🔄 ページを更新しても内容が消えません</div>
+        <div class="tip-desc">セットリストのデータは自動的に復元されます。うっかりブラウザをリロードしても登録内容は消えません。</div>
+      </div>
     </div>
 
   </div>
