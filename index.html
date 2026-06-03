@@ -645,8 +645,9 @@
   /* ===== HELP MODAL ===== */
   .help-btn {
     position: absolute;
-    top: 14px;
-    right: 14px;
+    top: 50%;
+    right: 0;
+    transform: translateY(-50%);
     background: #c0392b;
     color: #fff;
     border: none;
@@ -663,6 +664,13 @@
   .help-btn:hover { background: #a93226; }
 
   header { position: relative; }
+
+  .header-wrap {
+    max-width: 600px;
+    margin: 0 auto;
+    position: relative;
+    padding: 0 4px;
+  }
 
   .modal-overlay {
     display: none;
@@ -970,7 +978,9 @@
       <div class="brand-note">【プロギタリスト監修】</div>
     </div>
   </div>
-  <button class="help-btn" onclick="document.getElementById('help-modal').classList.add('open')">使い方ガイド</button>
+  <div class="header-wrap">
+    <button class="help-btn" onclick="document.getElementById('help-modal').classList.add('open')">使い方ガイド</button>
+  </div>
 </header>
 
 <!-- ===== HELP MODAL ===== -->
