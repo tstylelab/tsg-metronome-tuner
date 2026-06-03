@@ -1,0 +1,1887 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TSG Metronome & Tuner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+    background: #f0f2f5;
+    color: #222;
+    min-height: 100vh;
+  }
+
+  /* ===== HEADER ===== */
+  header {
+    background: #1a1a2e;
+    padding: 16px 20px 14px;
+    text-align: center;
+  }
+
+  .header-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .header-guitar svg {
+    display: block;
+    opacity: 0.92;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
+  }
+
+  .header-text { text-align: left; }
+
+  .brand-main {
+    font-family: 'Oswald', sans-serif;
+    font-size: 2.4rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+    letter-spacing: 0.04em;
+  }
+
+  .brand-sub1 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 400;
+    letter-spacing: 0.22em;
+    color: #c0392b;
+    text-transform: uppercase;
+    margin-top: 3px;
+  }
+
+  .brand-sub2 {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    color: #ffffff;
+    margin-top: 5px;
+  }
+
+  .brand-underline {
+    width: 100%;
+    height: 2px;
+    background: #c0392b;
+    margin-top: 4px;
+    border-radius: 1px;
+  }
+
+  .brand-note {
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.5);
+    margin-top: 5px;
+    letter-spacing: 0.05em;
+  }
+
+  /* ===== TAB ===== */
+  .tab-container {
+    display: flex;
+    justify-content: center;
+    padding: 20px 20px 0;
+  }
+
+  .tab-wrap {
+    background: #e0e3ea;
+    border-radius: 10px;
+    padding: 4px;
+    display: flex;
+    gap: 4px;
+  }
+
+  .tab-btn {
+    font-family: system-ui, -apple-system, 'Helvetica Neue', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 600;
+    padding: 9px 28px;
+    border: none;
+    border-radius: 7px;
+    cursor: pointer;
+    background: transparent;
+    color: #666;
+    transition: background 0.18s, color 0.18s, box-shadow 0.18s;
+    letter-spacing: 0.02em;
+  }
+
+  .tab-btn.active {
+    background: #1a1a2e;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(26,26,46,0.18);
+  }
+
+  .tab-btn:not(.active):hover {
+    background: #d0d3da;
+    color: #333;
+  }
+
+  /* ===== MAIN ===== */
+  main {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 24px 16px 48px;
+  }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* ===== CARD ===== */
+  .card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 28px 24px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+  }
+
+  /* ===== METRONOME ===== */
+  .bpm-display {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+
+  .bpm-number {
+    font-family: 'Oswald', sans-serif;
+    font-size: 5.5rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .bpm-label {
+    font-size: 0.82rem;
+    color: #888;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    margin-top: 2px;
+  }
+
+  /* Pendulum */
+  .pendulum-container {
+    display: flex;
+    justify-content: center;
+    margin: 8px 0 20px;
+    height: 60px;
+    align-items: center;
+  }
+
+  .pendulum-track {
+    width: 200px;
+    height: 8px;
+    background: #e0e3ea;
+    border-radius: 4px;
+    position: relative;
+    overflow: visible;
+  }
+
+  .pendulum-dot {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #1a1a2e;
+    position: absolute;
+    top: 50%;
+    left: 0;
+    transform: translateY(-50%);
+    transition: background 0.05s;
+    box-shadow: 0 2px 8px rgba(26,26,46,0.25);
+  }
+
+  .pendulum-dot.beat {
+    background: #c0392b;
+  }
+
+  /* BPM Slider */
+  .bpm-slider-wrap {
+    margin-bottom: 20px;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    background: #e0e3ea;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #1a1a2e;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.2);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: #1a1a2e;
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.2);
+  }
+
+  .bpm-presets {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 12px;
+    justify-content: center;
+  }
+
+  .preset-btn {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 6px;
+    background: #f7f8fa;
+    color: #555;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    font-weight: 600;
+  }
+
+  .preset-btn:hover {
+    border-color: #1a1a2e;
+    background: #1a1a2e;
+    color: #fff;
+  }
+
+  /* Beat selector */
+  .beat-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .beat-label {
+    font-size: 0.8rem;
+    color: #888;
+    min-width: 60px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .beat-select {
+    flex: 1;
+    padding: 8px 12px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 7px;
+    background: #f7f8fa;
+    font-size: 0.88rem;
+    color: #222;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .beat-select:focus {
+    border-color: #1a1a2e;
+  }
+
+  /* Beat indicators */
+  .beat-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .beat-dot {
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #e0e3ea;
+    transition: background 0.06s, transform 0.06s;
+  }
+
+  .beat-dot.accent {
+    background: #c0392b;
+    width: 20px;
+    height: 20px;
+  }
+
+  .beat-dot.active {
+    background: #2176ae;
+    transform: scale(1.3);
+  }
+
+  .beat-dot.accent.active {
+    background: #c0392b;
+    transform: scale(1.4);
+  }
+
+  /* Buttons */
+  .btn-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .btn {
+    flex: 1;
+    padding: 14px 10px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background 0.15s, transform 0.1s;
+  }
+
+  .btn:active { transform: scale(0.97); }
+
+  .btn-primary {
+    background: #1a1a2e;
+    color: #fff;
+  }
+
+  .btn-primary:hover { background: #2e2e50; }
+
+  .btn-primary.running {
+    background: #c0392b;
+  }
+
+  .btn-primary.running:hover { background: #a93226; }
+
+  .btn-secondary {
+    background: #f7f8fa;
+    color: #1a1a2e;
+    border: 1.5px solid #dde0e8;
+  }
+
+  .btn-secondary:hover {
+    background: #e0e3ea;
+  }
+
+  .btn-tap {
+    background: #2176ae;
+    color: #fff;
+  }
+
+  .btn-tap:hover { background: #1a5f8a; }
+
+  .btn-mute {
+    background: #f7f8fa;
+    color: #1a1a2e;
+    border: 1.5px solid #dde0e8;
+    font-size: 1.1rem;
+  }
+
+  .btn-mute:hover { background: #e0e3ea; }
+
+  .btn-mute.muted {
+    background: #c0392b;
+    color: #fff;
+    border-color: #c0392b;
+  }
+
+  /* ===== TUNER ===== */
+  .tuner-note-display {
+    text-align: center;
+    margin-bottom: 16px;
+  }
+
+  .tuner-note {
+    font-family: 'Oswald', sans-serif;
+    font-size: 5rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1;
+  }
+
+  .tuner-freq {
+    font-size: 0.85rem;
+    color: #888;
+    margin-top: 4px;
+  }
+
+  .tuner-target {
+    font-size: 0.82rem;
+    color: #2176ae;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  /* Gauge */
+  .gauge-wrap {
+    margin: 16px 0 20px;
+    position: relative;
+  }
+
+  .gauge-bar {
+    width: 100%;
+    height: 20px;
+    background: #e0e3ea;
+    border-radius: 10px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gauge-fill {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    border-radius: 10px;
+    transition: left 0.1s, width 0.1s, background 0.2s;
+  }
+
+  .gauge-center {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    width: 3px;
+    background: rgba(0,0,0,0.2);
+    transform: translateX(-50%);
+    z-index: 1;
+    border-radius: 2px;
+  }
+
+  .gauge-labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 0.72rem;
+    color: #999;
+  }
+
+  .tuner-status {
+    text-align: center;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    margin-bottom: 16px;
+    min-height: 1.4em;
+    color: #888;
+  }
+
+  .tuner-status.in-tune { color: #27ae60; }
+  .tuner-status.sharp { color: #c0392b; }
+  .tuner-status.flat { color: #2176ae; }
+
+  /* Guitar string buttons */
+  .string-section {
+    margin-bottom: 20px;
+  }
+
+  .string-label {
+    font-size: 0.78rem;
+    color: #888;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .string-buttons {
+    display: flex;
+    gap: 6px;
+  }
+
+  .string-btn {
+    flex: 1;
+    padding: 10px 4px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 7px;
+    background: #f7f8fa;
+    color: #444;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    text-align: center;
+  }
+
+  .string-btn span {
+    display: block;
+    font-size: 0.65rem;
+    color: #aaa;
+    font-weight: 400;
+    margin-top: 1px;
+  }
+
+  .string-btn:hover, .string-btn.selected {
+    border-color: #1a1a2e;
+    background: #1a1a2e;
+    color: #fff;
+  }
+
+  .string-btn.selected span { color: rgba(255,255,255,0.6); }
+
+  .btn-mic {
+    background: #1a1a2e;
+    color: #fff;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background 0.15s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .btn-mic:hover { background: #2e2e50; }
+
+  .btn-mic.listening {
+    background: #c0392b;
+  }
+
+  .btn-mic.listening:hover { background: #a93226; }
+
+  .mic-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #fff;
+    opacity: 0;
+  }
+
+  .btn-mic.listening .mic-dot {
+    opacity: 1;
+    animation: blink 1s infinite;
+  }
+
+  @keyframes blink {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.3; }
+  }
+
+  @keyframes pendulumSwing {
+    0% { left: 10px; }
+    50% { left: calc(100% - 38px); }
+    100% { left: 10px; }
+  }
+
+  /* ===== GROOVE ===== */
+  .groove-toggle {
+    width: 100%;
+    margin-top: 14px;
+    padding: 9px;
+    background: none;
+    border: 1.5px dashed #ccc;
+    border-radius: 7px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #999;
+    cursor: pointer;
+    letter-spacing: 0.08em;
+    transition: border-color 0.15s, color 0.15s;
+  }
+
+  .groove-toggle:hover { border-color: #1a1a2e; color: #1a1a2e; }
+  .groove-toggle.open { border-color: #1a1a2e; color: #1a1a2e; border-style: solid; }
+
+  .groove-panel {
+    display: none;
+    margin-top: 12px;
+  }
+
+  .groove-panel.open { display: block; }
+
+  .groove-label {
+    font-size: 0.75rem;
+    color: #888;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+
+  .groove-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+  }
+
+  .groove-btn {
+    padding: 10px 4px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 7px;
+    background: #f7f8fa;
+    color: #444;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+    line-height: 1.3;
+  }
+
+  .groove-btn span {
+    display: block;
+    font-size: 0.62rem;
+    color: #aaa;
+    font-weight: 400;
+    margin-top: 2px;
+  }
+
+  .groove-btn.selected {
+    border-color: #2176ae;
+    background: #2176ae;
+    color: #fff;
+  }
+
+  .groove-btn.selected span { color: rgba(255,255,255,0.65); }
+
+  /* ===== LIVE MODE ===== */
+  .live-header {
+    text-align: center;
+    margin-bottom: 18px;
+  }
+
+  .live-bpm-number {
+    font-family: 'Oswald', sans-serif;
+    font-size: 5.5rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .live-slots-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #888;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    margin-top: 18px;
+  }
+
+  .live-slots {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-bottom: 18px;
+  }
+
+  .live-slot-btn {
+    padding: 12px 4px 10px;
+    border: 2px solid #dde0e8;
+    border-radius: 10px;
+    background: #f7f8fa;
+    color: #444;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+
+  .live-slot-btn .slot-num {
+    display: block;
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    line-height: 1;
+    color: #aaa;
+  }
+
+  .live-slot-btn .slot-name {
+    display: none;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: #444;
+    margin-top: 2px;
+    line-height: 1.2;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+    padding: 0 1px;
+  }
+
+  .live-slot-btn .slot-name.has-name { display: block; }
+
+  .live-slot-btn .slot-bpm {
+    display: block;
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-top: 3px;
+    line-height: 1;
+  }
+
+  .live-slot-btn.selected .slot-num  { color: rgba(255,255,255,0.55); }
+  .live-slot-btn.selected .slot-name { color: rgba(255,255,255,0.85); }
+  .live-slot-btn.selected .slot-bpm  { color: #fff; }
+  .live-slot-btn.playing  .slot-num  { color: rgba(255,255,255,0.55); }
+  .live-slot-btn.playing  .slot-name { color: rgba(255,255,255,0.85); }
+  .live-slot-btn.playing  .slot-bpm  { color: #fff; }
+
+  .live-name-input {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 7px;
+    font-size: 0.88rem;
+    color: #222;
+    background: #f7f8fa;
+    outline: none;
+    margin-bottom: 10px;
+    transition: border-color 0.15s;
+  }
+
+  .live-name-input:focus { border-color: #1a1a2e; }
+
+  .live-slot-btn.selected {
+    border-color: #1a1a2e;
+    background: #1a1a2e;
+  }
+
+  .live-slot-btn.selected .slot-num { color: #fff; }
+  .live-slot-btn.selected .slot-bpm { color: rgba(255,255,255,0.6); }
+
+  .live-slot-btn.playing {
+    border-color: #c0392b;
+    background: #c0392b;
+  }
+
+  .live-slot-btn.playing .slot-num { color: #fff; }
+  .live-slot-btn.playing .slot-bpm { color: rgba(255,255,255,0.7); }
+
+  .live-bpm-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .live-fine-btn {
+    width: 42px;
+    height: 42px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 8px;
+    background: #f7f8fa;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    cursor: pointer;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s;
+  }
+
+  .live-fine-btn:hover { background: #e0e3ea; }
+  .live-fine-btn:active { transform: scale(0.94); }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 400px) {
+    .bpm-number { font-size: 4.5rem; }
+    .tuner-note { font-size: 4rem; }
+    .tab-btn { padding: 9px 20px; font-size: 0.85rem; }
+    .card { padding: 22px 16px; }
+    .brand-main { font-size: 2rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="header-guitar">
+      <svg viewBox="0 0 48 108" width="38" height="86" xmlns="http://www.w3.org/2000/svg">
+        <!-- Headstock -->
+        <rect x="17" y="1" width="14" height="13" rx="3" fill="rgba(255,255,255,0.92)"/>
+        <!-- Tuners left -->
+        <rect x="10" y="3"  width="8" height="3.5" rx="1.75" fill="rgba(255,255,255,0.75)"/>
+        <rect x="10" y="8"  width="8" height="3.5" rx="1.75" fill="rgba(255,255,255,0.75)"/>
+        <!-- Tuners right -->
+        <rect x="30" y="3"  width="8" height="3.5" rx="1.75" fill="rgba(255,255,255,0.75)"/>
+        <rect x="30" y="8"  width="8" height="3.5" rx="1.75" fill="rgba(255,255,255,0.75)"/>
+        <!-- Nut -->
+        <rect x="17" y="13" width="14" height="2.5" rx="1" fill="rgba(255,255,255,0.6)"/>
+        <!-- Neck -->
+        <rect x="19.5" y="15.5" width="9" height="42" rx="2" fill="rgba(255,255,255,0.92)"/>
+        <!-- Frets (3本) -->
+        <rect x="19.5" y="24" width="9" height="1" fill="rgba(26,26,46,0.25)"/>
+        <rect x="19.5" y="33" width="9" height="1" fill="rgba(26,26,46,0.25)"/>
+        <rect x="19.5" y="42" width="9" height="1" fill="rgba(26,26,46,0.25)"/>
+        <!-- Heel -->
+        <rect x="17" y="55" width="14" height="5" rx="2" fill="rgba(255,255,255,0.92)"/>
+        <!-- Body: upper bout -->
+        <ellipse cx="24" cy="69" rx="13" ry="11" fill="rgba(255,255,255,0.92)"/>
+        <!-- Waist fill (繋ぎ) -->
+        <rect x="17" y="75" width="14" height="8" fill="rgba(255,255,255,0.92)"/>
+        <!-- Body: lower bout -->
+        <ellipse cx="24" cy="90" rx="17" ry="16" fill="rgba(255,255,255,0.92)"/>
+        <!-- Sound hole -->
+        <circle cx="24" cy="87" r="6.5" fill="rgba(26,26,46,0.75)"/>
+        <!-- Bridge -->
+        <rect x="18" y="97" width="12" height="3" rx="1.5" fill="rgba(26,26,46,0.45)"/>
+        <!-- Strings (6本・首元〜ブリッジ) -->
+        <line x1="21" y1="16" x2="21" y2="100" stroke="rgba(26,26,46,0.18)" stroke-width="0.6"/>
+        <line x1="22.5" y1="16" x2="22.5" y2="100" stroke="rgba(26,26,46,0.18)" stroke-width="0.6"/>
+        <line x1="24" y1="16" x2="24" y2="100" stroke="rgba(26,26,46,0.18)" stroke-width="0.6"/>
+        <line x1="25.5" y1="16" x2="25.5" y2="100" stroke="rgba(26,26,46,0.18)" stroke-width="0.6"/>
+        <line x1="27" y1="16" x2="27" y2="100" stroke="rgba(26,26,46,0.18)" stroke-width="0.6"/>
+        <line x1="28.5" y1="16" x2="28.5" y2="100" stroke="rgba(26,26,46,0.18)" stroke-width="0.6"/>
+      </svg>
+    </div>
+    <div class="header-text">
+      <div class="brand-main">TSG</div>
+      <div class="brand-sub1">GUITAR SCHOOL</div>
+      <div class="brand-sub2">Metronome &amp; Tuner</div>
+      <div class="brand-underline"></div>
+      <div class="brand-note">【プロギタリスト監修】</div>
+    </div>
+  </div>
+</header>
+
+<div class="tab-container">
+  <div class="tab-wrap">
+    <button class="tab-btn active" onclick="switchTab('metronome')">Metronome</button>
+    <button class="tab-btn" onclick="switchTab('tuner')">Tuner</button>
+    <button class="tab-btn" onclick="switchTab('live')">Live</button>
+  </div>
+</div>
+
+<main>
+
+  <!-- ===== METRONOME PANEL ===== -->
+  <div class="panel active" id="panel-metronome">
+    <div class="card">
+
+      <div class="bpm-display">
+        <div class="bpm-number" id="bpm-display">120</div>
+        <div class="bpm-label">BPM</div>
+      </div>
+
+      <div class="pendulum-container">
+        <div class="pendulum-track" id="pendulum-track">
+          <div class="pendulum-dot" id="pendulum-dot"></div>
+        </div>
+      </div>
+
+      <div class="beat-indicators" id="beat-indicators"></div>
+
+      <div class="bpm-slider-wrap">
+        <input type="range" id="bpm-slider" min="30" max="280" value="120" oninput="setBpm(+this.value)">
+      </div>
+
+      <div class="bpm-presets">
+        <button class="preset-btn" onclick="setBpm(60)">60 <span style="color:#bbb;font-weight:400">Largo</span></button>
+        <button class="preset-btn" onclick="setBpm(80)">80 <span style="color:#bbb;font-weight:400">Andante</span></button>
+        <button class="preset-btn" onclick="setBpm(100)">100 <span style="color:#bbb;font-weight:400">Moderato</span></button>
+        <button class="preset-btn" onclick="setBpm(120)">120 <span style="color:#bbb;font-weight:400">Allegro</span></button>
+        <button class="preset-btn" onclick="setBpm(160)">160 <span style="color:#bbb;font-weight:400">Presto</span></button>
+      </div>
+
+      <div class="beat-row" style="margin-top:20px;">
+        <span class="beat-label">音色</span>
+        <select class="beat-select" id="sound-select" onchange="currentSound=this.value">
+          <option value="beep">Beep（電子音）</option>
+          <option value="rimshot">Rimshot（リムショット）</option>
+          <option value="hihat">Hi-hat（ハイハット）</option>
+        </select>
+      </div>
+
+      <div class="beat-row">
+        <span class="beat-label">拍子</span>
+        <select class="beat-select" id="beat-select" onchange="setBeats(+this.value)">
+          <option value="1">1 / 4</option>
+          <option value="2">2 / 4</option>
+          <option value="3">3 / 4</option>
+          <option value="4" selected>4 / 4</option>
+          <option value="5">5 / 4</option>
+          <option value="6">6 / 4</option>
+          <option value="7">7 / 4</option>
+        </select>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="start-btn" onclick="toggleMetronome()">START</button>
+        <button class="btn btn-tap" onclick="tapTempo()">TAP</button>
+        <button class="btn btn-mute" id="mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
+      </div>
+
+      <button class="groove-toggle" id="groove-toggle" onclick="toggleGroove()">▼ &nbsp;GROOVE / SUBDIVISION</button>
+
+      <div class="groove-panel" id="groove-panel">
+        <div class="groove-label">リズムパターン</div>
+
+        <div id="shuffle-slider-wrap" style="display:none; margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:0.82rem; font-weight:700; color:#444; letter-spacing:0.06em; text-transform:uppercase;">Shuffle Feel</span>
+            <span style="font-size:0.88rem; font-weight:700; color:#2176ae;" id="shuffle-ratio-label">67% <span style="font-size:0.75rem; color:#666; font-weight:600">（標準シャッフル）</span></span>
+          </div>
+          <input type="range" id="shuffle-slider" min="51" max="80" value="67" oninput="setShuffleRatio(+this.value)">
+          <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:0.72rem; color:#888; font-weight:600;">
+            <span>51% ほぼイーブン</span>
+            <span>67% 標準</span>
+            <span>80% ディープ</span>
+          </div>
+        </div>
+        <div class="groove-grid">
+          <button class="groove-btn selected" onclick="setGroove('normal', this)">Normal<span>拍のみ</span></button>
+          <button class="groove-btn" onclick="setGroove('eighth', this)">8th<span>8分音符</span></button>
+          <button class="groove-btn" onclick="setGroove('shuffle', this)">Shuffle<span>8分シャッフル</span></button>
+          <button class="groove-btn" onclick="setGroove('sixteenth', this)">16th<span>16分音符</span></button>
+          <button class="groove-btn" onclick="setGroove('sixteenth-shuffle', this)">16th Shuffle<span>16分シャッフル</span></button>
+          <button class="groove-btn" onclick="setGroove('one-backbeat', this)">1拍目＋裏<span>8分・頭＋裏拍</span></button>
+          <button class="groove-btn" onclick="setGroove('backbeat', this)">裏拍のみ<span>8分・裏拍のみ</span></button>
+          <button class="groove-btn" onclick="setGroove('one-shuffle-back', this)">1拍目＋裏<span>シャッフル版</span></button>
+          <button class="groove-btn" onclick="setGroove('shuffle-back', this)">裏拍のみ<span>シャッフル版</span></button>
+          <button class="groove-btn" onclick="setGroove('one-16back', this)">1拍目＋裏裏<span>16分4つ目版</span></button>
+          <button class="groove-btn" onclick="setGroove('16back', this)">裏裏のみ<span>16分4つ目のみ</span></button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ===== LIVE MODE PANEL ===== -->
+  <div class="panel" id="panel-live">
+    <div class="card">
+
+      <div class="live-header">
+        <div class="live-bpm-number" id="live-bpm-display">120</div>
+        <div class="bpm-label">BPM</div>
+      </div>
+
+      <div class="pendulum-container">
+        <div class="pendulum-track" id="live-pendulum-track">
+          <div class="pendulum-dot" id="live-pendulum-dot"></div>
+        </div>
+      </div>
+
+      <div class="beat-indicators" id="live-beat-indicators">
+        <div class="beat-dot accent" id="lbdot-0"></div>
+        <div class="beat-dot" id="lbdot-1"></div>
+        <div class="beat-dot" id="lbdot-2"></div>
+        <div class="beat-dot" id="lbdot-3"></div>
+      </div>
+
+      <div class="live-slots-label">セットリスト</div>
+      <div class="live-slots" id="live-slots"></div>
+
+      <input type="text" class="live-name-input" id="live-slot-name"
+        placeholder="曲名を入力（任意）" maxlength="20"
+        oninput="updateSlotName(this.value)">
+
+      <div class="live-bpm-row">
+        <button class="live-fine-btn" onclick="adjustLiveBpm(-1)">−</button>
+        <input type="range" id="live-bpm-slider" min="30" max="280" value="120" oninput="setLiveBpm(+this.value)">
+        <button class="live-fine-btn" onclick="adjustLiveBpm(+1)">+</button>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn btn-primary" id="live-start-btn" onclick="toggleLive()">START</button>
+        <button class="btn btn-mute" id="live-mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
+      </div>
+
+      <button class="groove-toggle" id="slot-expand-btn" onclick="expandSlots()" style="margin-top:12px;">▼ &nbsp;スロットを増やす（12 → 24曲）</button>
+
+      <div style="margin-top:16px; border-top:1.5px solid #eee; padding-top:14px;">
+        <div class="live-slots-label" style="margin-top:0; margin-bottom:10px;">セットリスト 保存 / 読み込み</div>
+        <div style="display:flex; gap:8px; margin-bottom:8px;">
+          <input type="text" id="setlist-name" placeholder="ライブ名（任意）"
+            style="flex:1; padding:9px 12px; border:1.5px solid #dde0e8; border-radius:7px;
+                   font-size:0.88rem; color:#222; background:#f7f8fa; outline:none;">
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button class="btn btn-secondary" onclick="saveSetlist()" style="flex:1; padding:11px;">💾 保存</button>
+          <label class="btn btn-secondary" style="flex:1; padding:11px; cursor:pointer; text-align:center;">
+            📂 読み込み
+            <input type="file" id="setlist-file" accept=".json" onchange="loadSetlist(event)" style="display:none;">
+          </label>
+        </div>
+      </div>
+
+      <button onclick="resetLive()"
+        style="width:100%; margin-top:10px; padding:11px; border:1.5px solid #e0b0b0;
+               border-radius:8px; background:#fff5f5; color:#c0392b; font-size:0.85rem;
+               font-weight:700; cursor:pointer; letter-spacing:0.04em; transition:background 0.15s;"
+        onmouseover="this.style.background='#fde8e8'"
+        onmouseout="this.style.background='#fff5f5'">
+        🗑 セットリストをリセット
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ===== TUNER PANEL ===== -->
+  <div class="panel" id="panel-tuner">
+    <div class="card">
+
+      <div class="tuner-note-display">
+        <div class="tuner-note" id="tuner-note">—</div>
+        <div class="tuner-freq" id="tuner-freq"></div>
+        <div class="tuner-target" id="tuner-target"></div>
+      </div>
+
+      <div class="gauge-wrap">
+        <div class="gauge-bar">
+          <div class="gauge-center"></div>
+          <div class="gauge-fill" id="gauge-fill" style="left:50%;width:0;background:#e0e3ea;"></div>
+        </div>
+        <div class="gauge-labels">
+          <span>♭ Flat</span>
+          <span>In Tune</span>
+          <span>Sharp ♯</span>
+        </div>
+      </div>
+
+      <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
+
+      <div class="string-section">
+        <div class="string-label">弦を選択（参考音程）</div>
+        <div class="string-buttons">
+          <button class="string-btn" onclick="selectString(0, this)">E<span>1弦</span></button>
+          <button class="string-btn" onclick="selectString(1, this)">B<span>2弦</span></button>
+          <button class="string-btn" onclick="selectString(2, this)">G<span>3弦</span></button>
+          <button class="string-btn" onclick="selectString(3, this)">D<span>4弦</span></button>
+          <button class="string-btn" onclick="selectString(4, this)">A<span>5弦</span></button>
+          <button class="string-btn" onclick="selectString(5, this)">E<span>6弦</span></button>
+        </div>
+      </div>
+
+      <button class="btn-mic" id="mic-btn" onclick="toggleMic()">
+        <div class="mic-dot"></div>
+        <span id="mic-btn-text">マイクをオンにする</span>
+      </button>
+
+    </div>
+  </div>
+
+</main>
+
+<script>
+// ===== TAB =====
+function switchTab(tab) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + tab).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if (tab === 'metronome' && tunerActive) toggleMic();
+  if (tab === 'metronome' && liveRunning) toggleLive();
+  if (tab === 'tuner' && metronomeRunning) toggleMetronome();
+  if (tab === 'tuner' && liveRunning) toggleLive();
+  if (tab === 'live' && metronomeRunning) toggleMetronome();
+  if (tab === 'live' && tunerActive) toggleMic();
+}
+
+// ===== METRONOME =====
+let bpm = 120;
+let beats = 4;
+let currentBeat = 0;
+let metronomeRunning = false;
+let audioCtx = null;
+let nextNoteTime = 0;
+let timerID = null;
+let pendulumDir = 1;
+let pendulumAnim = null;
+let currentSound = 'beep';
+let groove = 'normal';
+let shuffleRatio = 0.67;
+
+const SHUFFLE_GROOVES = ['shuffle', 'shuffle-back', 'one-shuffle-back', 'sixteenth-shuffle'];
+
+function setShuffleRatio(val) {
+  shuffleRatio = val / 100;
+  let label = '';
+  if (val <= 53) label = '（ほぼイーブン）';
+  else if (val <= 64) label = '（ライトシャッフル）';
+  else if (val <= 69) label = '（標準シャッフル）';
+  else if (val <= 74) label = '（ヘビーシャッフル）';
+  else label = '（ディープスイング）';
+  document.getElementById('shuffle-ratio-label').innerHTML =
+    val + '% <span style="font-size:0.75rem; color:#666; font-weight:600">' + label + '</span>';
+}
+
+function toggleGroove() {
+  const panel = document.getElementById('groove-panel');
+  const btn = document.getElementById('groove-toggle');
+  const open = panel.classList.toggle('open');
+  btn.classList.toggle('open', open);
+  btn.textContent = open ? '▲  GROOVE / SUBDIVISION' : '▼  GROOVE / SUBDIVISION';
+}
+
+function setGroove(val, el) {
+  groove = val;
+  document.querySelectorAll('.groove-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('shuffle-slider-wrap').style.display =
+    SHUFFLE_GROOVES.includes(val) ? 'block' : 'none';
+}
+
+let masterOut = null;
+let muteGain = null;
+let isMuted = false;
+
+function getAudioCtx() {
+  if (!audioCtx) {
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const comp = audioCtx.createDynamicsCompressor();
+    comp.threshold.value = -6;
+    comp.knee.value = 0;
+    comp.ratio.value = 20;
+    comp.attack.value = 0.001;
+    comp.release.value = 0.1;
+    const masterGain = audioCtx.createGain();
+    masterGain.gain.value = 1.4;
+    muteGain = audioCtx.createGain();
+    muteGain.gain.value = 1;
+    comp.connect(masterGain);
+    masterGain.connect(muteGain);
+    muteGain.connect(audioCtx.destination);
+    masterOut = comp;
+  }
+  return audioCtx;
+}
+
+function toggleMute() {
+  getAudioCtx();
+  isMuted = !isMuted;
+  muteGain.gain.setTargetAtTime(isMuted ? 0 : 1, audioCtx.currentTime, 0.015);
+  document.querySelectorAll('#mute-btn, #live-mute-btn').forEach(btn => {
+    btn.textContent = isMuted ? 'UNMUTE' : 'MUTE';
+    btn.classList.toggle('muted', isMuted);
+  });
+}
+
+function setBpm(val) {
+  bpm = Math.min(280, Math.max(30, val));
+  document.getElementById('bpm-display').textContent = bpm;
+  document.getElementById('bpm-slider').value = bpm;
+}
+
+function setBeats(val) {
+  beats = val;
+  currentBeat = 0;
+  renderBeatDots();
+}
+
+function renderBeatDots() {
+  const cont = document.getElementById('beat-indicators');
+  cont.innerHTML = '';
+  for (let i = 0; i < beats; i++) {
+    const d = document.createElement('div');
+    d.className = 'beat-dot' + (i === 0 ? ' accent' : '');
+    d.id = 'bdot-' + i;
+    cont.appendChild(d);
+  }
+}
+
+function makeNoise(ctx, duration) {
+  const bufSize = Math.ceil(ctx.sampleRate * duration);
+  const buf = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+  const data = buf.getChannelData(0);
+  for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+  const src = ctx.createBufferSource();
+  src.buffer = buf;
+  return src;
+}
+
+function scheduleNote(time, isAccent) {
+  const ctx = getAudioCtx();
+  const out = masterOut;
+
+  if (currentSound === 'beep') {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(out);
+    osc.frequency.value = isAccent ? 1200 : 900;
+    gain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+    osc.start(time); osc.stop(time + 0.08);
+
+  } else if (currentSound === 'rimshot') {
+    // クラック成分：鋭い高域ノイズ
+    const crack = makeNoise(ctx, 0.006);
+    const crackFilter = ctx.createBiquadFilter();
+    crackFilter.type = 'bandpass'; crackFilter.frequency.value = 5000; crackFilter.Q.value = 1;
+    const crackGain = ctx.createGain();
+    crackGain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
+    crackGain.gain.exponentialRampToValueAtTime(0.001, time + 0.005);
+    crack.connect(crackFilter); crackFilter.connect(crackGain); crackGain.connect(out);
+    crack.start(time); crack.stop(time + 0.006);
+
+    // ボディ成分：中域ノイズ（スネアの胴鳴り）
+    const body = makeNoise(ctx, 0.08);
+    const bodyFilter = ctx.createBiquadFilter();
+    bodyFilter.type = 'bandpass'; bodyFilter.frequency.value = 900; bodyFilter.Q.value = 1.2;
+    const bodyGain = ctx.createGain();
+    bodyGain.gain.setValueAtTime(isAccent ? 0.85 : 0.65, time);
+    bodyGain.gain.exponentialRampToValueAtTime(0.001, time + 0.07);
+    body.connect(bodyFilter); bodyFilter.connect(bodyGain); bodyGain.connect(out);
+    body.start(time); body.stop(time + 0.08);
+
+    // ピッチ成分：リムの金属感
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = isAccent ? 380 : 300;
+    oscGain.gain.setValueAtTime(isAccent ? 0.7 : 0.5, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    osc.connect(oscGain); oscGain.connect(out);
+    osc.start(time); osc.stop(time + 0.05);
+
+  } else if (currentSound === 'hihat') {
+    const noise = makeNoise(ctx, 0.15);
+    const hipass = ctx.createBiquadFilter();
+    hipass.type = 'highpass'; hipass.frequency.value = 7000;
+    const bandpass = ctx.createBiquadFilter();
+    bandpass.type = 'bandpass'; bandpass.frequency.value = 10000; bandpass.Q.value = 0.5;
+    const gain = ctx.createGain();
+    const decay = isAccent ? 0.15 : 0.09;
+    gain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
+    noise.connect(hipass); hipass.connect(bandpass); bandpass.connect(gain); gain.connect(out);
+    noise.start(time); noise.stop(time + decay + 0.01);
+  }
+}
+
+function scheduleSubNote(time) {
+  const ctx = getAudioCtx();
+  const out = masterOut;
+  if (currentSound === 'beep') {
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(out);
+    osc.frequency.value = 700;
+    gain.gain.setValueAtTime(0.4, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    osc.start(time); osc.stop(time + 0.05);
+  } else if (currentSound === 'rimshot') {
+    const noise = makeNoise(ctx, 0.05);
+    const f = ctx.createBiquadFilter();
+    f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 1.2;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.38, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    noise.connect(f); f.connect(gain); gain.connect(out);
+    noise.start(time); noise.stop(time + 0.05);
+  } else if (currentSound === 'hihat') {
+    const noise = makeNoise(ctx, 0.07);
+    const hp = ctx.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 7000;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.42, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+    noise.connect(hp); hp.connect(gain); gain.connect(out);
+    noise.start(time); noise.stop(time + 0.07);
+  }
+}
+
+function scheduler() {
+  const ctx = getAudioCtx();
+  const interval = 60 / bpm;
+  while (nextNoteTime < ctx.currentTime + 0.1) {
+    const beat = currentBeat;
+    const t = nextNoteTime;
+    const isAccent = beat === 0;
+
+    // メインビートを鳴らすか
+    const noMain = ['backbeat', 'shuffle-back', '16back'];
+    const oneOnly = ['one-backbeat', 'one-shuffle-back', 'one-16back'];
+    const playMain = !noMain.includes(groove) && !(oneOnly.includes(groove) && !isAccent);
+    if (playMain) scheduleNote(t, isAccent);
+
+    // 細分割音
+    if (groove === 'eighth' || groove === 'backbeat' || groove === 'one-backbeat') {
+      scheduleSubNote(t + interval / 2);
+    } else if (groove === 'shuffle' || groove === 'shuffle-back' || groove === 'one-shuffle-back') {
+      scheduleSubNote(t + interval * shuffleRatio);
+    } else if (groove === 'sixteenth') {
+      scheduleSubNote(t + interval / 4);
+      scheduleSubNote(t + interval / 2);
+      scheduleSubNote(t + interval * 3 / 4);
+    } else if (groove === 'sixteenth-shuffle') {
+      // 各8分内でshuffleRatioを適用: 前半の裏 + 後半の表 + 後半の裏
+      scheduleSubNote(t + interval / 2 * shuffleRatio);
+      scheduleSubNote(t + interval / 2);
+      scheduleSubNote(t + interval / 2 + interval / 2 * shuffleRatio);
+    } else if (groove === '16back' || groove === 'one-16back') {
+      scheduleSubNote(t + interval * 3 / 4);
+    }
+
+    const delay = (t - ctx.currentTime) * 1000;
+    setTimeout(() => flashBeat(beat), Math.max(0, delay));
+    currentBeat = (currentBeat + 1) % beats;
+    nextNoteTime += interval;
+  }
+  timerID = setTimeout(scheduler, 25);
+}
+
+function flashBeat(beat) {
+  document.querySelectorAll('.beat-dot').forEach((d, i) => {
+    d.classList.toggle('active', i === beat);
+  });
+  const dot = document.getElementById('pendulum-dot');
+  if (dot) {
+    dot.classList.add('beat');
+    setTimeout(() => dot.classList.remove('beat'), 80);
+  }
+  animatePendulum();
+}
+
+function animatePendulum() {
+  const track = document.getElementById('pendulum-track');
+  const dot = document.getElementById('pendulum-dot');
+  if (!track || !dot) return;
+  const trackW = track.offsetWidth;
+  const dotW = 28;
+  const maxX = trackW - dotW;
+  const duration = (60 / bpm) * 1000;
+
+  let start = null;
+  const startX = parseFloat(dot.style.left) || trackW / 2 - dotW / 2;
+  const targetX = pendulumDir > 0 ? maxX : 0;
+  pendulumDir *= -1;
+
+  if (pendulumAnim) cancelAnimationFrame(pendulumAnim);
+
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / duration, 1);
+    const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    dot.style.left = (startX + (targetX - startX) * ease) + 'px';
+    if (p < 1) pendulumAnim = requestAnimationFrame(step);
+  }
+  pendulumAnim = requestAnimationFrame(step);
+}
+
+function toggleMetronome() {
+  const btn = document.getElementById('start-btn');
+  if (!metronomeRunning) {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    nextNoteTime = ctx.currentTime + 0.05;
+    currentBeat = 0;
+    scheduler();
+    metronomeRunning = true;
+    btn.textContent = 'STOP';
+    btn.classList.add('running');
+  } else {
+    clearTimeout(timerID);
+    metronomeRunning = false;
+    btn.textContent = 'START';
+    btn.classList.remove('running');
+    document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
+    const dot = document.getElementById('pendulum-dot');
+    if (dot) {
+      dot.style.left = '';
+      if (pendulumAnim) cancelAnimationFrame(pendulumAnim);
+    }
+  }
+}
+
+// Tap tempo
+let tapTimes = [];
+function tapTempo() {
+  const now = performance.now();
+  tapTimes.push(now);
+  if (tapTimes.length > 8) tapTimes.shift();
+  const recent = tapTimes.slice(-4);
+  if (recent.length >= 2) {
+    const avg = (recent[recent.length - 1] - recent[0]) / (recent.length - 1);
+    const newBpm = Math.round(60000 / avg);
+    if (newBpm >= 40 && newBpm <= 240) setBpm(newBpm);
+  }
+  if (tapTimes.length === 1) setTimeout(() => { if (tapTimes.length === 1) tapTimes = []; }, 3000);
+}
+
+// ===== LIVE MODE =====
+let liveSlots = Array(24).fill(null);  // null = 未設定（最大24）
+let liveNames = Array(24).fill('');   // 曲名
+let liveSlotCount = 12;  // 表示中のスロット数
+
+const LS_KEY = 'tsg-live-state';
+
+function saveLiveState() {
+  const state = {
+    slots: liveSlots,
+    names: liveNames,
+    slotCount: liveSlotCount,
+    selectedSlot: liveSelectedSlot,
+    setlistName: document.getElementById('setlist-name')?.value || ''
+  };
+  localStorage.setItem(LS_KEY, JSON.stringify(state));
+}
+
+function loadLiveState() {
+  try {
+    const raw = localStorage.getItem(LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (Array.isArray(s.slots)) s.slots.forEach((v, i) => { if (i < 24) liveSlots[i] = v; });
+    if (Array.isArray(s.names)) s.names.forEach((v, i) => { if (i < 24) liveNames[i] = v || ''; });
+    if (s.slotCount === 24) liveSlotCount = 24;
+    if (typeof s.selectedSlot === 'number') liveSelectedSlot = s.selectedSlot;
+    if (s.setlistName) {
+      const el = document.getElementById('setlist-name');
+      if (el) el.value = s.setlistName;
+    }
+  } catch (e) {}
+}
+let liveSelectedSlot = 0;
+let liveBpm = 120;
+let liveRunning = false;
+let liveNextNoteTime = 0;
+let liveTimerID = null;
+let livePendulumDir = 1;
+let livePendulumAnim = null;
+let liveBeat = 0;
+
+function saveSetlist() {
+  const today = new Date();
+  const dateStr = today.getFullYear() + '-'
+    + String(today.getMonth() + 1).padStart(2, '0') + '-'
+    + String(today.getDate()).padStart(2, '0');
+  const name = document.getElementById('setlist-name').value.trim() || 'Live';
+  const data = {
+    name: name,
+    date: dateStr,
+    slotCount: liveSlotCount,
+    slots: liveSlots,
+    names: liveNames
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = dateStr + '_TSG-Live_' + name + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function loadSetlist(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // スロットデータを復元
+      liveSlots = Array(24).fill(null);
+      liveNames = Array(24).fill('');
+      if (Array.isArray(data.slots)) {
+        data.slots.forEach((v, i) => { if (i < 24) liveSlots[i] = v; });
+      }
+      if (Array.isArray(data.names)) {
+        data.names.forEach((v, i) => { if (i < 24) liveNames[i] = v || ''; });
+      }
+      // スロット数を復元
+      liveSlotCount = 12;
+      document.getElementById('slot-expand-btn').textContent = '▼  スロットを増やす（12 → 24曲）';
+      document.getElementById('slot-expand-btn').classList.remove('open');
+      initLiveSlots();
+      // 24曲モードで保存されていた場合は展開
+      if (data.slotCount === 24) expandSlots();
+      // ライブ名を復元
+      if (data.name) document.getElementById('setlist-name').value = data.name;
+      // BPMラベルを更新
+      liveSlots.forEach((bpm, i) => {
+        const el = document.getElementById('slot-bpm-' + i);
+        if (el) el.textContent = bpm !== null ? bpm : '—';
+      });
+      // スロット0を選択
+      selectLiveSlot(0);
+      alert('「' + (data.name || file.name) + '」を読み込みました（' + data.date + '）');
+    } catch (err) {
+      alert('読み込みに失敗しました。正しいJSONファイルか確認してください。');
+    }
+    event.target.value = '';  // 同じファイルを再読み込みできるようリセット
+  };
+  reader.readAsText(file);
+}
+
+function resetLive() {
+  if (!confirm('セットリストの情報（BPM・曲名）をすべてリセットします。\nよろしいですか？')) return;
+  liveSlots = Array(24).fill(null);
+  liveNames = Array(24).fill('');
+  liveSelectedSlot = 0;
+  liveSlotCount = 12;
+  localStorage.removeItem(LS_KEY);  // 先に削除してからinitを呼ぶ
+  document.getElementById('setlist-name').value = '';
+  document.getElementById('live-slot-name').value = '';
+  initLiveSlots();
+}
+
+function expandSlots() {
+  const btn = document.getElementById('slot-expand-btn');
+  if (liveSlotCount === 12) {
+    liveSlotCount = 24;
+    btn.textContent = '▲  スロットを減らす（24 → 12曲）';
+    btn.classList.add('open');
+    // スロット13〜24を追加
+    const container = document.getElementById('live-slots');
+    for (let i = 12; i < 24; i++) container.appendChild(makeSlotBtn(i));
+  } else {
+    liveSlotCount = 12;
+    btn.textContent = '▼  スロットを増やす（12 → 24曲）';
+    btn.classList.remove('open');
+    // スロット13〜24を削除
+    for (let i = 23; i >= 12; i--) {
+      const el = document.getElementById('live-slot-' + i);
+      if (el) el.remove();
+    }
+    // 選択中スロットが範囲外なら0に戻す
+    if (liveSelectedSlot >= 12) selectLiveSlot(0);
+  }
+  saveLiveState();
+}
+
+function makeSlotBtn(i) {
+  const btn = document.createElement('button');
+  btn.className = 'live-slot-btn' + (i === 0 ? ' selected' : '');
+  btn.id = 'live-slot-' + i;
+  btn.onclick = () => selectLiveSlot(i);
+  const name = liveNames[i] || '';
+  btn.innerHTML = `<span class="slot-num">${i + 1}</span>`
+    + `<span class="slot-name${name ? ' has-name' : ''}" id="slot-name-${i}">${name}</span>`
+    + `<span class="slot-bpm" id="slot-bpm-${i}">${liveSlots[i] !== null ? liveSlots[i] : '—'}</span>`;
+  return btn;
+}
+
+function updateSlotName(val) {
+  liveNames[liveSelectedSlot] = val;
+  const nameEl = document.getElementById('slot-name-' + liveSelectedSlot);
+  if (nameEl) {
+    nameEl.textContent = val;
+    nameEl.classList.toggle('has-name', val.length > 0);
+  }
+  saveLiveState();
+}
+
+function initLiveSlots() {
+  loadLiveState();  // localStorageから復元
+  const container = document.getElementById('live-slots');
+  container.innerHTML = '';
+  for (let i = 0; i < 12; i++) container.appendChild(makeSlotBtn(i));
+  // 24曲モードだった場合は展開
+  if (liveSlotCount === 24) {
+    for (let i = 12; i < 24; i++) container.appendChild(makeSlotBtn(i));
+    document.getElementById('slot-expand-btn').textContent = '▲  スロットを減らす（24 → 12曲）';
+    document.getElementById('slot-expand-btn').classList.add('open');
+  }
+  selectLiveSlot(liveSelectedSlot);
+}
+
+function selectLiveSlot(idx) {
+  liveSelectedSlot = idx;
+  document.querySelectorAll('.live-slot-btn').forEach((b, i) => {
+    b.classList.toggle('selected', i === idx);
+    if (liveRunning) b.classList.toggle('playing', i === idx);
+  });
+  const slotBpm = liveSlots[idx] !== null ? liveSlots[idx] : liveBpm;
+  setLiveBpm(slotBpm);
+  const nameInput = document.getElementById('live-slot-name');
+  if (nameInput) nameInput.value = liveNames[idx] || '';
+  saveLiveState();
+}
+
+function setLiveBpm(val) {
+  liveBpm = Math.min(280, Math.max(30, val));
+  document.getElementById('live-bpm-display').textContent = liveBpm;
+  document.getElementById('live-bpm-slider').value = liveBpm;
+  // 選択中スロットに自動保存
+  liveSlots[liveSelectedSlot] = liveBpm;
+  const label = document.getElementById('slot-bpm-' + liveSelectedSlot);
+  if (label) label.textContent = liveBpm;
+  saveLiveState();
+}
+
+function adjustLiveBpm(delta) {
+  setLiveBpm(liveBpm + delta);
+}
+
+function liveTick() {
+  const ctx = getAudioCtx();
+  while (liveNextNoteTime < ctx.currentTime + 0.1) {
+    // ビープ音（シンプル）
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(masterOut);
+    osc.frequency.value = liveBeat === 0 ? 1200 : 900;
+    gain.gain.setValueAtTime(liveBeat === 0 ? 1.0 : 0.8, liveNextNoteTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, liveNextNoteTime + 0.06);
+    osc.start(liveNextNoteTime); osc.stop(liveNextNoteTime + 0.08);
+
+    const delay = (liveNextNoteTime - ctx.currentTime) * 1000;
+    const beat = liveBeat;
+    setTimeout(() => { flashLivePendulum(); flashLiveBeat(beat); }, Math.max(0, delay));
+
+    liveBeat = (liveBeat + 1) % 4;
+    liveNextNoteTime += 60 / liveBpm;
+  }
+  liveTimerID = setTimeout(liveTick, 25);
+}
+
+function flashLiveBeat(beat) {
+  for (let i = 0; i < 4; i++) {
+    const d = document.getElementById('lbdot-' + i);
+    if (d) d.classList.toggle('active', i === beat);
+  }
+}
+
+function flashLivePendulum() {
+  const dot = document.getElementById('live-pendulum-dot');
+  if (dot) { dot.classList.add('beat'); setTimeout(() => dot.classList.remove('beat'), 80); }
+  animateLivePendulum();
+}
+
+function animateLivePendulum() {
+  const track = document.getElementById('live-pendulum-track');
+  const dot = document.getElementById('live-pendulum-dot');
+  if (!track || !dot) return;
+  const trackW = track.offsetWidth;
+  const dotW = 28;
+  const maxX = trackW - dotW;
+  const duration = (60 / liveBpm) * 1000;
+  let start = null;
+  const startX = parseFloat(dot.style.left) || trackW / 2 - dotW / 2;
+  const targetX = livePendulumDir > 0 ? maxX - 4 : 4;
+  livePendulumDir *= -1;
+  if (livePendulumAnim) cancelAnimationFrame(livePendulumAnim);
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / duration, 1);
+    const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
+    dot.style.left = (startX + (targetX - startX) * ease) + 'px';
+    if (p < 1) livePendulumAnim = requestAnimationFrame(step);
+  }
+  livePendulumAnim = requestAnimationFrame(step);
+}
+
+function toggleLive() {
+  const btn = document.getElementById('live-start-btn');
+  if (!liveRunning) {
+    const ctx = getAudioCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    liveNextNoteTime = ctx.currentTime + 0.05;
+    liveBeat = 0;
+    liveTick();
+    liveRunning = true;
+    btn.textContent = 'STOP';
+    btn.classList.add('running');
+    document.querySelectorAll('.live-slot-btn').forEach((b, i) => {
+      b.classList.toggle('playing', i === liveSelectedSlot);
+      b.classList.remove('selected');
+    });
+  } else {
+    clearTimeout(liveTimerID);
+    liveRunning = false;
+    btn.textContent = 'START';
+    btn.classList.remove('running');
+    const dot = document.getElementById('live-pendulum-dot');
+    if (dot) { dot.style.left = ''; if (livePendulumAnim) cancelAnimationFrame(livePendulumAnim); }
+    for (let i = 0; i < 4; i++) {
+      const d = document.getElementById('lbdot-' + i);
+      if (d) d.classList.remove('active');
+    }
+    document.querySelectorAll('.live-slot-btn').forEach((b, i) => {
+      b.classList.remove('playing');
+      b.classList.toggle('selected', i === liveSelectedSlot);
+    });
+  }
+}
+
+// ===== TUNER =====
+const GUITAR_STRINGS = [
+  { name: 'E4', freq: 329.63, label: '1弦 E4' },
+  { name: 'B3', freq: 246.94, label: '2弦 B3' },
+  { name: 'G3', freq: 196.00, label: '3弦 G3' },
+  { name: 'D3', freq: 146.83, label: '4弦 D3' },
+  { name: 'A2', freq: 110.00, label: '5弦 A2' },
+  { name: 'E2', freq: 82.41,  label: '6弦 E2' },
+];
+
+const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+
+let tunerActive = false;
+let micStream = null;
+let tunerAudioCtx = null;
+let analyser = null;
+let tunerAnimId = null;
+let selectedString = null;
+
+function selectString(idx, el) {
+  document.querySelectorAll('.string-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedString = GUITAR_STRINGS[idx];
+  const t = document.getElementById('tuner-target');
+  t.textContent = '目標: ' + selectedString.label + ' (' + selectedString.freq.toFixed(2) + ' Hz)';
+}
+
+async function toggleMic() {
+  const btn = document.getElementById('mic-btn');
+  const btnText = document.getElementById('mic-btn-text');
+  if (!tunerActive) {
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      tunerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = tunerAudioCtx.createMediaStreamSource(micStream);
+      analyser = tunerAudioCtx.createAnalyser();
+      analyser.fftSize = 4096;
+      source.connect(analyser);
+      tunerActive = true;
+      btn.classList.add('listening');
+      btnText.textContent = 'マイクをオフにする';
+      detectPitch();
+    } catch (e) {
+      document.getElementById('tuner-status').textContent = 'マイクのアクセスが拒否されました';
+    }
+  } else {
+    tunerActive = false;
+    if (tunerAnimId) cancelAnimationFrame(tunerAnimId);
+    if (micStream) micStream.getTracks().forEach(t => t.stop());
+    if (tunerAudioCtx) tunerAudioCtx.close();
+    btn.classList.remove('listening');
+    btnText.textContent = 'マイクをオンにする';
+    resetTunerUI();
+  }
+}
+
+function resetTunerUI() {
+  document.getElementById('tuner-note').textContent = '—';
+  document.getElementById('tuner-freq').textContent = '';
+  document.getElementById('tuner-status').textContent = 'マイクをオンにして弦を弾いてください';
+  document.getElementById('tuner-status').className = 'tuner-status';
+  document.getElementById('gauge-fill').style.cssText = 'left:50%;width:0;background:#e0e3ea;';
+}
+
+function detectPitch() {
+  if (!tunerActive) return;
+  const buf = new Float32Array(analyser.fftSize);
+  analyser.getFloatTimeDomainData(buf);
+  const freq = autoCorrelate(buf, tunerAudioCtx.sampleRate);
+
+  if (freq > 60 && freq < 1400) {
+    updateTunerUI(freq);
+  }
+
+  tunerAnimId = requestAnimationFrame(detectPitch);
+}
+
+function autoCorrelate(buf, sampleRate) {
+  const SIZE = buf.length;
+  let rms = 0;
+  for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
+  rms = Math.sqrt(rms / SIZE);
+  if (rms < 0.01) return -1;
+
+  let r1 = 0, r2 = SIZE - 1;
+  for (let i = 0; i < SIZE / 2; i++) {
+    if (Math.abs(buf[i]) < 0.2) { r1 = i; break; }
+  }
+  for (let i = 1; i < SIZE / 2; i++) {
+    if (Math.abs(buf[SIZE - i]) < 0.2) { r2 = SIZE - i; break; }
+  }
+  const trimmed = buf.slice(r1, r2 + 1);
+  const len = trimmed.length;
+
+  const c = new Array(len).fill(0);
+  for (let i = 0; i < len; i++) {
+    for (let j = 0; j < len - i; j++) c[i] += trimmed[j] * trimmed[j + i];
+  }
+
+  let d = 0;
+  while (d < len / 2 && c[d] > c[d + 1]) d++;
+
+  let maxVal = -1, maxPos = -1;
+  for (let i = d; i < len / 2; i++) {
+    if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; }
+  }
+  if (maxPos === -1) return -1;
+
+  // parabolic interpolation
+  let T0 = maxPos;
+  if (maxPos > 0 && maxPos < len - 1) {
+    const x1 = c[maxPos - 1], x2 = c[maxPos], x3 = c[maxPos + 1];
+    T0 = maxPos + (x3 - x1) / (2 * (2 * x2 - x1 - x3));
+  }
+  return sampleRate / T0;
+}
+
+function freqToNote(freq) {
+  const A4 = 440;
+  const semitones = Math.round(12 * Math.log2(freq / A4));
+  const noteIdx = ((semitones % 12) + 12 + 9) % 12; // A=9
+  const octave = Math.floor(semitones / 12) + 4;
+  return { name: NOTE_NAMES[noteIdx], octave, semitones };
+}
+
+function centsOff(freq) {
+  const A4 = 440;
+  const semiExact = 12 * Math.log2(freq / A4);
+  const semiRound = Math.round(semiExact);
+  return (semiExact - semiRound) * 100;
+}
+
+// Smoothing
+let smoothFreq = null;
+function updateTunerUI(rawFreq) {
+  smoothFreq = smoothFreq == null ? rawFreq : smoothFreq * 0.85 + rawFreq * 0.15;
+  const freq = smoothFreq;
+
+  const note = freqToNote(freq);
+  const cents = centsOff(freq);
+
+  document.getElementById('tuner-note').textContent = note.name + note.octave;
+  document.getElementById('tuner-freq').textContent = freq.toFixed(1) + ' Hz';
+
+  const gauge = document.getElementById('gauge-fill');
+  const statusEl = document.getElementById('tuner-status');
+
+  // Gauge: cents range -50..+50 → position
+  const pct = Math.max(-50, Math.min(50, cents));
+  const center = 50; // %
+  const fillPct = Math.abs(pct);
+  if (pct < 0) {
+    // flat: fill from (center + pct) to center
+    gauge.style.left = (center + pct) + '%';
+    gauge.style.width = fillPct + '%';
+    gauge.style.background = '#2176ae';
+  } else if (pct > 0) {
+    gauge.style.left = center + '%';
+    gauge.style.width = fillPct + '%';
+    gauge.style.background = '#c0392b';
+  } else {
+    gauge.style.left = '50%';
+    gauge.style.width = '0';
+    gauge.style.background = '#27ae60';
+  }
+
+  const absC = Math.abs(cents);
+  if (absC < 5) {
+    statusEl.textContent = '♪ IN TUNE';
+    statusEl.className = 'tuner-status in-tune';
+    gauge.style.background = '#27ae60';
+  } else if (cents < 0) {
+    statusEl.textContent = '↑ もう少し上げて (♭ Flat)';
+    statusEl.className = 'tuner-status flat';
+  } else {
+    statusEl.textContent = '↓ もう少し下げて (♯ Sharp)';
+    statusEl.className = 'tuner-status sharp';
+  }
+}
+
+// 全定義が完了してから初期化
+renderBeatDots();
+initLiveSlots();
+</script>
+</body>
+</html>
