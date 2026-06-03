@@ -642,6 +642,130 @@
 
   .groove-btn.selected span { color: rgba(255,255,255,0.65); }
 
+  /* ===== HELP MODAL ===== */
+  .help-btn {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: #c0392b;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 13px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+
+  .help-btn:hover { background: #a93226; }
+
+  header { position: relative; }
+
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 1000;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-y: auto;
+    padding: 20px 16px 40px;
+  }
+
+  .modal-overlay.open { display: flex; }
+
+  .modal-box {
+    background: #fff;
+    border-radius: 14px;
+    width: 100%;
+    max-width: 480px;
+    padding: 28px 24px 24px;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.22);
+    margin: auto;
+  }
+
+  .modal-close {
+    position: absolute;
+    top: 14px;
+    right: 16px;
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: #aaa;
+    cursor: pointer;
+    line-height: 1;
+  }
+
+  .modal-close:hover { color: #333; }
+
+  .modal-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    margin-bottom: 4px;
+    letter-spacing: 0.06em;
+  }
+
+  .modal-subtitle {
+    font-size: 0.78rem;
+    color: #c0392b;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #c0392b;
+  }
+
+  .modal-section {
+    margin-bottom: 20px;
+  }
+
+  .modal-section:last-child { margin-bottom: 0; }
+
+  .modal-section-title {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #fff;
+    background: #1a1a2e;
+    border-radius: 6px;
+    padding: 5px 12px;
+    margin-bottom: 10px;
+    display: inline-block;
+    letter-spacing: 0.06em;
+  }
+
+  .modal-list {
+    list-style: none;
+    padding: 0;
+  }
+
+  .modal-list li {
+    font-size: 0.85rem;
+    color: #444;
+    padding: 5px 0 5px 18px;
+    position: relative;
+    line-height: 1.5;
+    border-bottom: 1px solid #f0f2f5;
+  }
+
+  .modal-list li:last-child { border-bottom: none; }
+
+  .modal-list li::before {
+    content: '▸';
+    position: absolute;
+    left: 0;
+    color: #c0392b;
+    font-size: 0.75rem;
+    top: 6px;
+  }
+
   /* ===== LIVE MODE ===== */
   .live-header {
     text-align: center;
@@ -846,7 +970,54 @@
       <div class="brand-note">【プロギタリスト監修】</div>
     </div>
   </div>
+  <button class="help-btn" onclick="document.getElementById('help-modal').classList.add('open')">使い方ガイド</button>
 </header>
+
+<!-- ===== HELP MODAL ===== -->
+<div class="modal-overlay" id="help-modal" onclick="if(event.target===this)this.classList.remove('open')">
+  <div class="modal-box">
+    <button class="modal-close" onclick="document.getElementById('help-modal').classList.remove('open')">×</button>
+    <div class="modal-title">TSG Metronome &amp; Tuner</div>
+    <div class="modal-subtitle">使い方ガイド</div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">🎵 Metronome</div>
+      <ul class="modal-list">
+        <li>スライダーまたはプリセットボタンでBPMを設定し、STARTで開始します</li>
+        <li><strong>TAP</strong>ボタンをリズムに合わせて叩くと、テンポを自動検出します（タップテンポ）</li>
+        <li>音色はBeep・Rimshot・Hi-hatの3種類から選べます</li>
+        <li>拍子は1〜7拍まで対応。1拍目のみアクセント音が鳴ります</li>
+        <li><strong>GROOVE / SUBDIVISION</strong>を開くと8分・16分・シャッフルなど11種類のリズムパターンを選択できます</li>
+        <li>シャッフル系パターン選択時は「Shuffle Feel」スライダーで跳ね感を51〜80%で細かく調整できます</li>
+        <li><strong>MUTE</strong>ボタンで音を消したまま視覚だけでテンポを確認できます</li>
+      </ul>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">🎸 Tuner</div>
+      <ul class="modal-list">
+        <li>「マイクをオンにする」ボタンを押してマイクを起動します（初回はブラウザの許可が必要です）</li>
+        <li>ギターの弦を弾くと音程を自動検出し、音名とHz数を表示します</li>
+        <li>中央のゲージが左に振れると♭（低い）、右に振れると♯（高い）です</li>
+        <li>ゲージが中央に来て「IN TUNE」と表示されれば正確なチューニングです</li>
+        <li>下の弦ボタン（1〜6弦）で目標音程を確認できます</li>
+      </ul>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">🎤 Live</div>
+      <ul class="modal-list">
+        <li>ライブ前にセットリストの各曲のBPMと曲名を登録しておけます</li>
+        <li>スロット（1〜12、最大24）を選んでスライダーでBPMを設定すると自動保存されます</li>
+        <li>本番中はスロットボタン一押しでテンポを即座に切り替えられます</li>
+        <li>ビートドットとペンダムの動きで音を出さずに目だけでテンポ確認が可能です</li>
+        <li>セットリストはJSONファイルとして保存・読み込みができます（複数の公演を管理可）</li>
+        <li>ページを更新しても最後の状態が自動的に復元されます</li>
+      </ul>
+    </div>
+
+  </div>
+</div>
 
 <div class="tab-container">
   <div class="tab-wrap">
