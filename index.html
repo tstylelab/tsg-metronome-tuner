@@ -496,6 +496,26 @@
   .tuner-note-display {
     text-align: center;
     margin-bottom: 16px;
+    background: #f5f6f8;
+    border: 1.5px solid #e0e3ea;
+    border-radius: 12px;
+    padding: 18px 16px 14px;
+    transition: background 0.3s, border-color 0.3s;
+  }
+
+  .tuner-note-display.in-tune {
+    background: #edfaf3;
+    border-color: #a8dfc0;
+  }
+
+  .tuner-note-display.sharp {
+    background: #fff2f2;
+    border-color: #f5b8b8;
+  }
+
+  .tuner-note-display.flat {
+    background: #eef5ff;
+    border-color: #b8d4f5;
   }
 
   .tuner-note {
@@ -504,19 +524,48 @@
     font-weight: 700;
     color: #1a1a2e;
     line-height: 1;
+    transition: color 0.2s;
+  }
+
+  .tuner-freq-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 6px;
   }
 
   .tuner-freq {
     font-size: 0.85rem;
     color: #888;
-    margin-top: 4px;
   }
 
-  .tuner-target {
-    font-size: 0.82rem;
-    color: #2176ae;
-    margin-top: 2px;
+  .tuner-freq-divider {
+    width: 1px;
+    height: 14px;
+    background: #ccc;
+    border-radius: 1px;
+  }
+
+  .tuner-cents {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1rem;
     font-weight: 600;
+    color: #bbb;
+    letter-spacing: 0.04em;
+  }
+
+  .tuner-cents.in-tune { color: #27ae60; }
+  .tuner-cents.sharp   { color: #c0392b; }
+  .tuner-cents.flat    { color: #2176ae; }
+
+  .tuner-target {
+    font-size: 0.78rem;
+    color: #2176ae;
+    margin-top: 8px;
+    font-weight: 600;
+    padding-top: 8px;
+    border-top: 1px solid #e0e3ea;
   }
 
   .tuner-cents {
@@ -1547,10 +1596,13 @@
   <div class="panel" id="panel-tuner">
     <div class="card">
 
-      <div class="tuner-note-display">
+      <div class="tuner-note-display" id="tuner-note-display">
         <div class="tuner-note" id="tuner-note">—</div>
-        <div class="tuner-freq" id="tuner-freq"></div>
-        <div class="tuner-cents" id="tuner-cents"></div>
+        <div class="tuner-freq-row">
+          <div class="tuner-freq" id="tuner-freq"></div>
+          <div class="tuner-freq-divider" id="tuner-freq-divider" style="display:none;"></div>
+          <div class="tuner-cents" id="tuner-cents"></div>
+        </div>
         <div class="tuner-target" id="tuner-target"></div>
       </div>
 
@@ -2575,6 +2627,10 @@ function updateTunerUI(rawFreq) {
   const center = 50;
 
   const noteEl = document.getElementById('tuner-note');
+  const displayEl = document.getElementById('tuner-note-display');
+  const dividerEl = document.getElementById('tuner-freq-divider');
+  if (dividerEl) dividerEl.style.display = 'block';
+
   if (absC < 5) {
     gauge.style.left = '47%';
     gauge.style.width = '6%';
@@ -2583,6 +2639,7 @@ function updateTunerUI(rawFreq) {
     statusEl.className = 'tuner-status in-tune';
     if (centsEl) { centsEl.textContent = '± 0 ¢'; centsEl.className = 'tuner-cents in-tune'; }
     if (noteEl) noteEl.style.color = '#27ae60';
+    if (displayEl) displayEl.className = 'tuner-note-display in-tune';
   } else if (cents < 0) {
     gauge.style.left = (center + pct) + '%';
     gauge.style.width = Math.abs(pct) + '%';
@@ -2591,6 +2648,7 @@ function updateTunerUI(rawFreq) {
     statusEl.className = 'tuner-status flat';
     if (centsEl) { centsEl.textContent = Math.round(cents) + ' ¢'; centsEl.className = 'tuner-cents flat'; }
     if (noteEl) noteEl.style.color = '#1a1a2e';
+    if (displayEl) displayEl.className = 'tuner-note-display flat';
   } else {
     gauge.style.left = center + '%';
     gauge.style.width = pct + '%';
@@ -2599,6 +2657,7 @@ function updateTunerUI(rawFreq) {
     statusEl.className = 'tuner-status sharp';
     if (centsEl) { centsEl.textContent = '+' + Math.round(cents) + ' ¢'; centsEl.className = 'tuner-cents sharp'; }
     if (noteEl) noteEl.style.color = '#1a1a2e';
+    if (displayEl) displayEl.className = 'tuner-note-display sharp';
   }
 }
 
