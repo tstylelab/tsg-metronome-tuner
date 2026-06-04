@@ -639,6 +639,64 @@
 
   .string-btn.selected span { color: rgba(255,255,255,0.6); }
 
+  /* Reference pitch row */
+  .ref-pitch-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+
+  .ref-pitch-label {
+    font-size: 0.78rem;
+    color: #888;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .ref-pitch-controls {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    border: 1.5px solid #dde0e8;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f7f8fa;
+  }
+
+  .ref-pitch-btn {
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #1a1a2e;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s;
+  }
+
+  .ref-pitch-btn:hover { background: #e0e3ea; }
+  .ref-pitch-btn:active { background: #cdd0da; }
+
+  .ref-pitch-value {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #1a1a2e;
+    min-width: 58px;
+    text-align: center;
+    border-left: 1px solid #dde0e8;
+    border-right: 1px solid #dde0e8;
+    line-height: 36px;
+    letter-spacing: 0.02em;
+  }
+
   .btn-mic {
     background: #1a1a2e;
     color: #fff;
@@ -1375,6 +1433,15 @@
       </div>
 
       <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
+
+      <div class="ref-pitch-row">
+        <span class="ref-pitch-label">基準ピッチ</span>
+        <div class="ref-pitch-controls">
+          <button class="ref-pitch-btn" onclick="adjustRefPitch(-1)">−</button>
+          <div class="ref-pitch-value" id="ref-pitch-value">440 Hz</div>
+          <button class="ref-pitch-btn" onclick="adjustRefPitch(+1)">+</button>
+        </div>
+      </div>
 
       <div class="string-section">
         <div class="string-label">弦を選択（参考音程）</div>
@@ -2240,17 +2307,22 @@ function autoCorrelate(buf, sampleRate) {
   return sampleRate / T0;
 }
 
+let refA4 = 440;
+
+function adjustRefPitch(delta) {
+  refA4 = Math.min(450, Math.max(430, refA4 + delta));
+  document.getElementById('ref-pitch-value').textContent = refA4 + ' Hz';
+}
+
 function freqToNote(freq) {
-  const A4 = 440;
-  const semitones = Math.round(12 * Math.log2(freq / A4));
-  const noteIdx = ((semitones % 12) + 12 + 9) % 12; // A=9
+  const semitones = Math.round(12 * Math.log2(freq / refA4));
+  const noteIdx = ((semitones % 12) + 12 + 9) % 12;
   const octave = Math.floor(semitones / 12) + 4;
   return { name: NOTE_NAMES[noteIdx], octave, semitones };
 }
 
 function centsOff(freq) {
-  const A4 = 440;
-  const semiExact = 12 * Math.log2(freq / A4);
+  const semiExact = 12 * Math.log2(freq / refA4);
   const semiRound = Math.round(semiExact);
   return (semiExact - semiRound) * 100;
 }
