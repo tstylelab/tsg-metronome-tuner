@@ -639,6 +639,25 @@
 
   .string-btn.selected span { color: rgba(255,255,255,0.6); }
 
+  /* String order bar */
+  .string-order-bar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 5px;
+    font-size: 0.65rem;
+    color: #bbb;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+
+  .string-order-line {
+    flex: 1;
+    height: 3px;
+    background: linear-gradient(to right, #888 0%, #ccc 60%, #e8e8e8 100%);
+    border-radius: 2px;
+  }
+
   /* Tuning options (half-down + capo) */
   .tuning-options {
     margin-bottom: 20px;
@@ -1559,6 +1578,11 @@
       <div class="string-section">
         <div class="string-label">弦を選択（参考音程）</div>
         <div class="string-buttons" id="string-buttons"></div>
+        <div class="string-order-bar">
+          <span>← 太い弦</span>
+          <span class="string-order-line"></span>
+          <span>細い弦 →</span>
+        </div>
       </div>
 
       <button class="btn-mic" id="mic-btn" onclick="toggleMic()">
@@ -2308,7 +2332,7 @@ function renderStringButtons() {
   const strings = getEffectiveStrings();
   const container = document.getElementById('string-buttons');
   container.innerHTML = '';
-  strings.forEach((s, i) => {
+  strings.slice().reverse().forEach((s, ri) => { const i = strings.length - 1 - ri;
     const btn = document.createElement('button');
     btn.className = 'string-btn' + (i === selectedStringIdx ? ' selected' : '');
     btn.onclick = () => selectString(i, btn);
