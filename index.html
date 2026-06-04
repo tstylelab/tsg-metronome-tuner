@@ -1259,9 +1259,9 @@
         <div class="bpm-label">BPM</div>
       </div>
 
-      <div class="pendulum-container">
-        <div class="pendulum-track" id="live-pendulum-track">
-          <div class="pendulum-dot" id="live-pendulum-dot"></div>
+      <div class="visual-pulse" id="live-vis-pulse">
+        <div class="pulse-wrap">
+          <div class="pulse-circle" id="live-pulse-circle"></div>
         </div>
       </div>
 
@@ -2003,17 +2003,24 @@ function updateLiveBeatDots() {
 }
 
 function flashLiveBeat(beat) {
+  const isAccent = beat === 0;
   const n = liveBeats[liveSelectedSlot] || 4;
   for (let i = 0; i < n; i++) {
     const d = document.getElementById('lbdot-' + i);
     if (d) d.classList.toggle('active', i === beat);
   }
+  // パルス
+  const circle = document.getElementById('live-pulse-circle');
+  if (circle) {
+    circle.classList.remove('beat', 'beat-accent');
+    void circle.offsetWidth;
+    circle.classList.add(isAccent ? 'beat-accent' : 'beat');
+    setTimeout(() => circle.classList.remove('beat', 'beat-accent'), 200);
+  }
 }
 
 function flashLivePendulum() {
-  const dot = document.getElementById('live-pendulum-dot');
-  if (dot) { dot.classList.add('beat'); setTimeout(() => dot.classList.remove('beat'), 80); }
-  animateLivePendulum();
+  // パルスに統合したため空関数（liveTick から呼ばれるが何もしない）
 }
 
 function animateLivePendulum() {
@@ -2055,7 +2062,7 @@ function toggleLive() {
     liveRunning = true;
     btn.textContent = 'STOP';
     btn.classList.add('running');
-    document.querySelector('#panel-live .pendulum-container').classList.add('active');
+    document.getElementById('live-vis-pulse').classList.add('vis-active');
     document.querySelectorAll('.live-slot-btn').forEach((b, i) => {
       b.classList.toggle('playing', i === liveSelectedSlot);
       b.classList.remove('selected');
@@ -2065,7 +2072,8 @@ function toggleLive() {
     liveRunning = false;
     btn.textContent = 'START';
     btn.classList.remove('running');
-    document.querySelector('#panel-live .pendulum-container').classList.remove('active');
+    document.getElementById('live-vis-pulse').classList.remove('vis-active');
+    document.getElementById('live-pulse-circle').classList.remove('beat','beat-accent');
     const dot = document.getElementById('live-pendulum-dot');
     if (dot) { dot.style.left = ''; if (livePendulumAnim) cancelAnimationFrame(livePendulumAnim); }
     for (let i = 0; i < 4; i++) {
