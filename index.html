@@ -338,7 +338,7 @@
 
   .bpm-presets {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     gap: 6px;
     margin-top: 12px;
     justify-content: center;
@@ -971,6 +971,7 @@
   }
 
   .groove-btn {
+    flex: 1;
     padding: 10px 4px;
     border: 1.5px solid #dde0e8;
     border-radius: 7px;
@@ -1133,7 +1134,7 @@
 
   .live-bpm-number {
     font-family: 'Oswald', sans-serif;
-    font-size: 5.5rem;
+    font-size: 4.6rem;
     font-weight: 700;
     color: #1a1a2e;
     line-height: 1;
@@ -1433,6 +1434,54 @@
     line-height: 1;
   }
 
+  /* ===== SOUND BUTTONS ===== */
+  .beat-row .groove-btn {
+    font-size: 1rem;
+    padding: 6px 4px;
+    background: linear-gradient(to bottom, #ffffff, #e8eaef);
+    box-shadow: 0 3px 0 #b8bcc8, 0 2px 6px rgba(0,0,0,0.1);
+    border-color: #c8ccd6;
+  }
+
+  .beat-row .groove-btn:active {
+    box-shadow: 0 1px 0 #b8bcc8;
+    transform: translateY(2px);
+  }
+
+  .beat-row .groove-btn.selected {
+    background: linear-gradient(to bottom, #2e4060, #1a1a2e);
+    box-shadow: 0 3px 0 #0a0a18, 0 2px 6px rgba(0,0,0,0.2);
+    border-color: #1a1a2e;
+  }
+
+  .beat-row .groove-btn span {
+    font-size: 0.68rem;
+  }
+
+  /* ===== IMAGE BANNER ===== */
+  .img-banner-link {
+    display: block;
+    width: 80%;
+    margin: 0 auto;
+    border-radius: 10px;
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+  }
+
+  .img-banner-link:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(0,0,0,0.24);
+  }
+
+  .img-banner-link:active { transform: scale(0.98); }
+
+  .img-banner {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
   /* ===== RESPONSIVE ===== */
   @media (max-width: 400px) {
     .bpm-number { font-size: 4.5rem; }
@@ -1548,7 +1597,7 @@
   <div class="tab-wrap">
     <button class="tab-btn active" onclick="switchTab('metronome')">Metronome</button>
     <button class="tab-btn" onclick="switchTab('tuner')">Tuner</button>
-    <button class="tab-btn" onclick="switchTab('live')">BPM List</button>
+    <button class="tab-btn" onclick="switchTab('live')">BPM Setlist</button>
   </div>
 </div>
 
@@ -1577,11 +1626,11 @@
       </div>
 
       <div class="bpm-presets">
-        <button class="preset-btn" onclick="setBpm(60)">60 <span style="color:#bbb;font-weight:400">Largo</span></button>
-        <button class="preset-btn" onclick="setBpm(80)">80 <span style="color:#bbb;font-weight:400">Andante</span></button>
-        <button class="preset-btn" onclick="setBpm(100)">100 <span style="color:#bbb;font-weight:400">Moderato</span></button>
-        <button class="preset-btn" onclick="setBpm(120)">120 <span style="color:#bbb;font-weight:400">Allegro</span></button>
-        <button class="preset-btn" onclick="setBpm(160)">160 <span style="color:#bbb;font-weight:400">Presto</span></button>
+        <button class="preset-btn" onclick="setBpm(60)">60</button>
+        <button class="preset-btn" onclick="setBpm(80)">80</button>
+        <button class="preset-btn" onclick="setBpm(100)">100</button>
+        <button class="preset-btn" onclick="setBpm(120)">120</button>
+        <button class="preset-btn" onclick="setBpm(160)">160</button>
       </div>
 
       <div class="beat-row" style="margin-top:14px;">
@@ -1654,29 +1703,11 @@
           <div class="app-section-line right"></div>
         </div>
         <div class="app-banner-row">
-          <a class="app-banner-btn chord" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-accent"></div>
-            <div class="app-banner-body">
-              <div class="app-banner-icon-wrap">🎸</div>
-              <div class="app-banner-text">
-                <span class="app-banner-badge">プロギタリスト監修</span>
-                <span class="app-banner-title">コードダイアグラム</span>
-                <span class="app-banner-desc">ギターコードを瞬時に検索・表示</span>
-              </div>
-              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
-            </div>
+          <a class="img-banner-link" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
+            <img class="img-banner" src="images/banner-chord.png" alt="コードダイアグラム - コードをすぐ表示">
           </a>
-          <a class="app-banner-btn scale" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-accent"></div>
-            <div class="app-banner-body">
-              <div class="app-banner-icon-wrap">🎵</div>
-              <div class="app-banner-text">
-                <span class="app-banner-badge">プロギタリスト監修</span>
-                <span class="app-banner-title">スケールビューアー</span>
-                <span class="app-banner-desc">スケールをフレットボードで視覚化</span>
-              </div>
-              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
-            </div>
+          <a class="img-banner-link" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
+            <img class="img-banner" src="images/banner-scale.png" alt="スケールビューアー - スケールを見える化">
           </a>
         </div>
       </div>
@@ -1741,7 +1772,7 @@
         <button class="btn btn-mute" id="live-mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
       </div>
 
-      <div style="display:flex;align-items:center;gap:10px;margin-top:14px;margin-bottom:10px;">
+      <div class="beat-row" style="margin-top:14px;margin-bottom:10px;">
         <span class="beat-label">音色</span>
         <div style="display:flex;gap:6px;flex:1;">
           <button class="groove-btn selected" id="live-sound-beep"  onclick="setLiveSound('beep')">Beep<span>電子音</span></button>
@@ -1813,29 +1844,11 @@
           <div class="app-section-line right"></div>
         </div>
         <div class="app-banner-row">
-          <a class="app-banner-btn chord" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-accent"></div>
-            <div class="app-banner-body">
-              <div class="app-banner-icon-wrap">🎸</div>
-              <div class="app-banner-text">
-                <span class="app-banner-badge">プロギタリスト監修</span>
-                <span class="app-banner-title">コードダイアグラム</span>
-                <span class="app-banner-desc">ギターコードを瞬時に検索・表示</span>
-              </div>
-              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
-            </div>
+          <a class="img-banner-link" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
+            <img class="img-banner" src="images/banner-chord.png" alt="コードダイアグラム - コードをすぐ表示">
           </a>
-          <a class="app-banner-btn scale" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-accent"></div>
-            <div class="app-banner-body">
-              <div class="app-banner-icon-wrap">🎵</div>
-              <div class="app-banner-text">
-                <span class="app-banner-badge">プロギタリスト監修</span>
-                <span class="app-banner-title">スケールビューアー</span>
-                <span class="app-banner-desc">スケールをフレットボードで視覚化</span>
-              </div>
-              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
-            </div>
+          <a class="img-banner-link" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
+            <img class="img-banner" src="images/banner-scale.png" alt="スケールビューアー - スケールを見える化">
           </a>
         </div>
       </div>
@@ -1915,29 +1928,11 @@
           <div class="app-section-line right"></div>
         </div>
         <div class="app-banner-row">
-          <a class="app-banner-btn chord" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-accent"></div>
-            <div class="app-banner-body">
-              <div class="app-banner-icon-wrap">🎸</div>
-              <div class="app-banner-text">
-                <span class="app-banner-badge">プロギタリスト監修</span>
-                <span class="app-banner-title">コードダイアグラム</span>
-                <span class="app-banner-desc">ギターコードを瞬時に検索・表示</span>
-              </div>
-              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
-            </div>
+          <a class="img-banner-link" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
+            <img class="img-banner" src="images/banner-chord.png" alt="コードダイアグラム - コードをすぐ表示">
           </a>
-          <a class="app-banner-btn scale" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-accent"></div>
-            <div class="app-banner-body">
-              <div class="app-banner-icon-wrap">🎵</div>
-              <div class="app-banner-text">
-                <span class="app-banner-badge">プロギタリスト監修</span>
-                <span class="app-banner-title">スケールビューアー</span>
-                <span class="app-banner-desc">スケールをフレットボードで視覚化</span>
-              </div>
-              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
-            </div>
+          <a class="img-banner-link" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
+            <img class="img-banner" src="images/banner-scale.png" alt="スケールビューアー - スケールを見える化">
           </a>
         </div>
       </div>
@@ -2025,13 +2020,13 @@ function getAudioCtx() {
   if (!audioCtx) {
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     const comp = audioCtx.createDynamicsCompressor();
-    comp.threshold.value = -6;
-    comp.knee.value = 0;
+    comp.threshold.value = -18;
+    comp.knee.value = 3;
     comp.ratio.value = 20;
     comp.attack.value = 0.001;
     comp.release.value = 0.1;
     const masterGain = audioCtx.createGain();
-    masterGain.gain.value = 1.4;
+    masterGain.gain.value = 2.8;
     muteGain = audioCtx.createGain();
     muteGain.gain.value = 1;
     comp.connect(masterGain);
@@ -2100,23 +2095,22 @@ function scheduleNote(time, isAccent) {
   if (currentSound === 'beep') {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    osc.type = 'square';
     osc.connect(gain); gain.connect(out);
     osc.frequency.value = isAccent ? 1200 : 900;
-    gain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
+    gain.gain.setValueAtTime(isAccent ? 0.35 : 0.28, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
     osc.start(time); osc.stop(time + 0.08);
 
   } else if (currentSound === 'wood') {
-    // 正弦波アタック（ピッチ高め）
     const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.value = isAccent ? 800 : 600;
+    osc.frequency.value = isAccent ? 1200 : 900;
     oscGain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
     oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
     osc.connect(oscGain); oscGain.connect(out);
     osc.start(time); osc.stop(time + 0.05);
-    // ノイズで木の質感
     const noise = makeNoise(ctx, 0.035);
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass'; filter.frequency.value = 1800; filter.Q.value = 3;
@@ -2147,15 +2141,16 @@ function scheduleSubNote(time) {
   if (currentSound === 'beep') {
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
+    osc.type = 'square';
     osc.connect(gain); gain.connect(out);
     osc.frequency.value = 700;
-    gain.gain.setValueAtTime(0.4, time);
+    gain.gain.setValueAtTime(0.18, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
     osc.start(time); osc.stop(time + 0.05);
   } else if (currentSound === 'wood') {
     const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
-    osc.type = 'sine'; osc.frequency.value = 550;
+    osc.type = 'sine'; osc.frequency.value = 700;
     oscGain.gain.setValueAtTime(0.45, time);
     oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
     osc.connect(oscGain); oscGain.connect(out);
@@ -3017,11 +3012,12 @@ function autoCorrelate(buf, sampleRate) {
   return sampleRate / T0;
 }
 
-let refA4 = 440;
+let refA4 = parseInt(localStorage.getItem('tsg_refA4') || '440', 10);
 
 function adjustRefPitch(delta) {
   refA4 = Math.min(450, Math.max(430, refA4 + delta));
   document.getElementById('ref-pitch-value').textContent = refA4 + ' Hz';
+  localStorage.setItem('tsg_refA4', refA4);
 }
 
 function freqToNote(freq) {
@@ -3154,6 +3150,7 @@ renderBeatDots();
 initLiveSlots();
 initCapoBtns();
 renderStringButtons();
+document.getElementById('ref-pitch-value').textContent = refA4 + ' Hz';
 </script>
 </body>
 </html>
