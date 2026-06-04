@@ -519,6 +519,20 @@
     font-weight: 600;
   }
 
+  .tuner-cents {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 600;
+    color: #bbb;
+    margin-top: 6px;
+    min-height: 1.6em;
+    letter-spacing: 0.04em;
+  }
+
+  .tuner-cents.in-tune { color: #27ae60; }
+  .tuner-cents.sharp   { color: #c0392b; }
+  .tuner-cents.flat    { color: #2176ae; }
+
   /* Gauge */
   .gauge-wrap {
     margin: 16px 0 20px;
@@ -1344,6 +1358,7 @@
       <div class="tuner-note-display">
         <div class="tuner-note" id="tuner-note">—</div>
         <div class="tuner-freq" id="tuner-freq"></div>
+        <div class="tuner-cents" id="tuner-cents"></div>
         <div class="tuner-target" id="tuner-target"></div>
       </div>
 
@@ -2123,7 +2138,7 @@ async function toggleMic() {
       tunerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const source = tunerAudioCtx.createMediaStreamSource(micStream);
       analyser = tunerAudioCtx.createAnalyser();
-      analyser.fftSize = 4096;
+      analyser.fftSize = 8192;
       source.connect(analyser);
       tunerActive = true;
       btn.classList.add('listening');
@@ -2135,6 +2150,8 @@ async function toggleMic() {
   } else {
     tunerActive = false;
     if (tunerAnimId) cancelAnimationFrame(tunerAnimId);
+    if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+    smoothFreq = null;
     if (micStream) micStream.getTracks().forEach(t => t.stop());
     if (tunerAudioCtx) tunerAudioCtx.close();
     btn.classList.remove('listening');
@@ -2146,10 +2163,14 @@ async function toggleMic() {
 function resetTunerUI() {
   document.getElementById('tuner-note').textContent = '—';
   document.getElementById('tuner-freq').textContent = '';
+  const centsEl = document.getElementById('tuner-cents');
+  if (centsEl) { centsEl.textContent = ''; centsEl.className = 'tuner-cents'; }
   document.getElementById('tuner-status').textContent = 'マイクをオンにして弦を弾いてください';
   document.getElementById('tuner-status').className = 'tuner-status';
   document.getElementById('gauge-fill').style.cssText = 'left:50%;width:0;background:#e0e3ea;';
 }
+
+let silenceTimer = null;
 
 function detectPitch() {
   if (!tunerActive) return;
@@ -2158,7 +2179,16 @@ function detectPitch() {
   const freq = autoCorrelate(buf, tunerAudioCtx.sampleRate);
 
   if (freq > 60 && freq < 1400) {
+    if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     updateTunerUI(freq);
+  } else {
+    if (!silenceTimer) {
+      silenceTimer = setTimeout(() => {
+        smoothFreq = null;
+        resetTunerUI();
+        silenceTimer = null;
+      }, 1500);
+    }
   }
 
   tunerAnimId = requestAnimationFrame(detectPitch);
@@ -2222,7 +2252,7 @@ function centsOff(freq) {
 // Smoothing
 let smoothFreq = null;
 function updateTunerUI(rawFreq) {
-  smoothFreq = smoothFreq == null ? rawFreq : smoothFreq * 0.85 + rawFreq * 0.15;
+  smoothFreq = smoothFreq == null ? rawFreq : smoothFreq * 0.75 + rawFreq * 0.25;
   const freq = smoothFreq;
 
   const note = freqToNote(freq);
@@ -2233,37 +2263,34 @@ function updateTunerUI(rawFreq) {
 
   const gauge = document.getElementById('gauge-fill');
   const statusEl = document.getElementById('tuner-status');
-
-  // Gauge: cents range -50..+50 → position
-  const pct = Math.max(-50, Math.min(50, cents));
-  const center = 50; // %
-  const fillPct = Math.abs(pct);
-  if (pct < 0) {
-    // flat: fill from (center + pct) to center
-    gauge.style.left = (center + pct) + '%';
-    gauge.style.width = fillPct + '%';
-    gauge.style.background = '#2176ae';
-  } else if (pct > 0) {
-    gauge.style.left = center + '%';
-    gauge.style.width = fillPct + '%';
-    gauge.style.background = '#c0392b';
-  } else {
-    gauge.style.left = '50%';
-    gauge.style.width = '0';
-    gauge.style.background = '#27ae60';
-  }
+  const centsEl = document.getElementById('tuner-cents');
 
   const absC = Math.abs(cents);
+  const pct = Math.max(-50, Math.min(50, cents));
+  const center = 50;
+
   if (absC < 5) {
+    // IN TUNE: 中央に小さな緑バーを表示
+    gauge.style.left = '47%';
+    gauge.style.width = '6%';
+    gauge.style.background = '#27ae60';
     statusEl.textContent = '♪ IN TUNE';
     statusEl.className = 'tuner-status in-tune';
-    gauge.style.background = '#27ae60';
+    if (centsEl) { centsEl.textContent = '± 0 ¢'; centsEl.className = 'tuner-cents in-tune'; }
   } else if (cents < 0) {
+    gauge.style.left = (center + pct) + '%';
+    gauge.style.width = Math.abs(pct) + '%';
+    gauge.style.background = '#2176ae';
     statusEl.textContent = '↑ もう少し上げて (♭ Flat)';
     statusEl.className = 'tuner-status flat';
+    if (centsEl) { centsEl.textContent = Math.round(cents) + ' ¢'; centsEl.className = 'tuner-cents flat'; }
   } else {
+    gauge.style.left = center + '%';
+    gauge.style.width = pct + '%';
+    gauge.style.background = '#c0392b';
     statusEl.textContent = '↓ もう少し下げて (♯ Sharp)';
     statusEl.className = 'tuner-status sharp';
+    if (centsEl) { centsEl.textContent = '+' + Math.round(cents) + ' ¢'; centsEl.className = 'tuner-cents sharp'; }
   }
 }
 
