@@ -2650,7 +2650,8 @@ async function toggleMic() {
     tunerActive = false;
     if (tunerAnimId) cancelAnimationFrame(tunerAnimId);
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-    smoothFreq = null; smoothCents = null; lockedSemitone = null; outsideLockCount = 0;
+    smoothFreq = null; smoothCents = null; lockedSemitone = null;
+    outsideLockCount = 0; freqBuffer.length = 0;
     if (micStream) micStream.getTracks().forEach(t => t.stop());
     if (tunerAudioCtx) tunerAudioCtx.close();
     btn.classList.remove('listening');
@@ -2660,7 +2661,8 @@ async function toggleMic() {
 }
 
 function resetTunerUI() {
-  smoothFreq = null; smoothCents = null; lockedSemitone = null; outsideLockCount = 0;
+  smoothFreq = null; smoothCents = null; lockedSemitone = null;
+  outsideLockCount = 0; freqBuffer.length = 0;
   const noteEl = document.getElementById('tuner-note');
   if (noteEl) { noteEl.textContent = '—'; noteEl.style.color = ''; }
   document.getElementById('tuner-freq').textContent = '';
@@ -2777,13 +2779,25 @@ function centsOff(freq) {
 // Smoothing / note lock
 let smoothFreq     = null;
 let smoothCents    = null;
-let lockedSemitone = null;   // 固定中の半音番号
-let outsideLockCount = 0;    // ロック範囲外が続いたフレーム数
-const LOCK_CENTS    = 65;    // この範囲内なら同じ音名を維持
-const UNLOCK_FRAMES = 10;    // 連続10フレーム外れたら初めて音名を変える（約160ms）
+let lockedSemitone = null;
+let outsideLockCount = 0;
+const LOCK_CENTS    = 65;
+const UNLOCK_FRAMES = 10;
+
+// メジアンフィルター（外れ値除去）
+const freqBuffer = [];
+const FREQ_BUF_SIZE = 5;
+function medianFreq(freq) {
+  freqBuffer.push(freq);
+  if (freqBuffer.length > FREQ_BUF_SIZE) freqBuffer.shift();
+  const s = [...freqBuffer].sort((a, b) => a - b);
+  return s[Math.floor(s.length / 2)];
+}
 function updateTunerUI(rawFreq) {
-  // 周波数スムージング
-  smoothFreq = smoothFreq == null ? rawFreq : smoothFreq * 0.65 + rawFreq * 0.35;
+  // ① メジアンフィルターで外れ値を除去（5フレームの中央値）
+  const mFreq = medianFreq(rawFreq);
+  // ② 指数スムージング（さらになめらかに）
+  smoothFreq = smoothFreq == null ? mFreq : smoothFreq * 0.80 + mFreq * 0.20;
 
   // 現在の正確なセミトーン数（連続値）
   const exactSemi = 12 * Math.log2(smoothFreq / refA4);
@@ -2808,13 +2822,13 @@ function updateTunerUI(rawFreq) {
       // まだ確認中：音名は変えずセントだけ更新
       smoothCents = smoothCents == null
         ? centsFromLocked
-        : smoothCents * 0.75 + centsFromLocked * 0.25;
+        : smoothCents * 0.82 + centsFromLocked * 0.18;
     } else {
       // ロック範囲内：カウンターをリセット
       outsideLockCount = 0;
       smoothCents = smoothCents == null
         ? centsFromLocked
-        : smoothCents * 0.75 + centsFromLocked * 0.25;
+        : smoothCents * 0.82 + centsFromLocked * 0.18;
     }
   }
   const cents = smoothCents;
