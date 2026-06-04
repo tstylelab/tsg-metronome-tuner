@@ -165,16 +165,17 @@
 
   /* Pendulum */
   .pendulum-container {
-    display: none;
+    display: flex;
     flex-direction: column;
     align-items: center;
     margin: 2px 0 12px;
     gap: 5px;
     width: 100%;
+    visibility: hidden;
   }
 
   .pendulum-container.active {
-    display: flex;
+    visibility: visible;
   }
 
   .pendulum-label {
