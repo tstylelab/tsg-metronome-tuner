@@ -631,13 +631,19 @@
     margin-top: 1px;
   }
 
-  .string-btn:hover, .string-btn.selected {
+  .string-btn:hover {
     border-color: #1a1a2e;
     background: #1a1a2e;
     color: #fff;
   }
 
-  .string-btn.selected span { color: rgba(255,255,255,0.6); }
+  .string-btn.selected {
+    border-color: #2176ae;
+    background: #2176ae;
+    color: #fff;
+  }
+
+  .string-btn.selected span { color: rgba(255,255,255,0.65); }
 
   /* String order bar */
   .string-order-bar {
@@ -726,6 +732,12 @@
     color: #fff;
   }
 
+  .capo-btn.active-mod {
+    border-color: #c0392b;
+    background: #c0392b;
+    color: #fff;
+  }
+
   .tuning-hint {
     display: none;
     margin-top: 10px;
@@ -763,6 +775,10 @@
     align-items: center;
     gap: 10px;
     margin-bottom: 20px;
+    background: #eef5ff;
+    border: 1.5px solid #b8d4f5;
+    border-radius: 8px;
+    padding: 8px 12px;
   }
 
   .ref-pitch-label {
@@ -791,7 +807,7 @@
     background: transparent;
     font-size: 1.1rem;
     font-weight: 700;
-    color: #1a1a2e;
+    color: #2176ae;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -799,18 +815,18 @@
     transition: background 0.12s;
   }
 
-  .ref-pitch-btn:hover { background: #e0e3ea; }
-  .ref-pitch-btn:active { background: #cdd0da; }
+  .ref-pitch-btn:hover { background: #d0e6f8; }
+  .ref-pitch-btn:active { background: #b8d4f5; }
 
   .ref-pitch-value {
     font-family: 'Oswald', sans-serif;
     font-size: 1.05rem;
-    font-weight: 600;
-    color: #1a1a2e;
+    font-weight: 700;
+    color: #2176ae;
     min-width: 58px;
     text-align: center;
-    border-left: 1px solid #dde0e8;
-    border-right: 1px solid #dde0e8;
+    border-left: 1px solid #b8d4f5;
+    border-right: 1px solid #b8d4f5;
     line-height: 36px;
     letter-spacing: 0.02em;
   }
@@ -2369,7 +2385,10 @@ function toggleHalfDown() {
 
 function setCapo(fret) {
   capoFret = fret;
-  document.querySelectorAll('.capo-btn').forEach((b, i) => b.classList.toggle('active', i === fret));
+  document.querySelectorAll('.capo-btn').forEach((b, i) => {
+    b.classList.remove('active', 'active-mod');
+    if (i === fret) b.classList.add(fret === 0 ? 'active' : 'active-mod');
+  });
   renderStringButtons();
   updateTuningHint();
 }
@@ -2555,14 +2574,15 @@ function updateTunerUI(rawFreq) {
   const pct = Math.max(-50, Math.min(50, cents));
   const center = 50;
 
+  const noteEl = document.getElementById('tuner-note');
   if (absC < 5) {
-    // IN TUNE: 中央に小さな緑バーを表示
     gauge.style.left = '47%';
     gauge.style.width = '6%';
     gauge.style.background = '#27ae60';
     statusEl.textContent = '♪ IN TUNE';
     statusEl.className = 'tuner-status in-tune';
     if (centsEl) { centsEl.textContent = '± 0 ¢'; centsEl.className = 'tuner-cents in-tune'; }
+    if (noteEl) noteEl.style.color = '#27ae60';
   } else if (cents < 0) {
     gauge.style.left = (center + pct) + '%';
     gauge.style.width = Math.abs(pct) + '%';
@@ -2570,6 +2590,7 @@ function updateTunerUI(rawFreq) {
     statusEl.textContent = '↑ もう少し上げて (♭ Flat)';
     statusEl.className = 'tuner-status flat';
     if (centsEl) { centsEl.textContent = Math.round(cents) + ' ¢'; centsEl.className = 'tuner-cents flat'; }
+    if (noteEl) noteEl.style.color = '#1a1a2e';
   } else {
     gauge.style.left = center + '%';
     gauge.style.width = pct + '%';
@@ -2577,6 +2598,7 @@ function updateTunerUI(rawFreq) {
     statusEl.textContent = '↓ もう少し下げて (♯ Sharp)';
     statusEl.className = 'tuner-status sharp';
     if (centsEl) { centsEl.textContent = '+' + Math.round(cents) + ' ¢'; centsEl.className = 'tuner-cents sharp'; }
+    if (noteEl) noteEl.style.color = '#1a1a2e';
   }
 }
 
