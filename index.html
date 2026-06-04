@@ -2834,7 +2834,11 @@ function updateTunerUI(rawFreq) {
     gauge.style.background = '#27ae60';
     statusEl.textContent = '♪ IN TUNE';
     statusEl.className = 'tuner-status in-tune';
-    if (centsEl) { centsEl.textContent = '± 0 ¢'; centsEl.className = 'tuner-cents in-tune'; }
+    if (centsEl) {
+      const cv = Math.round(cents);
+      centsEl.textContent = (cv > 0 ? '+' : '') + cv + ' ¢';
+      centsEl.className = 'tuner-cents in-tune';
+    }
     if (noteEl) noteEl.style.color = '#27ae60';
     if (displayEl) displayEl.className = 'tuner-note-display in-tune';
   } else if (cents < 0) {
