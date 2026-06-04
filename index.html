@@ -1108,7 +1108,10 @@
         <button class="btn btn-mute" id="mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
       </div>
 
-      <button class="groove-toggle" id="groove-toggle" onclick="toggleGroove()">▼ &nbsp;GROOVE / SUBDIVISION</button>
+      <button class="groove-toggle" id="groove-toggle" onclick="toggleGroove()">
+        <span style="display:block; font-size:0.82rem; letter-spacing:0.06em;">▼ &nbsp;GROOVE / SUBDIVISION</span>
+        <span style="display:block; font-size:0.7rem; font-weight:500; color:#888; margin-top:3px; letter-spacing:0.04em;">シャッフル / 8分・16分 / ハネ率 / 裏拍</span>
+      </button>
 
       <div class="groove-panel" id="groove-panel">
         <div class="groove-label">リズムパターン</div>
@@ -1325,7 +1328,8 @@ function toggleGroove() {
   const btn = document.getElementById('groove-toggle');
   const open = panel.classList.toggle('open');
   btn.classList.toggle('open', open);
-  btn.textContent = open ? '▲  GROOVE / SUBDIVISION' : '▼  GROOVE / SUBDIVISION';
+  const arrow = open ? '▲' : '▼';
+  btn.innerHTML = `<span style='display:block;font-size:0.82rem;letter-spacing:0.06em;'>${arrow} &nbsp;GROOVE / SUBDIVISION</span><span style='display:block;font-size:0.7rem;font-weight:500;color:#888;margin-top:3px;letter-spacing:0.04em;'>シャッフル / 8分・16分 / ハネ率 / 裏拍</span>`;
 }
 
 function setGroove(val, el) {
