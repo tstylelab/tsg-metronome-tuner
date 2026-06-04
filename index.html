@@ -1894,9 +1894,9 @@
       </div>
 
       <div class="string-section">
-        <div class="string-label">弦を選択（参考音程）</div>
+        <div class="string-label" id="string-label">弦を選択（参考音程）</div>
         <div class="string-buttons" id="string-buttons"></div>
-        <div class="string-order-bar">
+        <div class="string-order-bar" id="string-order-bar">
           <span>← 太い弦</span>
           <span class="string-order-line"></span>
           <span>細い弦 →</span>
@@ -1908,7 +1908,7 @@
         <span id="mic-btn-text">マイクをオンにする</span>
       </button>
 
-      <div class="tuning-options">
+      <div class="tuning-options" id="tuning-options">
 
         <div class="capo-row">
           <button class="half-down-btn" id="half-down-btn" onclick="toggleHalfDown()">半音下げ</button>
@@ -1918,6 +1918,16 @@
         <div class="tuning-hint" id="tuning-hint">
           <div class="tuning-hint-title">各弦の実音（チューナーで合わせる音）</div>
           <div class="tuning-hint-notes" id="tuning-hint-notes"></div>
+        </div>
+      </div>
+
+      <div class="beat-row" style="margin-top:16px;">
+        <span class="beat-label">楽器</span>
+        <div style="display:flex;gap:6px;flex:1;">
+          <button class="groove-btn selected" id="inst-guitar" onclick="setInstrument('guitar')">Guitar<span>6弦</span></button>
+          <button class="groove-btn"          id="inst-uke"    onclick="setInstrument('uke')">Uke<span>4弦</span></button>
+          <button class="groove-btn"          id="inst-bass4"  onclick="setInstrument('bass4')">Bass 4<span>4弦</span></button>
+          <button class="groove-btn"          id="inst-bass5"  onclick="setInstrument('bass5')">Bass 5<span>5弦</span></button>
         </div>
       </div>
 
@@ -2760,27 +2770,51 @@ function toggleLive() {
 const NOTE_NAMES      = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
 const NOTE_NAMES_FLAT = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
 
-const BASE_STRINGS = [
-  { freq: 329.63, string: '1st' },
-  { freq: 246.94, string: '2nd' },
-  { freq: 196.00, string: '3rd' },
-  { freq: 146.83, string: '4th' },
-  { freq: 110.00, string: '5th' },
-  { freq: 82.41,  string: '6th' },
-];
+const INSTRUMENT_STRINGS = {
+  guitar: [
+    { freq: 329.63, string: '1st' },
+    { freq: 246.94, string: '2nd' },
+    { freq: 196.00, string: '3rd' },
+    { freq: 146.83, string: '4th' },
+    { freq: 110.00, string: '5th' },
+    { freq:  82.41, string: '6th' },
+  ],
+  uke: [
+    { freq: 440.00, string: '1st' },
+    { freq: 329.63, string: '2nd' },
+    { freq: 261.63, string: '3rd' },
+    { freq: 392.00, string: '4th' },
+  ],
+  bass4: [
+    { freq:  98.00, string: '1st' },
+    { freq:  73.42, string: '2nd' },
+    { freq:  55.00, string: '3rd' },
+    { freq:  41.20, string: '4th' },
+  ],
+  bass5: [
+    { freq:  98.00, string: '1st' },
+    { freq:  73.42, string: '2nd' },
+    { freq:  55.00, string: '3rd' },
+    { freq:  41.20, string: '4th' },
+    { freq:  30.87, string: '5th' },
+  ],
+};
 
+let currentInstrument = 'guitar';
 let halfDown = false;
 let capoFret = 0;
 let selectedStringIdx = null;
 
 function getEffectiveStrings() {
-  const shift = (halfDown ? -1 : 0) + capoFret;
-  return BASE_STRINGS.map(s => {
+  const base = INSTRUMENT_STRINGS[currentInstrument] || INSTRUMENT_STRINGS.guitar;
+  const isBass = currentInstrument.startsWith('bass');
+  const shift = isBass ? 0 : (halfDown ? -1 : 0) + capoFret;
+  return base.map(s => {
     const freq = s.freq * Math.pow(2, shift / 12);
     const semi = Math.round(12 * Math.log2(freq / 440));
     const noteIdx = ((semi % 12) + 12 + 9) % 12;
     const octave = Math.floor(semi / 12) + 4;
-    const name = (halfDown ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
+    const name = (halfDown && !isBass ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
     return { name, octave, freq, label: s.string };
   });
 }
@@ -2819,6 +2853,34 @@ function selectString(idx, el) {
   updateTargetDisplay();
 }
 
+function setInstrument(inst) {
+  currentInstrument = inst;
+  selectedStringIdx = null;
+  halfDown = false;
+  capoFret = 0;
+
+  ['guitar','uke','bass4','bass5'].forEach(id => {
+    const btn = document.getElementById('inst-' + id);
+    if (btn) btn.classList.toggle('selected', id === inst);
+  });
+
+  const isBass = inst.startsWith('bass');
+  document.getElementById('tuning-options').style.display = isBass ? 'none' : '';
+  const halfDownBtn = document.getElementById('half-down-btn');
+  if (halfDownBtn) halfDownBtn.classList.remove('active');
+  document.querySelectorAll('.capo-btn').forEach((b, i) => {
+    b.classList.remove('active', 'active-mod');
+    if (i === 0) b.classList.add('active');
+  });
+  document.getElementById('tuning-hint').classList.remove('visible');
+
+  const orderBar = document.getElementById('string-order-bar');
+  if (orderBar) orderBar.style.display = (isBass || inst === 'uke') ? 'none' : '';
+
+  renderStringButtons();
+  updateTuningHint();
+}
+
 function toggleHalfDown() {
   halfDown = !halfDown;
   document.getElementById('half-down-btn').classList.toggle('active', halfDown);
@@ -2839,6 +2901,7 @@ function setCapo(fret) {
 function updateTuningHint() {
   const hint = document.getElementById('tuning-hint');
   const notesEl = document.getElementById('tuning-hint-notes');
+  if (currentInstrument.startsWith('bass')) { hint.classList.remove('visible'); return; }
   if (!halfDown && capoFret === 0) { hint.classList.remove('visible'); return; }
 
   const strings = getEffectiveStrings();
