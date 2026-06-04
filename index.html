@@ -664,18 +664,17 @@
   }
 
   .half-down-btn {
-    width: 100%;
-    padding: 9px 12px;
+    flex-shrink: 0;
+    padding: 7px 10px;
     border: 1.5px solid #dde0e8;
-    border-radius: 7px;
+    border-radius: 6px;
     background: #f7f8fa;
-    color: #666;
-    font-size: 0.82rem;
+    color: #555;
+    font-size: 0.76rem;
     font-weight: 700;
     cursor: pointer;
-    letter-spacing: 0.05em;
-    text-align: center;
-    margin-bottom: 8px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
     transition: border-color 0.15s, background 0.15s, color 0.15s;
   }
 
@@ -1552,20 +1551,6 @@
 
       <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
 
-      <div class="tuning-options">
-        <button class="half-down-btn" id="half-down-btn" onclick="toggleHalfDown()">
-          半音下げ（Eb チューニング）: OFF
-        </button>
-        <div class="capo-row">
-          <span class="capo-label">カポ</span>
-          <div class="capo-btns" id="capo-btns"></div>
-        </div>
-        <div class="tuning-hint" id="tuning-hint">
-          <div class="tuning-hint-title">各弦の実音（チューナーで合わせる音）</div>
-          <div class="tuning-hint-notes" id="tuning-hint-notes"></div>
-        </div>
-      </div>
-
       <div class="ref-pitch-row">
         <span class="ref-pitch-label">基準ピッチ</span>
         <div class="ref-pitch-controls">
@@ -1589,6 +1574,18 @@
         <div class="mic-dot"></div>
         <span id="mic-btn-text">マイクをオンにする</span>
       </button>
+
+      <div class="tuning-options">
+        <div class="capo-row">
+          <button class="half-down-btn" id="half-down-btn" onclick="toggleHalfDown()">半音下げ</button>
+          <span class="capo-label">カポ</span>
+          <div class="capo-btns" id="capo-btns"></div>
+        </div>
+        <div class="tuning-hint" id="tuning-hint">
+          <div class="tuning-hint-title">各弦の実音（チューナーで合わせる音）</div>
+          <div class="tuning-hint-notes" id="tuning-hint-notes"></div>
+        </div>
+      </div>
 
     </div>
   </div>
@@ -2364,9 +2361,7 @@ function selectString(idx, el) {
 
 function toggleHalfDown() {
   halfDown = !halfDown;
-  const btn = document.getElementById('half-down-btn');
-  btn.textContent = '半音下げ（Eb チューニング）: ' + (halfDown ? 'ON' : 'OFF');
-  btn.classList.toggle('active', halfDown);
+  document.getElementById('half-down-btn').classList.toggle('active', halfDown);
   renderStringButtons();
   updateTuningHint();
 }
