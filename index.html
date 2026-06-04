@@ -1287,6 +1287,52 @@
   .live-fine-btn:hover { background: #e0e3ea; }
   .live-fine-btn:active { transform: scale(0.94); }
 
+  /* ===== APP BANNER ===== */
+  .app-banner-section {
+    border-top: 1.5px solid #f0f2f5;
+    margin-top: 20px;
+    padding-top: 12px;
+  }
+
+  .app-banner-label {
+    font-size: 0.68rem;
+    color: #bbb;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    text-align: center;
+    margin-bottom: 8px;
+    font-weight: 600;
+  }
+
+  .app-banner-row {
+    display: flex;
+    gap: 8px;
+  }
+
+  .app-banner-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 9px 6px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 8px;
+    background: #f7f8fa;
+    color: #444;
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-decoration: none;
+    letter-spacing: 0.03em;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+
+  .app-banner-btn:hover {
+    border-color: #1a1a2e;
+    background: #1a1a2e;
+    color: #fff;
+  }
+
   /* ===== RESPONSIVE ===== */
   @media (max-width: 400px) {
     .bpm-number { font-size: 4.5rem; }
@@ -1501,6 +1547,14 @@
         </div>
       </div>
 
+      <div class="app-banner-section">
+        <div class="app-banner-label">TSG Guitar Apps</div>
+        <div class="app-banner-row">
+          <a class="app-banner-btn" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">🎸 コードダイアグラム</a>
+          <a class="app-banner-btn" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">🎵 スケールビューアー</a>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1626,6 +1680,14 @@
         🗑 セットリストをリセット
       </button>
 
+      <div class="app-banner-section">
+        <div class="app-banner-label">TSG Guitar Apps</div>
+        <div class="app-banner-row">
+          <a class="app-banner-btn" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">🎸 コードダイアグラム</a>
+          <a class="app-banner-btn" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">🎵 スケールビューアー</a>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -1682,6 +1744,7 @@
       </button>
 
       <div class="tuning-options">
+
         <div class="capo-row">
           <button class="half-down-btn" id="half-down-btn" onclick="toggleHalfDown()">半音下げ</button>
           <span class="capo-label">カポ</span>
@@ -1690,6 +1753,14 @@
         <div class="tuning-hint" id="tuning-hint">
           <div class="tuning-hint-title">各弦の実音（チューナーで合わせる音）</div>
           <div class="tuning-hint-notes" id="tuning-hint-notes"></div>
+        </div>
+      </div>
+
+      <div class="app-banner-section">
+        <div class="app-banner-label">TSG Guitar Apps</div>
+        <div class="app-banner-row">
+          <a class="app-banner-btn" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">🎸 コードダイアグラム</a>
+          <a class="app-banner-btn" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">🎵 スケールビューアー</a>
         </div>
       </div>
 
