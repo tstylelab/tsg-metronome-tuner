@@ -1195,6 +1195,7 @@
 
       <div class="btn-row">
         <button class="btn btn-primary" id="live-start-btn" onclick="toggleLive()">START</button>
+        <button class="btn btn-tap" onclick="tapTempoLive()">TAP</button>
         <button class="btn btn-mute" id="live-mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
       </div>
 
@@ -1841,6 +1842,20 @@ function setLiveBpm(val) {
 
 function adjustLiveBpm(delta) {
   setLiveBpm(liveBpm + delta);
+}
+
+let liveTapTimes = [];
+function tapTempoLive() {
+  const now = performance.now();
+  liveTapTimes.push(now);
+  if (liveTapTimes.length > 8) liveTapTimes.shift();
+  const recent = liveTapTimes.slice(-4);
+  if (recent.length >= 2) {
+    const avg = (recent[recent.length - 1] - recent[0]) / (recent.length - 1);
+    const newBpm = Math.round(60000 / avg);
+    if (newBpm >= 30 && newBpm <= 280) setLiveBpm(newBpm);
+  }
+  if (liveTapTimes.length === 1) setTimeout(() => { if (liveTapTimes.length === 1) liveTapTimes = []; }, 3000);
 }
 
 function liveTick() {
