@@ -1148,9 +1148,23 @@
       <div class="live-slots-label">セットリスト</div>
       <div class="live-slots" id="live-slots"></div>
 
-      <input type="text" class="live-name-input" id="live-slot-name"
-        placeholder="曲名を入力（任意）" maxlength="20"
-        oninput="updateSlotName(this.value)">
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
+        <input type="text" class="live-name-input" id="live-slot-name"
+          placeholder="曲名を入力（任意）" maxlength="20"
+          oninput="updateSlotName(this.value)"
+          style="flex:1; margin-bottom:0;">
+        <select id="live-beat-select" onchange="updateSlotBeats(+this.value)"
+          style="width:68px; padding:9px 6px; border:1.5px solid #dde0e8; border-radius:7px;
+                 font-size:0.85rem; font-weight:700; color:#222; background:#f7f8fa;
+                 outline:none; cursor:pointer; flex-shrink:0;">
+          <option value="2">2/4</option>
+          <option value="3">3/4</option>
+          <option value="4" selected>4/4</option>
+          <option value="5">5/4</option>
+          <option value="6">6/4</option>
+          <option value="7">7/4</option>
+        </select>
+      </div>
 
       <div class="live-bpm-row">
         <button class="live-fine-btn" onclick="adjustLiveBpm(-1)">−</button>
@@ -1579,6 +1593,7 @@ function tapTempo() {
 // ===== LIVE MODE =====
 let liveSlots = Array(24).fill(null);  // null = 未設定（最大24）
 let liveNames = Array(24).fill('');   // 曲名
+let liveBeats = Array(24).fill(4);    // 拍子（デフォルト4）
 let liveSlotCount = 12;  // 表示中のスロット数
 
 const LS_KEY = 'tsg-live-state';
@@ -1587,6 +1602,7 @@ function saveLiveState() {
   const state = {
     slots: liveSlots,
     names: liveNames,
+    beats: liveBeats,
     slotCount: liveSlotCount,
     selectedSlot: liveSelectedSlot,
     setlistName: document.getElementById('setlist-name')?.value || ''
@@ -1601,6 +1617,7 @@ function loadLiveState() {
     const s = JSON.parse(raw);
     if (Array.isArray(s.slots)) s.slots.forEach((v, i) => { if (i < 24) liveSlots[i] = v; });
     if (Array.isArray(s.names)) s.names.forEach((v, i) => { if (i < 24) liveNames[i] = v || ''; });
+    if (Array.isArray(s.beats)) s.beats.forEach((v, i) => { if (i < 24) liveBeats[i] = v || 4; });
     if (s.slotCount === 24) liveSlotCount = 24;
     if (typeof s.selectedSlot === 'number') liveSelectedSlot = s.selectedSlot;
     if (s.setlistName) {
@@ -1629,7 +1646,8 @@ function saveSetlist() {
     date: dateStr,
     slotCount: liveSlotCount,
     slots: liveSlots,
-    names: liveNames
+    names: liveNames,
+    beats: liveBeats
   };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -1655,6 +1673,9 @@ function loadSetlist(event) {
       }
       if (Array.isArray(data.names)) {
         data.names.forEach((v, i) => { if (i < 24) liveNames[i] = v || ''; });
+      }
+      if (Array.isArray(data.beats)) {
+        data.beats.forEach((v, i) => { if (i < 24) liveBeats[i] = v || 4; });
       }
       // スロット数を復元
       liveSlotCount = 12;
@@ -1685,6 +1706,7 @@ function resetLive() {
   if (!confirm('セットリストの情報（BPM・曲名）をすべてリセットします。\nよろしいですか？')) return;
   liveSlots = Array(24).fill(null);
   liveNames = Array(24).fill('');
+  liveBeats = Array(24).fill(4);
   liveSelectedSlot = 0;
   liveSlotCount = 12;
   localStorage.removeItem(LS_KEY);  // 先に削除してからinitを呼ぶ
@@ -1739,6 +1761,13 @@ function updateSlotName(val) {
   saveLiveState();
 }
 
+function updateSlotBeats(val) {
+  liveBeats[liveSelectedSlot] = val;
+  liveBeat = 0;
+  updateLiveBeatDots();
+  saveLiveState();
+}
+
 function initLiveSlots() {
   loadLiveState();  // localStorageから復元
   const container = document.getElementById('live-slots');
@@ -1763,6 +1792,10 @@ function selectLiveSlot(idx) {
   setLiveBpm(slotBpm);
   const nameInput = document.getElementById('live-slot-name');
   if (nameInput) nameInput.value = liveNames[idx] || '';
+  const beatSel = document.getElementById('live-beat-select');
+  if (beatSel) beatSel.value = liveBeats[idx] || 4;
+  liveBeat = 0;
+  updateLiveBeatDots();
   saveLiveState();
 }
 
@@ -1797,14 +1830,28 @@ function liveTick() {
     const beat = liveBeat;
     setTimeout(() => { flashLivePendulum(); flashLiveBeat(beat); }, Math.max(0, delay));
 
-    liveBeat = (liveBeat + 1) % 4;
+    liveBeat = (liveBeat + 1) % (liveBeats[liveSelectedSlot] || 4);
     liveNextNoteTime += 60 / liveBpm;
   }
   liveTimerID = setTimeout(liveTick, 25);
 }
 
+function updateLiveBeatDots() {
+  const n = liveBeats[liveSelectedSlot] || 4;
+  const container = document.getElementById('live-beat-indicators');
+  if (!container) return;
+  container.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const d = document.createElement('div');
+    d.className = 'beat-dot' + (i === 0 ? ' accent' : '');
+    d.id = 'lbdot-' + i;
+    container.appendChild(d);
+  }
+}
+
 function flashLiveBeat(beat) {
-  for (let i = 0; i < 4; i++) {
+  const n = liveBeats[liveSelectedSlot] || 4;
+  for (let i = 0; i < n; i++) {
     const d = document.getElementById('lbdot-' + i);
     if (d) d.classList.toggle('active', i === beat);
   }
