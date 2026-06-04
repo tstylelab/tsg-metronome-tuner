@@ -1289,76 +1289,148 @@
 
   /* ===== APP BANNER ===== */
   .app-banner-section {
-    border-top: 1.5px solid #f0f2f5;
-    margin-top: 22px;
-    padding-top: 14px;
+    margin-top: 24px;
+    padding-top: 0;
   }
 
-  .app-banner-label {
-    font-size: 0.68rem;
-    color: #bbb;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    text-align: center;
-    margin-bottom: 10px;
+  .app-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+
+  .app-section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #d0d3da);
+  }
+
+  .app-section-line.right {
+    background: linear-gradient(to left, transparent, #d0d3da);
+  }
+
+  .app-section-title {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.7rem;
     font-weight: 600;
+    color: #aaa;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    white-space: nowrap;
   }
 
   .app-banner-row {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 10px;
   }
 
   .app-banner-btn {
     display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 16px;
-    border-radius: 10px;
+    align-items: stretch;
+    border-radius: 12px;
     text-decoration: none;
-    color: #fff;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.12);
-    transition: opacity 0.15s, transform 0.1s;
+    background: #1a1a2e;
+    box-shadow: 0 4px 14px rgba(0,0,0,0.18);
+    overflow: hidden;
+    transition: transform 0.15s, box-shadow 0.15s;
   }
 
-  .app-banner-btn:hover { opacity: 0.88; }
+  .app-banner-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 7px 20px rgba(0,0,0,0.22);
+  }
+
   .app-banner-btn:active { transform: scale(0.98); }
 
-  .app-banner-btn.chord {
-    background: linear-gradient(135deg, #1a1a2e 0%, #2e2e52 100%);
-  }
-
-  .app-banner-btn.scale {
-    background: linear-gradient(135deg, #145a7a 0%, #2176ae 100%);
-  }
-
-  .app-banner-icon {
-    font-size: 2rem;
+  .app-banner-accent {
+    width: 5px;
     flex-shrink: 0;
   }
 
-  .app-banner-text { flex: 1; }
+  .app-banner-btn.chord .app-banner-accent { background: #c0392b; }
+  .app-banner-btn.scale .app-banner-accent { background: #2176ae; }
+
+  .app-banner-body {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 14px;
+    flex: 1;
+  }
+
+  .app-banner-icon-wrap {
+    width: 46px;
+    height: 46px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1.7rem;
+  }
+
+  .app-banner-btn.chord .app-banner-icon-wrap { background: rgba(192,57,43,0.18); }
+  .app-banner-btn.scale .app-banner-icon-wrap { background: rgba(33,118,174,0.18); }
+
+  .app-banner-text { flex: 1; min-width: 0; }
+
+  .app-banner-badge {
+    display: inline-block;
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 2px 6px;
+    border-radius: 3px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+  }
+
+  .app-banner-btn.chord .app-banner-badge {
+    background: rgba(192,57,43,0.28);
+    color: #e08080;
+  }
+
+  .app-banner-btn.scale .app-banner-badge {
+    background: rgba(33,118,174,0.28);
+    color: #80b8e0;
+  }
 
   .app-banner-title {
     font-family: 'Oswald', sans-serif;
     font-size: 1rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
-    line-height: 1.2;
+    letter-spacing: 0.04em;
+    color: #fff;
+    line-height: 1.1;
+    display: block;
   }
 
   .app-banner-desc {
-    font-size: 0.7rem;
-    opacity: 0.72;
+    font-size: 0.68rem;
+    color: rgba(255,255,255,0.48);
     margin-top: 3px;
-    font-weight: 500;
+    display: block;
   }
 
-  .app-banner-arrow {
-    font-size: 1.5rem;
-    opacity: 0.65;
+  .app-banner-cta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    font-size: 0.62rem;
+    font-weight: 700;
+    color: rgba(255,255,255,0.4);
     flex-shrink: 0;
+    letter-spacing: 0.04em;
+    padding-left: 4px;
+  }
+
+  .app-banner-cta-arrow {
+    font-size: 1.2rem;
+    line-height: 1;
   }
 
   /* ===== RESPONSIVE ===== */
@@ -1576,23 +1648,35 @@
       </div>
 
       <div class="app-banner-section">
-        <div class="app-banner-label">TSG Guitar Apps</div>
+        <div class="app-section-header">
+          <div class="app-section-line"></div>
+          <div class="app-section-title">TSG Guitar Tools</div>
+          <div class="app-section-line right"></div>
+        </div>
         <div class="app-banner-row">
           <a class="app-banner-btn chord" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-icon">🎸</div>
-            <div class="app-banner-text">
-              <div class="app-banner-title">コードダイアグラム</div>
-              <div class="app-banner-desc">コードフォームを瞬時に検索・表示</div>
+            <div class="app-banner-accent"></div>
+            <div class="app-banner-body">
+              <div class="app-banner-icon-wrap">🎸</div>
+              <div class="app-banner-text">
+                <span class="app-banner-badge">プロギタリスト監修</span>
+                <span class="app-banner-title">コードダイアグラム</span>
+                <span class="app-banner-desc">ギターコードを瞬時に検索・表示</span>
+              </div>
+              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
             </div>
-            <div class="app-banner-arrow">›</div>
           </a>
           <a class="app-banner-btn scale" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-icon">🎵</div>
-            <div class="app-banner-text">
-              <div class="app-banner-title">スケールビューアー</div>
-              <div class="app-banner-desc">スケールをフレットボードで視覚化</div>
+            <div class="app-banner-accent"></div>
+            <div class="app-banner-body">
+              <div class="app-banner-icon-wrap">🎵</div>
+              <div class="app-banner-text">
+                <span class="app-banner-badge">プロギタリスト監修</span>
+                <span class="app-banner-title">スケールビューアー</span>
+                <span class="app-banner-desc">スケールをフレットボードで視覚化</span>
+              </div>
+              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
             </div>
-            <div class="app-banner-arrow">›</div>
           </a>
         </div>
       </div>
@@ -1723,23 +1807,35 @@
       </button>
 
       <div class="app-banner-section">
-        <div class="app-banner-label">TSG Guitar Apps</div>
+        <div class="app-section-header">
+          <div class="app-section-line"></div>
+          <div class="app-section-title">TSG Guitar Tools</div>
+          <div class="app-section-line right"></div>
+        </div>
         <div class="app-banner-row">
           <a class="app-banner-btn chord" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-icon">🎸</div>
-            <div class="app-banner-text">
-              <div class="app-banner-title">コードダイアグラム</div>
-              <div class="app-banner-desc">コードフォームを瞬時に検索・表示</div>
+            <div class="app-banner-accent"></div>
+            <div class="app-banner-body">
+              <div class="app-banner-icon-wrap">🎸</div>
+              <div class="app-banner-text">
+                <span class="app-banner-badge">プロギタリスト監修</span>
+                <span class="app-banner-title">コードダイアグラム</span>
+                <span class="app-banner-desc">ギターコードを瞬時に検索・表示</span>
+              </div>
+              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
             </div>
-            <div class="app-banner-arrow">›</div>
           </a>
           <a class="app-banner-btn scale" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-icon">🎵</div>
-            <div class="app-banner-text">
-              <div class="app-banner-title">スケールビューアー</div>
-              <div class="app-banner-desc">スケールをフレットボードで視覚化</div>
+            <div class="app-banner-accent"></div>
+            <div class="app-banner-body">
+              <div class="app-banner-icon-wrap">🎵</div>
+              <div class="app-banner-text">
+                <span class="app-banner-badge">プロギタリスト監修</span>
+                <span class="app-banner-title">スケールビューアー</span>
+                <span class="app-banner-desc">スケールをフレットボードで視覚化</span>
+              </div>
+              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
             </div>
-            <div class="app-banner-arrow">›</div>
           </a>
         </div>
       </div>
@@ -1813,23 +1909,35 @@
       </div>
 
       <div class="app-banner-section">
-        <div class="app-banner-label">TSG Guitar Apps</div>
+        <div class="app-section-header">
+          <div class="app-section-line"></div>
+          <div class="app-section-title">TSG Guitar Tools</div>
+          <div class="app-section-line right"></div>
+        </div>
         <div class="app-banner-row">
           <a class="app-banner-btn chord" href="https://chord.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-icon">🎸</div>
-            <div class="app-banner-text">
-              <div class="app-banner-title">コードダイアグラム</div>
-              <div class="app-banner-desc">コードフォームを瞬時に検索・表示</div>
+            <div class="app-banner-accent"></div>
+            <div class="app-banner-body">
+              <div class="app-banner-icon-wrap">🎸</div>
+              <div class="app-banner-text">
+                <span class="app-banner-badge">プロギタリスト監修</span>
+                <span class="app-banner-title">コードダイアグラム</span>
+                <span class="app-banner-desc">ギターコードを瞬時に検索・表示</span>
+              </div>
+              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
             </div>
-            <div class="app-banner-arrow">›</div>
           </a>
           <a class="app-banner-btn scale" href="https://scale.tsg-gt.com" target="_blank" rel="noopener">
-            <div class="app-banner-icon">🎵</div>
-            <div class="app-banner-text">
-              <div class="app-banner-title">スケールビューアー</div>
-              <div class="app-banner-desc">スケールをフレットボードで視覚化</div>
+            <div class="app-banner-accent"></div>
+            <div class="app-banner-body">
+              <div class="app-banner-icon-wrap">🎵</div>
+              <div class="app-banner-text">
+                <span class="app-banner-badge">プロギタリスト監修</span>
+                <span class="app-banner-title">スケールビューアー</span>
+                <span class="app-banner-desc">スケールをフレットボードで視覚化</span>
+              </div>
+              <div class="app-banner-cta">開く<span class="app-banner-cta-arrow">›</span></div>
             </div>
-            <div class="app-banner-arrow">›</div>
           </a>
         </div>
       </div>
