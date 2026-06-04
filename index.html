@@ -1884,7 +1884,12 @@
 
       <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
 
-      <div class="ref-pitch-row">
+      <button class="btn-mic" id="mic-btn" onclick="toggleMic()">
+        <div class="mic-dot"></div>
+        <span id="mic-btn-text">マイクをオンにする</span>
+      </button>
+
+      <div class="ref-pitch-row" style="margin-top:16px;">
         <span class="ref-pitch-label">基準ピッチ</span>
         <div class="ref-pitch-controls">
           <button class="ref-pitch-btn" onclick="adjustRefPitch(-1)">−</button>
@@ -1902,11 +1907,6 @@
           <span>細い弦 →</span>
         </div>
       </div>
-
-      <button class="btn-mic" id="mic-btn" onclick="toggleMic()">
-        <div class="mic-dot"></div>
-        <span id="mic-btn-text">マイクをオンにする</span>
-      </button>
 
       <div class="tuning-options" id="tuning-options">
 
