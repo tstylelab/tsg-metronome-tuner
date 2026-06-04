@@ -2945,7 +2945,16 @@ async function toggleMic() {
       const source = tunerAudioCtx.createMediaStreamSource(micStream);
       analyser = tunerAudioCtx.createAnalyser();
       analyser.fftSize = 8192;
-      source.connect(analyser);
+
+      // ① 入力フィルター：マイクの生音には低域のゴロゴロ音（手の擦れ・空調）と
+      //    高域のサー音が混ざっている。これを取り除いてから解析すると、
+      //    打音や軽い接触に反応しにくくなり、検出が安定する。
+      //    マイク → ハイパス(25Hz) → ローパス(2000Hz) → アナライザー の順で接続。
+      const hp = tunerAudioCtx.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 25;
+      const lp = tunerAudioCtx.createBiquadFilter();
+      lp.type = 'lowpass'; lp.frequency.value = 2000;
+      source.connect(hp); hp.connect(lp); lp.connect(analyser);
       tunerActive = true;
       btn.classList.add('listening');
       btnText.textContent = 'マイクをオフにする';
@@ -2989,13 +2998,26 @@ let silenceTimer = null;
 
 function detectPitch() {
   if (!tunerActive) return;
+
+  // ③ ベースは低音（4弦E=41Hz, 5弦B=31Hz）を扱うため、検出の下限を下げ、
+  //    解析窓（fftSize）も広げる。ギター/ウクレレは従来どおり。
+  const isBass = currentInstrument.startsWith('bass');
+  const wantFft = isBass ? 16384 : 8192;
+  if (analyser.fftSize !== wantFft) analyser.fftSize = wantFft;
+  const floorHz = isBass ? 28 : 65;
+
   const buf = new Float32Array(analyser.fftSize);
   analyser.getFloatTimeDomainData(buf);
-  const freq = autoCorrelate(buf, tunerAudioCtx.sampleRate);
 
-  if (freq > 60 && freq < 1400) {
+  // autoCorrelate は { freq, confidence } か null を返す（null = 検出失敗）
+  const result = autoCorrelate(buf, tunerAudioCtx.sampleRate, floorHz);
+
+  // ② 確信度ゲート：confidence が高いフレームだけ表示に反映する。
+  //    弦を弾いた瞬間のアタック（打撃音）は音量は大きいが確信度が低いので、
+  //    ここで弾かれて「ピタッと止まる」表示になる。
+  if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= 0.90) {
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-    updateTunerUI(freq);
+    updateTunerUI(result.freq);
   } else {
     if (!silenceTimer) {
       silenceTimer = setTimeout(() => {
@@ -3009,22 +3031,29 @@ function detectPitch() {
   tunerAnimId = requestAnimationFrame(detectPitch);
 }
 
-function autoCorrelate(buf, sampleRate) {
+// 音程検出（YINアルゴリズム）
+// 引数 floorHz … 検出する最低周波数（ギター65 / ベース28 など）
+// 戻り値 … { freq, confidence } か null（検出できないときは null）
+//   confidence … 0〜1。1に近いほど「確実にこの音」。打音やノイズだと低くなる。
+//   ※以前は周波数の数値を返していたが、確信度ゲート(detectPitch)のため
+//     オブジェクトを返す形に変更した。呼び出し側の参照に注意。
+function autoCorrelate(buf, sampleRate, floorHz) {
   const SIZE = buf.length;
 
-  // RMS チェック
+  // RMS（音量）チェック：小さすぎる音は無視
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.025) return -1;
+  if (rms < 0.025) return null;
 
   // ===== YIN アルゴリズム =====
-  const WIN    = Math.min(SIZE, 4096);
-  const minLag = Math.max(2, Math.floor(sampleRate / 1400)); // 最高検出 ~1400Hz
-  const maxLag = Math.min(WIN - 1, Math.ceil(sampleRate / 65)); // 最低検出 ~65Hz
+  // 解析窓 WIN：低い音ほど1周期が長いので、floorHz に応じて窓を広げる。
+  //   （基音の約4周期ぶんを確保できれば低音も安定して取れる。最低でも4096）
+  const WIN    = Math.min(SIZE, Math.max(4096, Math.ceil(4 * sampleRate / floorHz)));
+  const minLag = Math.max(2, Math.floor(sampleRate / 1400));         // 最高検出 ~1400Hz
+  const maxLag = Math.min(WIN - 1, Math.ceil(sampleRate / floorHz)); // 最低検出 floorHz
 
-  // Step 1+2: 累積平均正規化差分関数（CMND）を計算
-  // d'(tau) = d(tau) * tau / Σ[1..tau] d(j)
+  // 累積平均正規化差分関数（CMND）を計算
   // ゼロに近い谷 = 波形がピタリ合う周期 = 基音
   const yin = new Float32Array(maxLag + 1);
   yin[0] = 1.0;
@@ -3041,7 +3070,7 @@ function autoCorrelate(buf, sampleRate) {
     yin[tau] = runningSum > 0 ? (diff * tau / runningSum) : 1.0;
   }
 
-  // Step 3: ギター音域内で「最初に閾値を下回る谷」を探す（= 基音）
+  // 音域内で「最初に閾値を下回る谷」を探す（= 基音）
   // 自己相関と違い、倍音の谷より基音の谷が必ず先に来るため誤検出が減る
   const threshold = 0.10;
   let bestTau = -1;
@@ -3054,18 +3083,18 @@ function autoCorrelate(buf, sampleRate) {
     }
   }
 
-  // フォールバック：閾値以下の谷がなければ最小値を採用（低確信）
+  // フォールバック：閾値以下の谷がなければ最小値を採用（確信度は低めになる）
   if (bestTau === -1) {
     let minVal = Infinity;
     for (let tau = minLag; tau <= maxLag; tau++) {
       if (yin[tau] < minVal) { minVal = yin[tau]; bestTau = tau; }
     }
-    if (minVal > 0.45) return -1; // 信頼できない → 無視
+    if (minVal > 0.45) return null; // 信頼できない → 無視
   }
 
-  if (bestTau === -1) return -1;
+  if (bestTau === -1) return null;
 
-  // Step 4: 放物線補間でサブサンプル精度を確保（極小値用）
+  // 放物線補間でサブサンプル精度を確保（極小値用）
   let T0 = bestTau;
   if (bestTau > minLag && bestTau < maxLag) {
     const y1 = yin[bestTau - 1], y2 = yin[bestTau], y3 = yin[bestTau + 1];
@@ -3073,7 +3102,9 @@ function autoCorrelate(buf, sampleRate) {
     if (denom > 0) T0 = bestTau + 0.5 * (y1 - y3) / denom;
   }
 
-  return sampleRate / T0;
+  // 確信度 = 1 − 谷の深さ。谷が深い（yin が 0 に近い）ほど確実な検出。
+  const confidence = Math.max(0, Math.min(1, 1 - yin[bestTau]));
+  return { freq: sampleRate / T0, confidence };
 }
 
 let refA4 = parseInt(localStorage.getItem('tsg_refA4') || '440', 10);
@@ -3121,7 +3152,9 @@ function updateTunerUI(rawFreq) {
   // ① メジアンフィルターで外れ値を除去（5フレームの中央値）
   const mFreq = medianFreq(rawFreq);
   // ② 指数スムージング（さらになめらかに）
-  smoothFreq = smoothFreq == null ? mFreq : smoothFreq * 0.80 + mFreq * 0.20;
+  //    入力フィルター＋確信度ゲートで生データが綺麗になったので、
+  //    以前(0.80/0.20)より少し軽くして反応を速めている。
+  smoothFreq = smoothFreq == null ? mFreq : smoothFreq * 0.72 + mFreq * 0.28;
 
   // 現在の正確なセミトーン数（連続値）
   const exactSemi = 12 * Math.log2(smoothFreq / refA4);
