@@ -602,7 +602,6 @@
     top: 0;
     bottom: 0;
     border-radius: 10px;
-    transition: left 0.1s, width 0.1s, background 0.2s;
   }
 
   .gauge-center {
@@ -2661,13 +2660,19 @@ async function toggleMic() {
 }
 
 function resetTunerUI() {
-  document.getElementById('tuner-note').textContent = '—';
+  smoothFreq = null; smoothCents = null; lastNoteKey = null;
+  const noteEl = document.getElementById('tuner-note');
+  if (noteEl) { noteEl.textContent = '—'; noteEl.style.color = ''; }
   document.getElementById('tuner-freq').textContent = '';
   const centsEl = document.getElementById('tuner-cents');
   if (centsEl) { centsEl.textContent = ''; centsEl.className = 'tuner-cents'; }
+  const dividerEl = document.getElementById('tuner-freq-divider');
+  if (dividerEl) dividerEl.style.display = 'none';
   document.getElementById('tuner-status').textContent = 'マイクをオンにして弦を弾いてください';
   document.getElementById('tuner-status').className = 'tuner-status';
   document.getElementById('gauge-fill').style.cssText = 'left:50%;width:0;background:#e0e3ea;';
+  const displayEl = document.getElementById('tuner-note-display');
+  if (displayEl) displayEl.className = 'tuner-note-display';
 }
 
 let silenceTimer = null;
@@ -2696,40 +2701,55 @@ function detectPitch() {
 
 function autoCorrelate(buf, sampleRate) {
   const SIZE = buf.length;
+
+  // RMS check（ノイズフロア）
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.01) return -1;
+  if (rms < 0.015) return -1;
 
-  let r1 = 0, r2 = SIZE - 1;
-  for (let i = 0; i < SIZE / 2; i++) {
-    if (Math.abs(buf[i]) < 0.2) { r1 = i; break; }
+  // 解析ウィンドウをギター音域に限定（高速化）
+  const WIN = Math.min(SIZE, 4096);
+  const minLag = Math.max(2, Math.floor(sampleRate / 1400)); // ~31 @ 44100Hz
+  const maxLag = Math.min(WIN - 1, Math.ceil(sampleRate / 65)); // ~679 @ 44100Hz
+
+  // 必要なラグ範囲だけ自己相関を計算（O(n²) → O(WIN × 650) に削減）
+  const corr = new Float32Array(maxLag + 2);
+  for (let lag = minLag; lag <= maxLag + 1; lag++) {
+    let sum = 0;
+    const n = WIN - lag;
+    for (let i = 0; i < n; i++) sum += buf[i] * buf[i + lag];
+    corr[lag] = sum;
   }
-  for (let i = 1; i < SIZE / 2; i++) {
-    if (Math.abs(buf[SIZE - i]) < 0.2) { r2 = SIZE - i; break; }
+
+  // 全体の最大値を求める
+  let globalMax = -Infinity;
+  for (let lag = minLag; lag <= maxLag; lag++) {
+    if (corr[lag] > globalMax) globalMax = corr[lag];
   }
-  const trimmed = buf.slice(r1, r2 + 1);
-  const len = trimmed.length;
+  if (globalMax <= 0) return -1;
 
-  const c = new Array(len).fill(0);
-  for (let i = 0; i < len; i++) {
-    for (let j = 0; j < len - i; j++) c[i] += trimmed[j] * trimmed[j + i];
+  // 最初の「強いピーク」を基音として採用（オクターブ誤検出を防ぐ）
+  let bestLag = -1;
+  for (let lag = minLag + 1; lag < maxLag; lag++) {
+    if (corr[lag] > corr[lag - 1] && corr[lag] >= corr[lag + 1]) {
+      if (corr[lag] >= globalMax * 0.85) { bestLag = lag; break; }
+    }
   }
-
-  let d = 0;
-  while (d < len / 2 && c[d] > c[d + 1]) d++;
-
-  let maxVal = -1, maxPos = -1;
-  for (let i = d; i < len / 2; i++) {
-    if (c[i] > maxVal) { maxVal = c[i]; maxPos = i; }
+  // フォールバック：最大値の位置
+  if (bestLag === -1) {
+    for (let lag = minLag; lag <= maxLag; lag++) {
+      if (corr[lag] >= globalMax) { bestLag = lag; break; }
+    }
   }
-  if (maxPos === -1) return -1;
+  if (bestLag === -1) return -1;
 
-  // parabolic interpolation
-  let T0 = maxPos;
-  if (maxPos > 0 && maxPos < len - 1) {
-    const x1 = c[maxPos - 1], x2 = c[maxPos], x3 = c[maxPos + 1];
-    T0 = maxPos + (x3 - x1) / (2 * (2 * x2 - x1 - x3));
+  // 放物線補間でサブサンプル精度を確保
+  let T0 = bestLag;
+  if (bestLag > minLag && bestLag < maxLag) {
+    const x1 = corr[bestLag - 1], x2 = corr[bestLag], x3 = corr[bestLag + 1];
+    const denom = 2 * x2 - x1 - x3;
+    if (denom > 0) T0 = bestLag + (x3 - x1) / (2 * denom);
   }
   return sampleRate / T0;
 }
@@ -2756,15 +2776,28 @@ function centsOff(freq) {
 
 // Smoothing
 let smoothFreq = null;
+let smoothCents = null;
+let lastNoteKey = null;
 function updateTunerUI(rawFreq) {
-  smoothFreq = smoothFreq == null ? rawFreq : smoothFreq * 0.75 + rawFreq * 0.25;
-  const freq = smoothFreq;
+  // 周波数スムージング（音名判定用）
+  smoothFreq = smoothFreq == null ? rawFreq : smoothFreq * 0.65 + rawFreq * 0.35;
 
-  const note = freqToNote(freq);
-  const cents = centsOff(freq);
+  const note = freqToNote(smoothFreq);
+  const noteKey = note.name + note.octave;
+  const rawCents = centsOff(rawFreq);
 
-  document.getElementById('tuner-note').textContent = note.name + note.octave;
-  document.getElementById('tuner-freq').textContent = freq.toFixed(1) + ' Hz';
+  // ノートが変わった瞬間はセントを即リセット（素早い追従）
+  // 同じノート内はスムージングで針を安定させる
+  if (noteKey !== lastNoteKey) {
+    lastNoteKey = noteKey;
+    smoothCents = rawCents;
+  } else {
+    smoothCents = smoothCents == null ? rawCents : smoothCents * 0.72 + rawCents * 0.28;
+  }
+  const cents = smoothCents;
+
+  document.getElementById('tuner-note').textContent = noteKey;
+  document.getElementById('tuner-freq').textContent = smoothFreq.toFixed(1) + ' Hz';
 
   const gauge = document.getElementById('gauge-fill');
   const statusEl = document.getElementById('tuner-status');
