@@ -1562,19 +1562,21 @@
         <button class="btn btn-mute" id="live-mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
       </div>
 
-      <button class="groove-toggle" id="live-groove-toggle" onclick="toggleLiveGroove()" style="margin-top:14px;">
-        <span style="display:block;font-size:0.82rem;letter-spacing:0.06em;">▼ &nbsp;SOUND &amp; GROOVE</span>
-        <span style="display:block;font-size:0.7rem;font-weight:500;color:#888;margin-top:3px;letter-spacing:0.04em;">音色 / グルーブ / サブディビジョン（スロット個別設定）</span>
-      </button>
-
-      <div class="groove-panel" id="live-groove-panel">
-        <div class="groove-label">音色</div>
-        <div style="display:flex;gap:7px;margin-bottom:14px;">
+      <div style="margin-top:14px;">
+        <div class="groove-label" style="margin-bottom:8px;">音色</div>
+        <div style="display:flex;gap:7px;margin-bottom:10px;">
           <button class="groove-btn selected" id="live-sound-beep"  onclick="setLiveSound('beep')">Beep<span>電子音</span></button>
           <button class="groove-btn"          id="live-sound-wood"  onclick="setLiveSound('wood')">Wood<span>木の音</span></button>
           <button class="groove-btn"          id="live-sound-hihat" onclick="setLiveSound('hihat')">Hi-hat<span>ハイハット</span></button>
         </div>
+      </div>
 
+      <button class="groove-toggle" id="live-groove-toggle" onclick="toggleLiveGroove()">
+        <span style="display:block;font-size:0.82rem;letter-spacing:0.06em;">▼ &nbsp;GROOVE / SUBDIVISION</span>
+        <span style="display:block;font-size:0.7rem;font-weight:500;color:#888;margin-top:3px;letter-spacing:0.04em;">グルーブ / サブディビジョン（スロット個別設定）</span>
+      </button>
+
+      <div class="groove-panel" id="live-groove-panel">
         <div class="groove-label">リズムパターン</div>
         <div id="live-shuffle-slider-wrap" style="display:none;margin-bottom:14px;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
