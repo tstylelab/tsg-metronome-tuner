@@ -1439,13 +1439,13 @@
         <button class="preset-btn" onclick="setBpm(160)">160 <span style="color:#bbb;font-weight:400">Presto</span></button>
       </div>
 
-      <div class="beat-row" style="margin-top:20px;">
+      <div class="beat-row" style="margin-top:14px;">
         <span class="beat-label">音色</span>
-        <select class="beat-select" id="sound-select" onchange="currentSound=this.value">
-          <option value="beep">Beep（電子音）</option>
-          <option value="wood">Wood（木の音）</option>
-          <option value="hihat">Hi-hat（ハイハット）</option>
-        </select>
+        <div style="display:flex;gap:6px;flex:1;">
+          <button class="groove-btn selected" id="metro-sound-beep"  onclick="setMetroSound('beep')">Beep<span>電子音</span></button>
+          <button class="groove-btn"          id="metro-sound-wood"  onclick="setMetroSound('wood')">Wood<span>木の音</span></button>
+          <button class="groove-btn"          id="metro-sound-hihat" onclick="setMetroSound('hihat')">Hi-hat<span>ハイハット</span></button>
+        </div>
       </div>
 
       <div class="beat-row">
@@ -1562,9 +1562,9 @@
         <button class="btn btn-mute" id="live-mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
       </div>
 
-      <div style="margin-top:14px;">
-        <div class="groove-label" style="margin-bottom:8px;">音色</div>
-        <div style="display:flex;gap:7px;margin-bottom:10px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-top:14px;margin-bottom:10px;">
+        <span class="beat-label">音色</span>
+        <div style="display:flex;gap:6px;flex:1;">
           <button class="groove-btn selected" id="live-sound-beep"  onclick="setLiveSound('beep')">Beep<span>電子音</span></button>
           <button class="groove-btn"          id="live-sound-wood"  onclick="setLiveSound('wood')">Wood<span>木の音</span></button>
           <button class="groove-btn"          id="live-sound-hihat" onclick="setLiveSound('hihat')">Hi-hat<span>ハイハット</span></button>
@@ -1801,6 +1801,14 @@ function toggleMute() {
   document.querySelectorAll('#mute-btn, #live-mute-btn').forEach(btn => {
     btn.textContent = isMuted ? 'UNMUTE' : 'MUTE';
     btn.classList.toggle('muted', isMuted);
+  });
+}
+
+function setMetroSound(val) {
+  currentSound = val;
+  ['beep','wood','hihat'].forEach(s => {
+    const b = document.getElementById('metro-sound-' + s);
+    if (b) b.classList.toggle('selected', s === val);
   });
 }
 
