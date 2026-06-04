@@ -810,6 +810,25 @@
     transition: border-color 0.15s, background 0.15s, color 0.15s;
   }
 
+  .live-slot-btn {
+    position: relative;
+  }
+
+  .slot-beats-badge {
+    display: none;
+    position: absolute;
+    top: 3px;
+    right: 4px;
+    font-size: 0.58rem;
+    font-weight: 700;
+    color: #2176ae;
+    line-height: 1;
+  }
+
+  .slot-beats-badge.visible { display: block; }
+  .live-slot-btn.selected .slot-beats-badge { color: rgba(255,255,255,0.7); }
+  .live-slot-btn.playing  .slot-beats-badge { color: rgba(255,255,255,0.7); }
+
   .live-slot-btn .slot-num {
     display: block;
     font-family: 'Oswald', sans-serif;
@@ -1153,10 +1172,11 @@
           placeholder="曲名を入力（任意）" maxlength="20"
           oninput="updateSlotName(this.value)"
           style="flex:1; margin-bottom:0;">
-        <select id="live-beat-select" onchange="updateSlotBeats(+this.value)"
-          style="width:68px; padding:9px 6px; border:1.5px solid #dde0e8; border-radius:7px;
-                 font-size:0.85rem; font-weight:700; color:#222; background:#f7f8fa;
-                 outline:none; cursor:pointer; flex-shrink:0;">
+        <div style="display:flex; align-items:center; gap:0; flex-shrink:0; border:1.5px solid #dde0e8; border-radius:7px; background:#f7f8fa; overflow:hidden;">
+          <span style="font-size:0.7rem; font-weight:700; color:#fff; background:#1a1a2e; padding:0 7px; height:100%; display:flex; align-items:center; white-space:nowrap; self-align:stretch;">拍子</span>
+          <select id="live-beat-select" onchange="updateSlotBeats(+this.value)"
+          style="width:58px; padding:9px 4px; border:none; font-size:0.85rem; font-weight:700;
+                 color:#222; background:transparent; outline:none; cursor:pointer;">
           <option value="2">2/4</option>
           <option value="3">3/4</option>
           <option value="4" selected>4/4</option>
@@ -1164,6 +1184,7 @@
           <option value="6">6/4</option>
           <option value="7">7/4</option>
         </select>
+        </div>
       </div>
 
       <div class="live-bpm-row">
@@ -1745,7 +1766,9 @@ function makeSlotBtn(i) {
   btn.id = 'live-slot-' + i;
   btn.onclick = () => selectLiveSlot(i);
   const name = liveNames[i] || '';
-  btn.innerHTML = `<span class="slot-num">${i + 1}</span>`
+  const beats = liveBeats[i] || 4;
+  btn.innerHTML = `<span class="slot-beats-badge${beats !== 4 ? ' visible' : ''}" id="slot-beats-${i}">${beats}/4</span>`
+    + `<span class="slot-num">${i + 1}</span>`
     + `<span class="slot-name${name ? ' has-name' : ''}" id="slot-name-${i}">${name}</span>`
     + `<span class="slot-bpm" id="slot-bpm-${i}">${liveSlots[i] !== null ? liveSlots[i] : '—'}</span>`;
   return btn;
@@ -1765,6 +1788,12 @@ function updateSlotBeats(val) {
   liveBeats[liveSelectedSlot] = val;
   liveBeat = 0;
   updateLiveBeatDots();
+  // バッジ更新
+  const badge = document.getElementById('slot-beats-' + liveSelectedSlot);
+  if (badge) {
+    badge.textContent = val + '/4';
+    badge.classList.toggle('visible', val !== 4);
+  }
   saveLiveState();
 }
 
