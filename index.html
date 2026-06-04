@@ -2122,11 +2122,17 @@ let tunerAnimId = null;
 let selectedString = null;
 
 function selectString(idx, el) {
+  if (el.classList.contains('selected')) {
+    el.classList.remove('selected');
+    selectedString = null;
+    document.getElementById('tuner-target').textContent = '';
+    return;
+  }
   document.querySelectorAll('.string-btn').forEach(b => b.classList.remove('selected'));
   el.classList.add('selected');
   selectedString = GUITAR_STRINGS[idx];
-  const t = document.getElementById('tuner-target');
-  t.textContent = '目標: ' + selectedString.label + ' (' + selectedString.freq.toFixed(2) + ' Hz)';
+  document.getElementById('tuner-target').textContent =
+    '目標: ' + selectedString.label + ' (' + selectedString.freq.toFixed(2) + ' Hz)';
 }
 
 async function toggleMic() {
