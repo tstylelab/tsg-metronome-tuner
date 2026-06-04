@@ -1582,22 +1582,25 @@ function animatePendulum() {
   const dot = document.getElementById('pendulum-dot');
   if (!track || !dot) return;
   const trackW = track.offsetWidth;
-  const dotW = 28;
+  const dotW = 22;
   const maxX = trackW - dotW;
   const duration = (60 / bpm) * 1000;
 
-  let start = null;
-  const startX = parseFloat(dot.style.left) || trackW / 2 - dotW / 2;
+  // ビートの瞬間に端へスナップ、次の端へ向けてアニメ開始
+  const snapX = pendulumDir > 0 ? 0 : maxX;
   const targetX = pendulumDir > 0 ? maxX : 0;
   pendulumDir *= -1;
 
+  dot.style.left = snapX + 'px';  // ← ビートと同時に端へ
+
+  let start = null;
   if (pendulumAnim) cancelAnimationFrame(pendulumAnim);
 
   function step(ts) {
     if (!start) start = ts;
     const p = Math.min((ts - start) / duration, 1);
     const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-    dot.style.left = (startX + (targetX - startX) * ease) + 'px';
+    dot.style.left = (snapX + (targetX - snapX) * ease) + 'px';
     if (p < 1) pendulumAnim = requestAnimationFrame(step);
   }
   pendulumAnim = requestAnimationFrame(step);
@@ -1945,19 +1948,24 @@ function animateLivePendulum() {
   const dot = document.getElementById('live-pendulum-dot');
   if (!track || !dot) return;
   const trackW = track.offsetWidth;
-  const dotW = 28;
+  const dotW = 22;
   const maxX = trackW - dotW;
   const duration = (60 / liveBpm) * 1000;
-  let start = null;
-  const startX = parseFloat(dot.style.left) || trackW / 2 - dotW / 2;
-  const targetX = livePendulumDir > 0 ? maxX - 4 : 4;
+
+  // ビートの瞬間に端へスナップ、次の端へ向けてアニメ開始
+  const snapX = livePendulumDir > 0 ? 0 : maxX;
+  const targetX = livePendulumDir > 0 ? maxX : 0;
   livePendulumDir *= -1;
+
+  dot.style.left = snapX + 'px';
+
+  let start = null;
   if (livePendulumAnim) cancelAnimationFrame(livePendulumAnim);
   function step(ts) {
     if (!start) start = ts;
     const p = Math.min((ts - start) / duration, 1);
     const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-    dot.style.left = (startX + (targetX - startX) * ease) + 'px';
+    dot.style.left = (snapX + (targetX - snapX) * ease) + 'px';
     if (p < 1) livePendulumAnim = requestAnimationFrame(step);
   }
   livePendulumAnim = requestAnimationFrame(step);
