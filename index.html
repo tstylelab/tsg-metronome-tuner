@@ -1926,8 +1926,6 @@
         <div style="display:flex;gap:6px;flex:1;">
           <button class="groove-btn selected" id="inst-guitar" onclick="setInstrument('guitar')">Guitar<span>6弦</span></button>
           <button class="groove-btn"          id="inst-uke"    onclick="setInstrument('uke')">Uke<span>4弦</span></button>
-          <button class="groove-btn"          id="inst-bass4"  onclick="setInstrument('bass4')">Bass 4<span>4弦</span></button>
-          <button class="groove-btn"          id="inst-bass5"  onclick="setInstrument('bass5')">Bass 5<span>5弦</span></button>
         </div>
       </div>
 
@@ -1959,6 +1957,7 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('panel-' + tab).classList.add('active');
   event.currentTarget.classList.add('active');
+  localStorage.setItem('tsg_lastTab', tab);
 
   if (tab === 'metronome' && tunerActive) toggleMic();
   if (tab === 'metronome' && liveRunning) toggleLive();
@@ -2785,19 +2784,6 @@ const INSTRUMENT_STRINGS = {
     { freq: 261.63, string: '3rd' },
     { freq: 392.00, string: '4th' },
   ],
-  bass4: [
-    { freq:  98.00, string: '1st' },
-    { freq:  73.42, string: '2nd' },
-    { freq:  55.00, string: '3rd' },
-    { freq:  41.20, string: '4th' },
-  ],
-  bass5: [
-    { freq:  98.00, string: '1st' },
-    { freq:  73.42, string: '2nd' },
-    { freq:  55.00, string: '3rd' },
-    { freq:  41.20, string: '4th' },
-    { freq:  30.87, string: '5th' },
-  ],
 };
 
 let currentInstrument = 'guitar';
@@ -2807,14 +2793,13 @@ let selectedStringIdx = null;
 
 function getEffectiveStrings() {
   const base = INSTRUMENT_STRINGS[currentInstrument] || INSTRUMENT_STRINGS.guitar;
-  const isBass = currentInstrument.startsWith('bass');
-  const shift = isBass ? 0 : (halfDown ? -1 : 0) + capoFret;
+  const shift = (halfDown ? -1 : 0) + capoFret;
   return base.map(s => {
     const freq = s.freq * Math.pow(2, shift / 12);
     const semi = Math.round(12 * Math.log2(freq / 440));
     const noteIdx = ((semi % 12) + 12 + 9) % 12;
     const octave = Math.floor(semi / 12) + 4;
-    const name = (halfDown && !isBass ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
+    const name = (halfDown ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
     return { name, octave, freq, label: s.string };
   });
 }
@@ -2859,13 +2844,12 @@ function setInstrument(inst) {
   halfDown = false;
   capoFret = 0;
 
-  ['guitar','uke','bass4','bass5'].forEach(id => {
+  ['guitar','uke'].forEach(id => {
     const btn = document.getElementById('inst-' + id);
     if (btn) btn.classList.toggle('selected', id === inst);
   });
 
-  const isBass = inst.startsWith('bass');
-  document.getElementById('tuning-options').style.display = isBass ? 'none' : '';
+  document.getElementById('tuning-options').style.display = '';
   const halfDownBtn = document.getElementById('half-down-btn');
   if (halfDownBtn) halfDownBtn.classList.remove('active');
   document.querySelectorAll('.capo-btn').forEach((b, i) => {
@@ -2875,7 +2859,7 @@ function setInstrument(inst) {
   document.getElementById('tuning-hint').classList.remove('visible');
 
   const orderBar = document.getElementById('string-order-bar');
-  if (orderBar) orderBar.style.display = (isBass || inst === 'uke') ? 'none' : '';
+  if (orderBar) orderBar.style.display = inst === 'uke' ? 'none' : '';
 
   renderStringButtons();
   updateTuningHint();
@@ -2901,7 +2885,6 @@ function setCapo(fret) {
 function updateTuningHint() {
   const hint = document.getElementById('tuning-hint');
   const notesEl = document.getElementById('tuning-hint-notes');
-  if (currentInstrument.startsWith('bass')) { hint.classList.remove('visible'); return; }
   if (!halfDown && capoFret === 0) { hint.classList.remove('visible'); return; }
 
   const strings = getEffectiveStrings();
@@ -2999,12 +2982,7 @@ let silenceTimer = null;
 function detectPitch() {
   if (!tunerActive) return;
 
-  // ③ ベースは低音（4弦E=41Hz, 5弦B=31Hz）を扱うため、検出の下限を下げ、
-  //    解析窓（fftSize）も広げる。ギター/ウクレレは従来どおり。
-  const isBass = currentInstrument.startsWith('bass');
-  const wantFft = isBass ? 16384 : 8192;
-  if (analyser.fftSize !== wantFft) analyser.fftSize = wantFft;
-  const floorHz = isBass ? 28 : 65;
+  const floorHz = 65;
 
   const buf = new Float32Array(analyser.fftSize);
   analyser.getFloatTimeDomainData(buf);
@@ -3261,6 +3239,15 @@ initLiveSlots();
 initCapoBtns();
 renderStringButtons();
 document.getElementById('ref-pitch-value').textContent = refA4 + ' Hz';
+
+// 最後に使ったタブを復元
+const lastTab = localStorage.getItem('tsg_lastTab');
+if (lastTab && ['metronome','tuner','live'].includes(lastTab)) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('panel-' + lastTab).classList.add('active');
+  document.querySelector(`.tab-btn[onclick="switchTab('${lastTab}')"]`).classList.add('active');
+}
 </script>
 </body>
 </html>
