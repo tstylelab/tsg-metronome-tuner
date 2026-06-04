@@ -2970,6 +2970,7 @@ async function toggleMic() {
 function resetTunerUI() {
   smoothFreq = null; smoothCents = null; lockedSemitone = null;
   outsideLockCount = 0; freqBuffer.length = 0;
+  pendingNote = null; confirmCount = 0;
   const noteEl = document.getElementById('tuner-note');
   if (noteEl) { noteEl.textContent = '—'; noteEl.style.color = ''; }
   document.getElementById('tuner-freq').textContent = '';
@@ -3015,7 +3016,7 @@ function autoCorrelate(buf, sampleRate) {
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.015) return -1;
+  if (rms < 0.025) return -1;
 
   // ===== YIN アルゴリズム =====
   const WIN    = Math.min(SIZE, 4096);
@@ -3103,6 +3104,9 @@ let lockedSemitone = null;
 let outsideLockCount = 0;
 const LOCK_CENTS    = 65;
 const UNLOCK_FRAMES = 10;
+const CONFIRM_FRAMES = 4;
+let pendingNote  = null;
+let confirmCount = 0;
 
 // メジアンフィルター（外れ値除去）
 const freqBuffer = [];
@@ -3125,10 +3129,20 @@ function updateTunerUI(rawFreq) {
 
   // ノートロック：UNLOCK_FRAMES 連続でロック範囲外にならないと音名を変えない
   if (lockedSemitone === null) {
-    // 初回：即ロック
-    lockedSemitone = nearestSemi;
-    outsideLockCount = 0;
-    smoothCents = (exactSemi - lockedSemitone) * 100;
+    // 初回：CONFIRM_FRAMES フレーム連続で同じ音を確認してからロック
+    if (pendingNote === nearestSemi) {
+      confirmCount++;
+      if (confirmCount >= CONFIRM_FRAMES) {
+        lockedSemitone = nearestSemi;
+        outsideLockCount = 0;
+        confirmCount = 0;
+        smoothCents = (exactSemi - lockedSemitone) * 100;
+      }
+    } else {
+      pendingNote = nearestSemi;
+      confirmCount = 1;
+    }
+    if (lockedSemitone === null) return;
   } else {
     const centsFromLocked = (exactSemi - lockedSemitone) * 100;
     if (Math.abs(centsFromLocked) > LOCK_CENTS) {
