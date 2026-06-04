@@ -1562,6 +1562,42 @@
         <button class="btn btn-mute" id="live-mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
       </div>
 
+      <button class="groove-toggle" id="live-groove-toggle" onclick="toggleLiveGroove()" style="margin-top:14px;">
+        <span style="display:block;font-size:0.82rem;letter-spacing:0.06em;">▼ &nbsp;SOUND &amp; GROOVE</span>
+        <span style="display:block;font-size:0.7rem;font-weight:500;color:#888;margin-top:3px;letter-spacing:0.04em;">音色 / グルーブ / サブディビジョン（スロット個別設定）</span>
+      </button>
+
+      <div class="groove-panel" id="live-groove-panel">
+        <div class="groove-label">音色</div>
+        <div style="display:flex;gap:7px;margin-bottom:14px;">
+          <button class="groove-btn selected" id="live-sound-beep"  onclick="setLiveSound('beep')">Beep<span>電子音</span></button>
+          <button class="groove-btn"          id="live-sound-wood"  onclick="setLiveSound('wood')">Wood<span>木の音</span></button>
+          <button class="groove-btn"          id="live-sound-hihat" onclick="setLiveSound('hihat')">Hi-hat<span>ハイハット</span></button>
+        </div>
+
+        <div class="groove-label">リズムパターン</div>
+        <div id="live-shuffle-slider-wrap" style="display:none;margin-bottom:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+            <span style="font-size:0.82rem;font-weight:700;color:#444;letter-spacing:0.06em;text-transform:uppercase;">Shuffle Feel</span>
+            <span style="font-size:0.88rem;font-weight:700;color:#2176ae;" id="live-shuffle-ratio-label">67%</span>
+          </div>
+          <input type="range" id="live-shuffle-slider" min="51" max="80" value="67" oninput="setLiveShuffleRatio(+this.value)">
+        </div>
+        <div class="groove-grid">
+          <button class="groove-btn selected" id="live-groove-normal"           onclick="setLiveGroove('normal',this)">Normal<span>拍のみ</span></button>
+          <button class="groove-btn"          id="live-groove-eighth"           onclick="setLiveGroove('eighth',this)">8th<span>8分音符</span></button>
+          <button class="groove-btn"          id="live-groove-shuffle"          onclick="setLiveGroove('shuffle',this)">Shuffle<span>8分シャッフル</span></button>
+          <button class="groove-btn"          id="live-groove-sixteenth"        onclick="setLiveGroove('sixteenth',this)">16th<span>16分音符</span></button>
+          <button class="groove-btn"          id="live-groove-sixteenth-shuffle" onclick="setLiveGroove('sixteenth-shuffle',this)">16th Shuffle<span>16分シャッフル</span></button>
+          <button class="groove-btn"          id="live-groove-one-backbeat"     onclick="setLiveGroove('one-backbeat',this)">1拍目＋裏<span>8分・頭＋裏拍</span></button>
+          <button class="groove-btn"          id="live-groove-backbeat"         onclick="setLiveGroove('backbeat',this)">裏拍のみ<span>8分・裏拍のみ</span></button>
+          <button class="groove-btn"          id="live-groove-one-shuffle-back" onclick="setLiveGroove('one-shuffle-back',this)">1拍目＋裏<span>シャッフル版</span></button>
+          <button class="groove-btn"          id="live-groove-shuffle-back"     onclick="setLiveGroove('shuffle-back',this)">裏拍のみ<span>シャッフル版</span></button>
+          <button class="groove-btn"          id="live-groove-one-16back"       onclick="setLiveGroove('one-16back',this)">1拍目＋裏裏<span>16分4つ目版</span></button>
+          <button class="groove-btn"          id="live-groove-16back"           onclick="setLiveGroove('16back',this)">裏裏のみ<span>16分4つ目のみ</span></button>
+        </div>
+      </div>
+
       <button class="groove-toggle" id="slot-expand-btn" onclick="expandSlots()" style="margin-top:12px;">▼ &nbsp;スロットを増やす（12 → 24曲）</button>
 
       <div style="margin-top:16px; border-top:1.5px solid #eee; padding-top:14px;">
@@ -2000,10 +2036,14 @@ function tapTempo() {
 }
 
 // ===== LIVE MODE =====
-let liveSlots = Array(24).fill(null);  // null = 未設定（最大24）
-let liveNames = Array(24).fill('');   // 曲名
-let liveBeats = Array(24).fill(4);    // 拍子（デフォルト4）
-let liveSlotCount = 12;  // 表示中のスロット数
+let liveSlots = Array(24).fill(null);
+let liveNames = Array(24).fill('');
+let liveBeats = Array(24).fill(4);
+let liveSounds = Array(24).fill('beep');
+let liveGrooves = Array(24).fill('normal');
+let liveShuffleRatios = Array(24).fill(67);
+let liveSlotCount = 12;
+let liveGrooveOpen = false;
 
 const LS_KEY = 'tsg-live-state';
 
@@ -2012,6 +2052,9 @@ function saveLiveState() {
     slots: liveSlots,
     names: liveNames,
     beats: liveBeats,
+    sounds: liveSounds,
+    grooves: liveGrooves,
+    shuffleRatios: liveShuffleRatios,
     slotCount: liveSlotCount,
     selectedSlot: liveSelectedSlot,
     setlistName: document.getElementById('setlist-name')?.value || ''
@@ -2027,6 +2070,9 @@ function loadLiveState() {
     if (Array.isArray(s.slots)) s.slots.forEach((v, i) => { if (i < 24) liveSlots[i] = v; });
     if (Array.isArray(s.names)) s.names.forEach((v, i) => { if (i < 24) liveNames[i] = v || ''; });
     if (Array.isArray(s.beats)) s.beats.forEach((v, i) => { if (i < 24) liveBeats[i] = v || 4; });
+    if (Array.isArray(s.sounds)) s.sounds.forEach((v, i) => { if (i < 24) liveSounds[i] = v || 'beep'; });
+    if (Array.isArray(s.grooves)) s.grooves.forEach((v, i) => { if (i < 24) liveGrooves[i] = v || 'normal'; });
+    if (Array.isArray(s.shuffleRatios)) s.shuffleRatios.forEach((v, i) => { if (i < 24) liveShuffleRatios[i] = v || 67; });
     if (s.slotCount === 24) liveSlotCount = 24;
     if (typeof s.selectedSlot === 'number') liveSelectedSlot = s.selectedSlot;
     if (s.setlistName) {
@@ -2056,7 +2102,10 @@ function saveSetlist() {
     slotCount: liveSlotCount,
     slots: liveSlots,
     names: liveNames,
-    beats: liveBeats
+    beats: liveBeats,
+    sounds: liveSounds,
+    grooves: liveGrooves,
+    shuffleRatios: liveShuffleRatios
   };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -2085,6 +2134,15 @@ function loadSetlist(event) {
       }
       if (Array.isArray(data.beats)) {
         data.beats.forEach((v, i) => { if (i < 24) liveBeats[i] = v || 4; });
+      }
+      if (Array.isArray(data.sounds)) {
+        data.sounds.forEach((v, i) => { if (i < 24) liveSounds[i] = v || 'beep'; });
+      }
+      if (Array.isArray(data.grooves)) {
+        data.grooves.forEach((v, i) => { if (i < 24) liveGrooves[i] = v || 'normal'; });
+      }
+      if (Array.isArray(data.shuffleRatios)) {
+        data.shuffleRatios.forEach((v, i) => { if (i < 24) liveShuffleRatios[i] = v || 67; });
       }
       // スロット数を復元
       liveSlotCount = 12;
@@ -2116,6 +2174,9 @@ function resetLive() {
   liveSlots = Array(24).fill(null);
   liveNames = Array(24).fill('');
   liveBeats = Array(24).fill(4);
+  liveSounds = Array(24).fill('beep');
+  liveGrooves = Array(24).fill('normal');
+  liveShuffleRatios = Array(24).fill(67);
   liveSelectedSlot = 0;
   liveSlotCount = 12;
   localStorage.removeItem(LS_KEY);  // 先に削除してからinitを呼ぶ
@@ -2213,6 +2274,7 @@ function selectLiveSlot(idx) {
   if (beatSel) beatSel.value = liveBeats[idx] || 4;
   liveBeat = 0;
   updateLiveBeatDots();
+  updateLiveGrooveUI();
   saveLiveState();
 }
 
@@ -2247,24 +2309,100 @@ function tapTempoLive() {
 
 function liveTick() {
   const ctx = getAudioCtx();
-  while (liveNextNoteTime < ctx.currentTime + 0.1) {
-    // ビープ音（シンプル）
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(masterOut);
-    osc.frequency.value = liveBeat === 0 ? 1200 : 900;
-    gain.gain.setValueAtTime(liveBeat === 0 ? 1.0 : 0.8, liveNextNoteTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, liveNextNoteTime + 0.06);
-    osc.start(liveNextNoteTime); osc.stop(liveNextNoteTime + 0.08);
+  const si = liveSelectedSlot;
+  const slotBeats = liveBeats[si] || 4;
+  const slotGroove = liveGrooves[si] || 'normal';
+  const slotShuffleRatio = (liveShuffleRatios[si] || 67) / 100;
+  const interval = 60 / liveBpm;
+  currentSound = liveSounds[si] || 'beep';
 
-    const delay = (liveNextNoteTime - ctx.currentTime) * 1000;
+  while (liveNextNoteTime < ctx.currentTime + 0.1) {
     const beat = liveBeat;
+    const t = liveNextNoteTime;
+    const isAccent = beat === 0;
+
+    const noMain = ['backbeat', 'shuffle-back', '16back'];
+    const oneOnly = ['one-backbeat', 'one-shuffle-back', 'one-16back'];
+    const playMain = !noMain.includes(slotGroove) && !(oneOnly.includes(slotGroove) && !isAccent);
+    if (playMain) scheduleNote(t, isAccent);
+
+    if (slotGroove === 'eighth' || slotGroove === 'backbeat' || slotGroove === 'one-backbeat') {
+      scheduleSubNote(t + interval / 2);
+    } else if (slotGroove === 'shuffle' || slotGroove === 'shuffle-back' || slotGroove === 'one-shuffle-back') {
+      scheduleSubNote(t + interval * slotShuffleRatio);
+    } else if (slotGroove === 'sixteenth') {
+      scheduleSubNote(t + interval / 4);
+      scheduleSubNote(t + interval / 2);
+      scheduleSubNote(t + interval * 3 / 4);
+    } else if (slotGroove === 'sixteenth-shuffle') {
+      scheduleSubNote(t + interval / 2 * slotShuffleRatio);
+      scheduleSubNote(t + interval / 2);
+      scheduleSubNote(t + interval / 2 + interval / 2 * slotShuffleRatio);
+    } else if (slotGroove === '16back' || slotGroove === 'one-16back') {
+      scheduleSubNote(t + interval * 3 / 4);
+    }
+
+    const delay = (t - ctx.currentTime) * 1000;
     setTimeout(() => { flashLivePendulum(); flashLiveBeat(beat); }, Math.max(0, delay));
 
-    liveBeat = (liveBeat + 1) % (liveBeats[liveSelectedSlot] || 4);
-    liveNextNoteTime += 60 / liveBpm;
+    liveBeat = (liveBeat + 1) % slotBeats;
+    liveNextNoteTime += interval;
   }
   liveTimerID = setTimeout(liveTick, 25);
+}
+
+function toggleLiveGroove() {
+  const panel = document.getElementById('live-groove-panel');
+  const btn = document.getElementById('live-groove-toggle');
+  liveGrooveOpen = panel.classList.toggle('open');
+  btn.classList.toggle('open', liveGrooveOpen);
+  const arrow = liveGrooveOpen ? '▲' : '▼';
+  btn.innerHTML = `<span style='display:block;font-size:0.82rem;letter-spacing:0.06em;'>${arrow} &nbsp;SOUND &amp; GROOVE</span><span style='display:block;font-size:0.7rem;font-weight:500;color:#888;margin-top:3px;letter-spacing:0.04em;'>音色 / グルーブ / サブディビジョン（スロット個別設定）</span>`;
+}
+
+function setLiveSound(val) {
+  liveSounds[liveSelectedSlot] = val;
+  ['beep','wood','hihat'].forEach(s => {
+    const b = document.getElementById('live-sound-' + s);
+    if (b) b.classList.toggle('selected', s === val);
+  });
+  saveLiveState();
+}
+
+function setLiveGroove(val, el) {
+  liveGrooves[liveSelectedSlot] = val;
+  document.querySelectorAll('#live-groove-panel [id^="live-groove-"]').forEach(b => b.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+  const showShuffle = SHUFFLE_GROOVES.includes(val);
+  document.getElementById('live-shuffle-slider-wrap').style.display = showShuffle ? 'block' : 'none';
+  saveLiveState();
+}
+
+function setLiveShuffleRatio(val) {
+  liveShuffleRatios[liveSelectedSlot] = val;
+  const label = document.getElementById('live-shuffle-ratio-label');
+  if (label) label.textContent = val + '%';
+  saveLiveState();
+}
+
+function updateLiveGrooveUI() {
+  const si = liveSelectedSlot;
+  const sound  = liveSounds[si]  || 'beep';
+  const groove = liveGrooves[si] || 'normal';
+  const ratio  = liveShuffleRatios[si] || 67;
+  ['beep','wood','hihat'].forEach(s => {
+    const b = document.getElementById('live-sound-' + s);
+    if (b) b.classList.toggle('selected', s === sound);
+  });
+  document.querySelectorAll('#live-groove-panel [id^="live-groove-"]').forEach(b => {
+    b.classList.toggle('selected', b.id === 'live-groove-' + groove);
+  });
+  const sliderWrap = document.getElementById('live-shuffle-slider-wrap');
+  if (sliderWrap) sliderWrap.style.display = SHUFFLE_GROOVES.includes(groove) ? 'block' : 'none';
+  const slider = document.getElementById('live-shuffle-slider');
+  if (slider) slider.value = ratio;
+  const label = document.getElementById('live-shuffle-ratio-label');
+  if (label) label.textContent = ratio + '%';
 }
 
 function updateLiveBeatDots() {
