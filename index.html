@@ -639,6 +639,105 @@
 
   .string-btn.selected span { color: rgba(255,255,255,0.6); }
 
+  /* Tuning options (half-down + capo) */
+  .tuning-options {
+    margin-bottom: 20px;
+  }
+
+  .half-down-btn {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 7px;
+    background: #f7f8fa;
+    color: #666;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.05em;
+    text-align: center;
+    margin-bottom: 8px;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+
+  .half-down-btn.active {
+    border-color: #c0392b;
+    background: #c0392b;
+    color: #fff;
+  }
+
+  .capo-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .capo-label {
+    font-size: 0.78rem;
+    color: #888;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .capo-btns {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+  }
+
+  .capo-btn {
+    flex: 1;
+    padding: 7px 0;
+    border: 1.5px solid #dde0e8;
+    border-radius: 6px;
+    background: #f7f8fa;
+    color: #555;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
+  }
+
+  .capo-btn.active {
+    border-color: #1a1a2e;
+    background: #1a1a2e;
+    color: #fff;
+  }
+
+  .tuning-hint {
+    display: none;
+    margin-top: 10px;
+    padding: 9px 12px;
+    background: #eef5ff;
+    border: 1.5px solid #b8d4f5;
+    border-radius: 7px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1a5f8a;
+    line-height: 1.6;
+  }
+
+  .tuning-hint.visible { display: block; }
+
+  .tuning-hint-title {
+    font-size: 0.72rem;
+    color: #888;
+    font-weight: 600;
+    margin-bottom: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .tuning-hint-notes {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    color: #1a1a2e;
+  }
+
   /* Reference pitch row */
   .ref-pitch-row {
     display: flex;
@@ -1434,6 +1533,20 @@
 
       <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
 
+      <div class="tuning-options">
+        <button class="half-down-btn" id="half-down-btn" onclick="toggleHalfDown()">
+          半音下げ（Eb チューニング）: OFF
+        </button>
+        <div class="capo-row">
+          <span class="capo-label">カポ</span>
+          <div class="capo-btns" id="capo-btns"></div>
+        </div>
+        <div class="tuning-hint" id="tuning-hint">
+          <div class="tuning-hint-title">各弦の実音（チューナーで合わせる音）</div>
+          <div class="tuning-hint-notes" id="tuning-hint-notes"></div>
+        </div>
+      </div>
+
       <div class="ref-pitch-row">
         <span class="ref-pitch-label">基準ピッチ</span>
         <div class="ref-pitch-controls">
@@ -1445,14 +1558,7 @@
 
       <div class="string-section">
         <div class="string-label">弦を選択（参考音程）</div>
-        <div class="string-buttons">
-          <button class="string-btn" onclick="selectString(0, this)">E<span>1弦</span></button>
-          <button class="string-btn" onclick="selectString(1, this)">B<span>2弦</span></button>
-          <button class="string-btn" onclick="selectString(2, this)">G<span>3弦</span></button>
-          <button class="string-btn" onclick="selectString(3, this)">D<span>4弦</span></button>
-          <button class="string-btn" onclick="selectString(4, this)">A<span>5弦</span></button>
-          <button class="string-btn" onclick="selectString(5, this)">E<span>6弦</span></button>
-        </div>
+        <div class="string-buttons" id="string-buttons"></div>
       </div>
 
       <button class="btn-mic" id="mic-btn" onclick="toggleMic()">
@@ -2170,37 +2276,119 @@ function toggleLive() {
 }
 
 // ===== TUNER =====
-const GUITAR_STRINGS = [
-  { name: 'E4', freq: 329.63, label: '1弦 E4' },
-  { name: 'B3', freq: 246.94, label: '2弦 B3' },
-  { name: 'G3', freq: 196.00, label: '3弦 G3' },
-  { name: 'D3', freq: 146.83, label: '4弦 D3' },
-  { name: 'A2', freq: 110.00, label: '5弦 A2' },
-  { name: 'E2', freq: 82.41,  label: '6弦 E2' },
+const NOTE_NAMES      = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NOTE_NAMES_FLAT = ['C','Db','D','Eb','E','F','Gb','G','Ab','A','Bb','B'];
+
+const BASE_STRINGS = [
+  { freq: 329.63, string: '1弦' },
+  { freq: 246.94, string: '2弦' },
+  { freq: 196.00, string: '3弦' },
+  { freq: 146.83, string: '4弦' },
+  { freq: 110.00, string: '5弦' },
+  { freq: 82.41,  string: '6弦' },
 ];
 
-const NOTE_NAMES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+let halfDown = false;
+let capoFret = 0;
+let selectedStringIdx = null;
+
+function getEffectiveStrings() {
+  const shift = (halfDown ? -1 : 0) + capoFret;
+  return BASE_STRINGS.map(s => {
+    const freq = s.freq * Math.pow(2, shift / 12);
+    const semi = Math.round(12 * Math.log2(freq / 440));
+    const noteIdx = ((semi % 12) + 12 + 9) % 12;
+    const octave = Math.floor(semi / 12) + 4;
+    const name = (halfDown ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
+    return { name, octave, freq, label: s.string };
+  });
+}
+
+function renderStringButtons() {
+  const strings = getEffectiveStrings();
+  const container = document.getElementById('string-buttons');
+  container.innerHTML = '';
+  strings.forEach((s, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'string-btn' + (i === selectedStringIdx ? ' selected' : '');
+    btn.onclick = () => selectString(i, btn);
+    btn.innerHTML = s.name + '<span>' + s.label + '</span>';
+    container.appendChild(btn);
+  });
+  if (selectedStringIdx !== null) updateTargetDisplay();
+}
+
+function updateTargetDisplay() {
+  if (selectedStringIdx === null) { document.getElementById('tuner-target').textContent = ''; return; }
+  const s = getEffectiveStrings()[selectedStringIdx];
+  document.getElementById('tuner-target').textContent =
+    '目標: ' + s.label + ' ' + s.name + s.octave + ' (' + s.freq.toFixed(2) + ' Hz)';
+}
+
+function selectString(idx, el) {
+  if (idx === selectedStringIdx) {
+    selectedStringIdx = null;
+    document.querySelectorAll('.string-btn').forEach(b => b.classList.remove('selected'));
+    document.getElementById('tuner-target').textContent = '';
+    return;
+  }
+  selectedStringIdx = idx;
+  document.querySelectorAll('.string-btn').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  updateTargetDisplay();
+}
+
+function toggleHalfDown() {
+  halfDown = !halfDown;
+  const btn = document.getElementById('half-down-btn');
+  btn.textContent = '半音下げ（Eb チューニング）: ' + (halfDown ? 'ON' : 'OFF');
+  btn.classList.toggle('active', halfDown);
+  renderStringButtons();
+  updateTuningHint();
+}
+
+function setCapo(fret) {
+  capoFret = fret;
+  document.querySelectorAll('.capo-btn').forEach((b, i) => b.classList.toggle('active', i === fret));
+  renderStringButtons();
+  updateTuningHint();
+}
+
+function updateTuningHint() {
+  const hint = document.getElementById('tuning-hint');
+  const notesEl = document.getElementById('tuning-hint-notes');
+  if (!halfDown && capoFret === 0) { hint.classList.remove('visible'); return; }
+
+  const strings = getEffectiveStrings();
+  // 6弦→1弦の順（低→高）で表示
+  const noteList = strings.slice().reverse().map(s => s.name + s.octave).join('  ');
+  let label = '';
+  if (halfDown && capoFret > 0) label = '半音下げ ＋ カポ' + capoFret;
+  else if (halfDown) label = '半音下げ（Eb チューニング）';
+  else label = 'カポ ' + capoFret;
+
+  const titleEl = hint.querySelector('.tuning-hint-title');
+  if (titleEl) titleEl.textContent = label + '：各弦の実音（6弦→1弦）';
+  notesEl.textContent = noteList;
+  hint.classList.add('visible');
+}
+
+function initCapoBtns() {
+  const container = document.getElementById('capo-btns');
+  for (let i = 0; i <= 7; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'capo-btn' + (i === 0 ? ' active' : '');
+    btn.textContent = i === 0 ? 'なし' : i;
+    btn.onclick = () => setCapo(i);
+    container.appendChild(btn);
+  }
+}
 
 let tunerActive = false;
 let micStream = null;
 let tunerAudioCtx = null;
 let analyser = null;
 let tunerAnimId = null;
-let selectedString = null;
-
-function selectString(idx, el) {
-  if (el.classList.contains('selected')) {
-    el.classList.remove('selected');
-    selectedString = null;
-    document.getElementById('tuner-target').textContent = '';
-    return;
-  }
-  document.querySelectorAll('.string-btn').forEach(b => b.classList.remove('selected'));
-  el.classList.add('selected');
-  selectedString = GUITAR_STRINGS[idx];
-  document.getElementById('tuner-target').textContent =
-    '目標: ' + selectedString.label + ' (' + selectedString.freq.toFixed(2) + ' Hz)';
-}
 
 async function toggleMic() {
   const btn = document.getElementById('mic-btn');
@@ -2375,6 +2563,8 @@ function updateTunerUI(rawFreq) {
 // 全定義が完了してから初期化
 renderBeatDots();
 initLiveSlots();
+initCapoBtns();
+renderStringButtons();
 </script>
 </body>
 </html>
