@@ -1110,7 +1110,7 @@
         <span class="beat-label">音色</span>
         <select class="beat-select" id="sound-select" onchange="currentSound=this.value">
           <option value="beep">Beep（電子音）</option>
-          <option value="rimshot">Rimshot（リムショット）</option>
+          <option value="wood">Wood（木の音）</option>
           <option value="hihat">Hi-hat（ハイハット）</option>
         </select>
       </div>
@@ -1447,36 +1447,25 @@ function scheduleNote(time, isAccent) {
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
     osc.start(time); osc.stop(time + 0.08);
 
-  } else if (currentSound === 'rimshot') {
-    // クラック成分：鋭い高域ノイズ
-    const crack = makeNoise(ctx, 0.006);
-    const crackFilter = ctx.createBiquadFilter();
-    crackFilter.type = 'bandpass'; crackFilter.frequency.value = 5000; crackFilter.Q.value = 1;
-    const crackGain = ctx.createGain();
-    crackGain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
-    crackGain.gain.exponentialRampToValueAtTime(0.001, time + 0.005);
-    crack.connect(crackFilter); crackFilter.connect(crackGain); crackGain.connect(out);
-    crack.start(time); crack.stop(time + 0.006);
-
-    // ボディ成分：中域ノイズ（スネアの胴鳴り）
-    const body = makeNoise(ctx, 0.08);
-    const bodyFilter = ctx.createBiquadFilter();
-    bodyFilter.type = 'bandpass'; bodyFilter.frequency.value = 900; bodyFilter.Q.value = 1.2;
-    const bodyGain = ctx.createGain();
-    bodyGain.gain.setValueAtTime(isAccent ? 0.85 : 0.65, time);
-    bodyGain.gain.exponentialRampToValueAtTime(0.001, time + 0.07);
-    body.connect(bodyFilter); bodyFilter.connect(bodyGain); bodyGain.connect(out);
-    body.start(time); body.stop(time + 0.08);
-
-    // ピッチ成分：リムの金属感
+  } else if (currentSound === 'wood') {
+    // 正弦波アタック（ピッチ高め）
     const osc = ctx.createOscillator();
     const oscGain = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.value = isAccent ? 380 : 300;
-    oscGain.gain.setValueAtTime(isAccent ? 0.7 : 0.5, time);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
+    osc.frequency.value = isAccent ? 800 : 600;
+    oscGain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.045);
     osc.connect(oscGain); oscGain.connect(out);
     osc.start(time); osc.stop(time + 0.05);
+    // ノイズで木の質感
+    const noise = makeNoise(ctx, 0.035);
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass'; filter.frequency.value = 1800; filter.Q.value = 3;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(isAccent ? 0.6 : 0.45, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.025);
+    noise.connect(filter); filter.connect(noiseGain); noiseGain.connect(out);
+    noise.start(time); noise.stop(time + 0.035);
 
   } else if (currentSound === 'hihat') {
     const noise = makeNoise(ctx, 0.15);
@@ -1504,15 +1493,14 @@ function scheduleSubNote(time) {
     gain.gain.setValueAtTime(0.4, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
     osc.start(time); osc.stop(time + 0.05);
-  } else if (currentSound === 'rimshot') {
-    const noise = makeNoise(ctx, 0.05);
-    const f = ctx.createBiquadFilter();
-    f.type = 'bandpass'; f.frequency.value = 900; f.Q.value = 1.2;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.38, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.04);
-    noise.connect(f); f.connect(gain); gain.connect(out);
-    noise.start(time); noise.stop(time + 0.05);
+  } else if (currentSound === 'wood') {
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'sine'; osc.frequency.value = 550;
+    oscGain.gain.setValueAtTime(0.45, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.035);
+    osc.connect(oscGain); oscGain.connect(out);
+    osc.start(time); osc.stop(time + 0.04);
   } else if (currentSound === 'hihat') {
     const noise = makeNoise(ctx, 0.07);
     const hp = ctx.createBiquadFilter();
