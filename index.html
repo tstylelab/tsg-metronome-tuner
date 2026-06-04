@@ -2704,55 +2704,67 @@ function detectPitch() {
 function autoCorrelate(buf, sampleRate) {
   const SIZE = buf.length;
 
-  // RMS check（ノイズフロア）
+  // RMS チェック
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
   if (rms < 0.015) return -1;
 
-  // 解析ウィンドウをギター音域に限定（高速化）
-  const WIN = Math.min(SIZE, 4096);
-  const minLag = Math.max(2, Math.floor(sampleRate / 1400)); // ~31 @ 44100Hz
-  const maxLag = Math.min(WIN - 1, Math.ceil(sampleRate / 65)); // ~679 @ 44100Hz
+  // ===== YIN アルゴリズム =====
+  const WIN    = Math.min(SIZE, 4096);
+  const minLag = Math.max(2, Math.floor(sampleRate / 1400)); // 最高検出 ~1400Hz
+  const maxLag = Math.min(WIN - 1, Math.ceil(sampleRate / 65)); // 最低検出 ~65Hz
 
-  // 必要なラグ範囲だけ自己相関を計算（O(n²) → O(WIN × 650) に削減）
-  const corr = new Float32Array(maxLag + 2);
-  for (let lag = minLag; lag <= maxLag + 1; lag++) {
-    let sum = 0;
-    const n = WIN - lag;
-    for (let i = 0; i < n; i++) sum += buf[i] * buf[i + lag];
-    corr[lag] = sum;
+  // Step 1+2: 累積平均正規化差分関数（CMND）を計算
+  // d'(tau) = d(tau) * tau / Σ[1..tau] d(j)
+  // ゼロに近い谷 = 波形がピタリ合う周期 = 基音
+  const yin = new Float32Array(maxLag + 1);
+  yin[0] = 1.0;
+  let runningSum = 0;
+
+  for (let tau = 1; tau <= maxLag; tau++) {
+    let diff = 0;
+    const n = WIN - tau;
+    for (let j = 0; j < n; j++) {
+      const d = buf[j] - buf[j + tau];
+      diff += d * d;
+    }
+    runningSum += diff;
+    yin[tau] = runningSum > 0 ? (diff * tau / runningSum) : 1.0;
   }
 
-  // 全体の最大値を求める
-  let globalMax = -Infinity;
-  for (let lag = minLag; lag <= maxLag; lag++) {
-    if (corr[lag] > globalMax) globalMax = corr[lag];
-  }
-  if (globalMax <= 0) return -1;
-
-  // 最初の「強いピーク」を基音として採用（オクターブ誤検出を防ぐ）
-  let bestLag = -1;
-  for (let lag = minLag + 1; lag < maxLag; lag++) {
-    if (corr[lag] > corr[lag - 1] && corr[lag] >= corr[lag + 1]) {
-      if (corr[lag] >= globalMax * 0.85) { bestLag = lag; break; }
+  // Step 3: ギター音域内で「最初に閾値を下回る谷」を探す（= 基音）
+  // 自己相関と違い、倍音の谷より基音の谷が必ず先に来るため誤検出が減る
+  const threshold = 0.10;
+  let bestTau = -1;
+  for (let tau = minLag; tau < maxLag; tau++) {
+    if (yin[tau] < threshold) {
+      // 谷の底まで進む
+      while (tau + 1 < maxLag && yin[tau + 1] < yin[tau]) tau++;
+      bestTau = tau;
+      break;
     }
   }
-  // フォールバック：最大値の位置
-  if (bestLag === -1) {
-    for (let lag = minLag; lag <= maxLag; lag++) {
-      if (corr[lag] >= globalMax) { bestLag = lag; break; }
-    }
-  }
-  if (bestLag === -1) return -1;
 
-  // 放物線補間でサブサンプル精度を確保
-  let T0 = bestLag;
-  if (bestLag > minLag && bestLag < maxLag) {
-    const x1 = corr[bestLag - 1], x2 = corr[bestLag], x3 = corr[bestLag + 1];
-    const denom = 2 * x2 - x1 - x3;
-    if (denom > 0) T0 = bestLag + (x3 - x1) / (2 * denom);
+  // フォールバック：閾値以下の谷がなければ最小値を採用（低確信）
+  if (bestTau === -1) {
+    let minVal = Infinity;
+    for (let tau = minLag; tau <= maxLag; tau++) {
+      if (yin[tau] < minVal) { minVal = yin[tau]; bestTau = tau; }
+    }
+    if (minVal > 0.45) return -1; // 信頼できない → 無視
   }
+
+  if (bestTau === -1) return -1;
+
+  // Step 4: 放物線補間でサブサンプル精度を確保（極小値用）
+  let T0 = bestTau;
+  if (bestTau > minLag && bestTau < maxLag) {
+    const y1 = yin[bestTau - 1], y2 = yin[bestTau], y3 = yin[bestTau + 1];
+    const denom = y1 - 2 * y2 + y3;
+    if (denom > 0) T0 = bestTau + 0.5 * (y1 - y3) / denom;
+  }
+
   return sampleRate / T0;
 }
 
