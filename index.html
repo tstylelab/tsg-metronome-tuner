@@ -2650,7 +2650,7 @@ async function toggleMic() {
     tunerActive = false;
     if (tunerAnimId) cancelAnimationFrame(tunerAnimId);
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-    smoothFreq = null;
+    smoothFreq = null; smoothCents = null; lockedSemitone = null;
     if (micStream) micStream.getTracks().forEach(t => t.stop());
     if (tunerAudioCtx) tunerAudioCtx.close();
     btn.classList.remove('listening');
@@ -2660,7 +2660,7 @@ async function toggleMic() {
 }
 
 function resetTunerUI() {
-  smoothFreq = null; smoothCents = null; lastNoteKey = null;
+  smoothFreq = null; smoothCents = null; lockedSemitone = null;
   const noteEl = document.getElementById('tuner-note');
   if (noteEl) { noteEl.textContent = '—'; noteEl.style.color = ''; }
   document.getElementById('tuner-freq').textContent = '';
@@ -2774,29 +2774,45 @@ function centsOff(freq) {
   return (semiExact - semiRound) * 100;
 }
 
-// Smoothing
-let smoothFreq = null;
-let smoothCents = null;
-let lastNoteKey = null;
+// Smoothing / note lock
+let smoothFreq   = null;
+let smoothCents  = null;
+let lockedSemitone = null; // 固定中の半音番号（これが変わるときだけ音名が変わる）
 function updateTunerUI(rawFreq) {
-  // 周波数スムージング（音名判定用）
+  // 周波数スムージング
   smoothFreq = smoothFreq == null ? rawFreq : smoothFreq * 0.65 + rawFreq * 0.35;
 
-  const note = freqToNote(smoothFreq);
-  const noteKey = note.name + note.octave;
-  const rawCents = centsOff(rawFreq);
+  // 現在の正確なセミトーン数（連続値）
+  const exactSemi = 12 * Math.log2(smoothFreq / refA4);
+  const nearestSemi = Math.round(exactSemi);
 
-  // ノートが変わった瞬間はセントを即リセット（素早い追従）
-  // 同じノート内はスムージングで針を安定させる
-  if (noteKey !== lastNoteKey) {
-    lastNoteKey = noteKey;
-    smoothCents = rawCents;
+  // ノートロック：55セント以上離れるまで音名を固定
+  const LOCK_CENTS = 55;
+  if (lockedSemitone === null) {
+    // 初回：即ロック
+    lockedSemitone = nearestSemi;
+    smoothCents = (exactSemi - lockedSemitone) * 100;
   } else {
-    smoothCents = smoothCents == null ? rawCents : smoothCents * 0.72 + rawCents * 0.28;
+    const centsFromLocked = (exactSemi - lockedSemitone) * 100;
+    if (Math.abs(centsFromLocked) > LOCK_CENTS) {
+      // 55セント超えたら新しいノートにスナップ
+      lockedSemitone = nearestSemi;
+      smoothCents = (exactSemi - lockedSemitone) * 100;
+    } else {
+      // 同じノート内：セント値だけスムージング
+      smoothCents = smoothCents == null
+        ? centsFromLocked
+        : smoothCents * 0.75 + centsFromLocked * 0.25;
+    }
   }
   const cents = smoothCents;
 
-  document.getElementById('tuner-note').textContent = noteKey;
+  // lockedSemitone から音名を計算（音名が安定する核心）
+  const noteIdx = ((lockedSemitone % 12) + 12 + 9) % 12;
+  const octave  = Math.floor(lockedSemitone / 12) + 4;
+  const noteName = (halfDown ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
+
+  document.getElementById('tuner-note').textContent = noteName + octave;
   document.getElementById('tuner-freq').textContent = smoothFreq.toFixed(1) + ' Hz';
 
   const gauge = document.getElementById('gauge-fill');
