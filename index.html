@@ -228,7 +228,7 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 80px;
+    height: 62px;
     visibility: hidden;
     margin: 0 0 10px;
   }
@@ -237,75 +237,69 @@
 
   .pulse-wrap {
     position: relative;
-    width: 68px;
-    height: 68px;
     display: flex;
     align-items: center;
     justify-content: center;
   }
 
   .pulse-circle {
-    width: 64px;
-    height: 64px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
-    background: radial-gradient(circle at 38% 32%, #3a3a5c, #1a1a2e 72%);
-    box-shadow: 0 4px 18px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.07), inset 0 -2px 4px rgba(0,0,0,0.3);
+    background: linear-gradient(145deg, #eaecf0, #d4d8df);
+    box-shadow:
+      3px 3px 8px rgba(0,0,0,0.12),
+      -2px -2px 6px rgba(255,255,255,0.85);
     position: relative;
-    transition: transform 0.06s, box-shadow 0.08s;
-    z-index: 1;
+    transition: transform 0.07s cubic-bezier(0.2,0.8,0.4,1), background 0.06s, box-shadow 0.07s;
   }
 
-  /* 内側のリング（スピーカーコーン風） */
-  .pulse-circle::before {
+  /* ハイライト（宝石の輝き） */
+  .pulse-circle::after {
     content: '';
     position: absolute;
-    inset: 10px;
+    top: 7px;
+    left: 9px;
+    width: 11px;
+    height: 7px;
     border-radius: 50%;
-    border: 1.5px solid rgba(255,255,255,0.07);
-    background: radial-gradient(circle at 40% 35%, rgba(255,255,255,0.04), transparent 60%);
+    background: rgba(255,255,255,0.62);
+    filter: blur(1px);
+    transition: opacity 0.07s;
   }
 
   /* 通常ビート */
   .pulse-circle.beat {
-    transform: scale(1.12);
-    box-shadow: 0 4px 18px rgba(0,0,0,0.2),
-                0 0 28px rgba(192,57,43,0.55),
-                inset 0 1px 0 rgba(255,255,255,0.1);
+    background: linear-gradient(145deg, #2c2c4e, #1a1a2e);
+    box-shadow:
+      2px 2px 6px rgba(0,0,0,0.22),
+      -1px -1px 4px rgba(255,255,255,0.04),
+      0 0 14px rgba(26,26,46,0.45);
+    transform: scale(1.14);
   }
 
-  /* アクセント（1拍目） */
+  .pulse-circle.beat::after { opacity: 0.18; }
+
+  /* アクセント（1拍目）*/
   .pulse-circle.beat-accent {
-    transform: scale(1.18);
-    box-shadow: 0 4px 18px rgba(0,0,0,0.2),
-                0 0 42px rgba(192,57,43,0.75),
-                0 0 70px rgba(192,57,43,0.25),
-                inset 0 1px 0 rgba(255,255,255,0.12);
+    background: linear-gradient(145deg, #d9513e, #c0392b);
+    box-shadow:
+      2px 2px 6px rgba(0,0,0,0.2),
+      -1px -1px 4px rgba(255,255,255,0.04),
+      0 0 18px rgba(192,57,43,0.55);
+    transform: scale(1.2);
   }
 
-  /* 波紋リング */
-  .pulse-ripple {
-    position: absolute;
-    inset: 0;
-    border-radius: 50%;
-    border: 2px solid rgba(192,57,43,0.75);
-    opacity: 0;
-    pointer-events: none;
+  .pulse-circle.beat-accent::after { opacity: 0.22; }
+
+  @keyframes heartbeat {
+    0%   { transform: scale(1.2); }
+    35%  { transform: scale(1.1); }
+    55%  { transform: scale(1.17); }
+    100% { transform: scale(1); }
   }
 
-  .pulse-ripple.pop {
-    animation: rippleOut 0.42s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
-  }
-
-  .pulse-ripple.pop-accent {
-    border-color: rgba(192,57,43,1);
-    border-width: 2.5px;
-    animation: rippleOut 0.52s cubic-bezier(0.2, 0.6, 0.4, 1) forwards;
-  }
-
-  @keyframes rippleOut {
-    0%   { transform: scale(1);   opacity: 0.8; }
-    100% { transform: scale(2.5); opacity: 0;   }
-  }
+  .pulse-circle.beat-accent { animation: heartbeat 0.32s ease-out forwards; }
 
   /* BPM Slider */
   .bpm-slider-wrap {
@@ -1173,7 +1167,6 @@
       <div class="visual-pulse" id="vis-pulse">
         <div class="pulse-wrap">
           <div class="pulse-circle" id="pulse-circle"></div>
-          <div class="pulse-ripple" id="pulse-ripple"></div>
         </div>
       </div>
 
@@ -1655,13 +1648,10 @@ function flashBeat(beat) {
 
   // パルス
   const circle = document.getElementById('pulse-circle');
-  const ripple = document.getElementById('pulse-ripple');
   circle.classList.remove('beat', 'beat-accent');
-  ripple.classList.remove('pop', 'pop-accent');
-  void circle.offsetWidth; // reflow で animation リセット
+  void circle.offsetWidth;
   circle.classList.add(isAccent ? 'beat-accent' : 'beat');
-  ripple.classList.add(isAccent ? 'pop-accent' : 'pop');
-  setTimeout(() => circle.classList.remove('beat', 'beat-accent'), 180);
+  setTimeout(() => circle.classList.remove('beat', 'beat-accent'), 200);
 }
 
 function animatePendulum() {
@@ -1713,7 +1703,6 @@ function toggleMetronome() {
     document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
     hideVisual();
     document.getElementById('pulse-circle').classList.remove('beat','beat-accent');
-    document.getElementById('pulse-ripple').classList.remove('pop','pop-accent');
   }
 }
 
