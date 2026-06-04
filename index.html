@@ -223,6 +223,96 @@
     background: #c0392b;
   }
 
+  /* Visual style selector */
+  .vis-selector {
+    display: flex;
+    gap: 5px;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .vis-btn {
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 4px 10px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 20px;
+    background: #f7f8fa;
+    color: #888;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.03em;
+  }
+
+  .vis-btn.active {
+    background: #1a1a2e;
+    border-color: #1a1a2e;
+    color: #fff;
+  }
+
+  /* Visual A: Arrows */
+  .visual-arrows {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 40px;
+    height: 52px;
+    visibility: hidden;
+    margin: 2px 0 12px;
+  }
+
+  .visual-arrows.vis-active { visibility: visible; }
+
+  .arrow-indicator {
+    font-size: 2.4rem;
+    color: #dde0e8;
+    transition: color 0.05s, text-shadow 0.05s;
+    line-height: 1;
+    user-select: none;
+  }
+
+  .arrow-indicator.lit {
+    color: #c0392b;
+    text-shadow: 0 0 14px rgba(192,57,43,0.5);
+  }
+
+  .arrow-indicator.lit-accent {
+    color: #1a1a2e;
+    text-shadow: 0 0 14px rgba(26,26,46,0.4);
+  }
+
+  /* Visual B: Pulse */
+  .visual-pulse {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 52px;
+    visibility: hidden;
+    margin: 2px 0 12px;
+  }
+
+  .visual-pulse.vis-active { visibility: visible; }
+
+  .pulse-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: #e0e3ea;
+    transition: background 0.06s, box-shadow 0.06s, transform 0.06s;
+  }
+
+  .pulse-circle.beat {
+    background: #c0392b;
+    box-shadow: 0 0 22px rgba(192,57,43,0.55);
+    transform: scale(1.18);
+  }
+
+  .pulse-circle.beat-accent {
+    background: #1a1a2e;
+    box-shadow: 0 0 22px rgba(26,26,46,0.45);
+    transform: scale(1.22);
+  }
+
   /* BPM Slider */
   .bpm-slider-wrap {
     margin-bottom: 20px;
@@ -1085,12 +1175,34 @@
         <div class="bpm-label">BPM</div>
       </div>
 
-      <div class="pendulum-container">
-        <div class="pendulum-label">TEMPO</div>
+      <!-- Visual style selector -->
+      <div class="vis-selector">
+        <button class="vis-btn active" onclick="setVisualStyle('pendulum',this)">振り子</button>
+        <button class="vis-btn" onclick="setVisualStyle('arrows',this)">矢印</button>
+        <button class="vis-btn" onclick="setVisualStyle('pulse',this)">パルス</button>
+        <button class="vis-btn" onclick="setVisualStyle('dots',this)">ドットのみ</button>
+      </div>
+
+      <!-- A: 振り子 -->
+      <div class="pendulum-container" id="vis-pendulum">
         <div class="pendulum-track" id="pendulum-track">
           <div class="pendulum-dot" id="pendulum-dot"></div>
         </div>
       </div>
+
+      <!-- B: 矢印 -->
+      <div class="visual-arrows" id="vis-arrows">
+        <div class="arrow-indicator" id="arrow-left">◀</div>
+        <div class="arrow-indicator" id="arrow-right">▶</div>
+      </div>
+
+      <!-- C: パルス -->
+      <div class="visual-pulse" id="vis-pulse">
+        <div class="pulse-circle" id="pulse-circle"></div>
+      </div>
+
+      <!-- D: ドットのみ（スペース確保） -->
+      <div style="height:52px; visibility:hidden;" id="vis-dots-spacer"></div>
 
       <div class="beat-indicators" id="beat-indicators"></div>
 
@@ -1333,6 +1445,37 @@ let pendulumDir = 1;
 let pendulumAnim = null;
 let currentSound = 'beep';
 let groove = 'normal';
+let visualStyle = 'pendulum';
+
+function showVisual() {
+  if (visualStyle === 'pendulum') document.getElementById('vis-pendulum').classList.add('active');
+  else if (visualStyle === 'arrows') document.getElementById('vis-arrows').classList.add('vis-active');
+  else if (visualStyle === 'pulse')  document.getElementById('vis-pulse').classList.add('vis-active');
+  else if (visualStyle === 'dots')   document.getElementById('vis-dots-spacer').style.visibility = 'visible';
+}
+
+function hideVisual() {
+  document.getElementById('vis-pendulum').classList.remove('active');
+  document.getElementById('vis-arrows').classList.remove('vis-active');
+  document.getElementById('vis-pulse').classList.remove('vis-active');
+  document.getElementById('vis-dots-spacer').style.visibility = 'hidden';
+}
+
+function setVisualStyle(style, el) {
+  visualStyle = style;
+  document.querySelectorAll('.vis-btn').forEach(b => b.classList.remove('active'));
+  if (el) el.classList.add('active');
+
+  // 全ビジュアルを非表示
+  document.getElementById('vis-pendulum').classList.remove('active');
+  document.getElementById('vis-arrows').classList.remove('vis-active');
+  document.getElementById('vis-pulse').classList.remove('vis-active');
+  document.getElementById('vis-dots-spacer').style.visibility = 'hidden';
+
+  // 選択スタイルのスペースを確保（停止中は invisible のまま）
+  // 再生中なら表示
+  if (metronomeRunning) showVisual();
+}
 let shuffleRatio = 0.67;
 
 const SHUFFLE_GROOVES = ['shuffle', 'shuffle-back', 'one-shuffle-back', 'sixteenth-shuffle'];
@@ -1554,15 +1697,38 @@ function scheduler() {
 }
 
 function flashBeat(beat) {
+  const isAccent = beat === 0;
+
+  // ビートドット（全スタイル共通）
   document.querySelectorAll('.beat-dot').forEach((d, i) => {
     d.classList.toggle('active', i === beat);
   });
-  const dot = document.getElementById('pendulum-dot');
-  if (dot) {
-    dot.classList.add('beat');
-    setTimeout(() => dot.classList.remove('beat'), 80);
+
+  if (visualStyle === 'pendulum') {
+    const dot = document.getElementById('pendulum-dot');
+    if (dot) { dot.classList.add('beat'); setTimeout(() => dot.classList.remove('beat'), 80); }
+    animatePendulum();
+
+  } else if (visualStyle === 'arrows') {
+    const left = document.getElementById('arrow-left');
+    const right = document.getElementById('arrow-right');
+    const cls = isAccent ? 'lit-accent' : 'lit';
+    // 交互に点灯
+    if (pendulumDir > 0) {
+      left.classList.add(cls); right.classList.remove('lit','lit-accent');
+    } else {
+      right.classList.add(cls); left.classList.remove('lit','lit-accent');
+    }
+    pendulumDir *= -1;
+    setTimeout(() => { left.classList.remove('lit','lit-accent'); right.classList.remove('lit','lit-accent'); }, 120);
+
+  } else if (visualStyle === 'pulse') {
+    const circle = document.getElementById('pulse-circle');
+    const cls = isAccent ? 'beat-accent' : 'beat';
+    circle.classList.add(cls);
+    setTimeout(() => circle.classList.remove('beat','beat-accent'), 150);
   }
-  animatePendulum();
+  // dots: ビートドットのみ（追加処理なし）
 }
 
 function animatePendulum() {
@@ -1605,7 +1771,7 @@ function toggleMetronome() {
     metronomeRunning = true;
     btn.textContent = 'STOP';
     btn.classList.add('running');
-    document.querySelector('#panel-metronome .pendulum-container').classList.add('active');
+    showVisual();
   } else {
     clearTimeout(timerID);
     metronomeRunning = false;
@@ -1613,11 +1779,12 @@ function toggleMetronome() {
     btn.classList.remove('running');
     document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
     const dot = document.getElementById('pendulum-dot');
-    if (dot) {
-      dot.style.left = '';
-      if (pendulumAnim) cancelAnimationFrame(pendulumAnim);
-    }
-    document.querySelector('#panel-metronome .pendulum-container').classList.remove('active');
+    if (dot) { dot.style.left = ''; if (pendulumAnim) cancelAnimationFrame(pendulumAnim); }
+    hideVisual();
+    // arrows/pulse リセット
+    document.getElementById('arrow-left').classList.remove('lit','lit-accent');
+    document.getElementById('arrow-right').classList.remove('lit','lit-accent');
+    document.getElementById('pulse-circle').classList.remove('beat','beat-accent');
   }
 }
 
