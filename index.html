@@ -2963,6 +2963,7 @@ function resetTunerUI() {
   smoothFreq = null; smoothCents = null; lockedSemitone = null;
   outsideLockCount = 0; freqBuffer.length = 0;
   pendingNote = null; confirmCount = 0;
+  inTuneFrames = 0; bellFired = false;
   const noteEl = document.getElementById('tuner-note');
   if (noteEl) { noteEl.textContent = '—'; noteEl.style.color = ''; }
   document.getElementById('tuner-freq').textContent = '';
@@ -3106,6 +3107,30 @@ function centsOff(freq) {
   return (semiExact - semiRound) * 100;
 }
 
+// ===== IN-TUNE ベル音 =====
+// ±5セント以内に0.5秒（約30フレーム）安定したら一度だけ鳴らす。
+// 一度鳴らした後、±10セントを超えてから戻らないと再度鳴らさない（二度鳴り防止）。
+let inTuneFrames   = 0;       // 連続でIN TUNE状態のフレーム数
+const IN_TUNE_FRAMES = 30;    // 約0.5秒（60fps想定）
+let bellFired      = false;   // このロックで既に鳴らしたか
+
+function playInTuneBell() {
+  const ctx = getAudioCtx();
+  // ベル音：高めのサイン波2音を短く重ねてチーン感を出す
+  [[1318.5, 0.0], [1760, 0.04]].forEach(([freq, delay]) => {
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0, ctx.currentTime + delay);
+    gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + delay + 0.01);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.6);
+    osc.connect(gain); gain.connect(masterOut);
+    osc.start(ctx.currentTime + delay);
+    osc.stop(ctx.currentTime + delay + 0.65);
+  });
+}
+
 // Smoothing / note lock
 let smoothFreq     = null;
 let smoothCents    = null;
@@ -3200,6 +3225,11 @@ function updateTunerUI(rawFreq) {
   if (dividerEl) dividerEl.style.display = 'block';
 
   if (absC < 5) {
+    inTuneFrames++;
+    if (inTuneFrames >= IN_TUNE_FRAMES && !bellFired) {
+      playInTuneBell();
+      bellFired = true;
+    }
     gauge.style.left = '47%';
     gauge.style.width = '6%';
     gauge.style.background = '#27ae60';
@@ -3213,6 +3243,8 @@ function updateTunerUI(rawFreq) {
     if (noteEl) noteEl.style.color = '#27ae60';
     if (displayEl) displayEl.className = 'tuner-note-display in-tune';
   } else if (cents < 0) {
+    // ±10セント以上ずれたらカウンターリセット（次の弦で再度鳴らせるように）
+    if (absC > 10) { inTuneFrames = 0; bellFired = false; }
     gauge.style.left = (center + pct) + '%';
     gauge.style.width = Math.abs(pct) + '%';
     gauge.style.background = '#2176ae';
@@ -3222,6 +3254,7 @@ function updateTunerUI(rawFreq) {
     if (noteEl) noteEl.style.color = '#1a1a2e';
     if (displayEl) displayEl.className = 'tuner-note-display flat';
   } else {
+    if (absC > 10) { inTuneFrames = 0; bellFired = false; }
     gauge.style.left = center + '%';
     gauge.style.width = pct + '%';
     gauge.style.background = '#c0392b';
