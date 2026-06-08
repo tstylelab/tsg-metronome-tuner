@@ -2932,7 +2932,18 @@ async function toggleMic() {
   const btnText = document.getElementById('mic-btn-text');
   if (!tunerActive) {
     try {
-      micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      // チューナー用のマイク取得設定。
+      // ブラウザは既定で noiseSuppression / autoGainControl / echoCancellation を
+      // ONにするが、これらは持続音を削ったり音量を勝手に変えたりして
+      // ピッチ検出を不安定にする。チューナーでは全てOFFにするのが鉄則。
+      micStream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+        video: false,
+      });
       tunerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const source = tunerAudioCtx.createMediaStreamSource(micStream);
       analyser = tunerAudioCtx.createAnalyser();
