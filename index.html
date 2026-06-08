@@ -1893,11 +1893,11 @@
 
       <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
 
-      <div id="reconnect-wrap" style="display:none; text-align:center; margin-top:10px;">
+      <div id="reconnect-wrap" style="display:none; text-align:center; margin-top:16px; margin-bottom:6px;">
         <button id="reconnect-btn" onclick="reconnectMic()"
-          style="background:#f0f2f7; border:1.5px solid #c8ccd6; border-radius:8px;
-                 color:#555; font-size:0.88rem; font-weight:600;
-                 cursor:pointer; padding:8px 18px; letter-spacing:0.03em;">
+          style="background:#1a1a2e; border:none; border-radius:8px;
+                 color:#fff; font-size:0.88rem; font-weight:600;
+                 cursor:pointer; padding:10px 20px; letter-spacing:0.03em;">
           🔄 反応が悪い時はここをタップ
         </button>
       </div>
@@ -2997,8 +2997,8 @@ async function reconnectMic() {
   if (btn) {
     btn.textContent = '🔄 再接続中...';
     btn.disabled = true;
-    btn.style.background = '#dde0e8';
-    btn.style.color = '#999';
+    btn.style.background = '#444';
+    btn.style.color = '#aaa';
   }
 
   tunerActive = false;
@@ -3016,8 +3016,8 @@ async function reconnectMic() {
   if (btn) {
     btn.textContent = '🔄 反応が悪い時はここをタップ';
     btn.disabled = false;
-    btn.style.background = '#f0f2f7';
-    btn.style.color = '#555';
+    btn.style.background = '#1a1a2e';
+    btn.style.color = '#fff';
   }
 }
 
