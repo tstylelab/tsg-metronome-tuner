@@ -2983,7 +2983,7 @@ async function toggleMic() {
       // 波形の「形」を変えずに増幅するのでピッチ精度は落ちない。
       // 無音時も同率で増幅されるが、RMS足切りが守るので誤反応しにくい。
       const inputGain = tunerAudioCtx.createGain();
-      inputGain.gain.value = 3.5;
+      inputGain.gain.value = 5.0;
       source.connect(hp); hp.connect(lp); lp.connect(inputGain); inputGain.connect(analyser);
       tunerActive = true;
       btn.classList.add('listening');
@@ -3117,9 +3117,8 @@ function autoCorrelate(buf, sampleRate, floorHz) {
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
   // 足切りライン：これより小さい音は無視する。
-  // 優しく弾く子やスマホが遠い場合でも拾えるよう、安定性を損なわない
-  // 範囲で控えめに下げている（0.025→0.018）。
-  if (rms < 0.018) return null;
+  // ゲイン5倍と組み合わせてエレキ生音など微弱な信号にも対応する。
+  if (rms < 0.010) return null;
 
   // ===== YIN アルゴリズム =====
   // 解析窓 WIN：低い音ほど1周期が長いので、floorHz に応じて窓を広げる。
