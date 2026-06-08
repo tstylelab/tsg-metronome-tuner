@@ -1894,11 +1894,11 @@
       <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
 
       <div id="reconnect-wrap" style="display:none; text-align:center; margin-top:10px;">
-        <button onclick="reconnectMic()"
+        <button id="reconnect-btn" onclick="reconnectMic()"
           style="background:#f0f2f7; border:1.5px solid #c8ccd6; border-radius:8px;
                  color:#555; font-size:0.88rem; font-weight:600;
                  cursor:pointer; padding:8px 18px; letter-spacing:0.03em;">
-          🔄 反応が悪い時はタップ
+          🔄 反応が悪い時はここをタップ
         </button>
       </div>
 
@@ -2992,6 +2992,15 @@ async function toggleMic() {
 
 // マイクを切断→再接続する（反応が悪い時のリセット用）
 async function reconnectMic() {
+  // ボタンを「再接続中...」に変えて押した感・リロード感を出す
+  const btn = document.getElementById('reconnect-btn');
+  if (btn) {
+    btn.textContent = '🔄 再接続中...';
+    btn.disabled = true;
+    btn.style.background = '#dde0e8';
+    btn.style.color = '#999';
+  }
+
   tunerActive = false;
   if (tunerAnimId) cancelAnimationFrame(tunerAnimId);
   if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
@@ -3001,8 +3010,15 @@ async function reconnectMic() {
   outsideLockCount = 0; freqBuffer.length = 0;
   resetTunerUI();
   // 少し待ってからマイクを再取得（OSがマイクを解放する時間を確保）
-  await new Promise(r => setTimeout(r, 300));
+  await new Promise(r => setTimeout(r, 400));
   toggleMic();
+  // ボタンを元に戻す
+  if (btn) {
+    btn.textContent = '🔄 反応が悪い時はここをタップ';
+    btn.disabled = false;
+    btn.style.background = '#f0f2f7';
+    btn.style.color = '#555';
+  }
 }
 
 function resetTunerUI() {
