@@ -3070,7 +3070,7 @@ const HOLD_MS = 1000; // ホールド時間（ミリ秒）
 // 音量が急上昇した直後の数フレームは表示を更新せず、波形が落ち着くのを待つ。
 let prevRms = null;
 let attackSkipFrames = 0;
-const ATTACK_SKIP = 12; // スキップするフレーム数（約200ms）
+const ATTACK_SKIP = 8; // スキップするフレーム数（約130ms）
 
 function detectPitch() {
   if (!tunerActive) return;
