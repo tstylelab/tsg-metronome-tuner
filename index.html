@@ -3043,7 +3043,10 @@ function autoCorrelate(buf, sampleRate, floorHz) {
   let rms = 0;
   for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
   rms = Math.sqrt(rms / SIZE);
-  if (rms < 0.025) return null;
+  // 足切りライン：これより小さい音は無視する。
+  // 優しく弾く子やスマホが遠い場合でも拾えるよう、安定性を損なわない
+  // 範囲で控えめに下げている（0.025→0.018）。
+  if (rms < 0.018) return null;
 
   // ===== YIN アルゴリズム =====
   // 解析窓 WIN：低い音ほど1周期が長いので、floorHz に応じて窓を広げる。
