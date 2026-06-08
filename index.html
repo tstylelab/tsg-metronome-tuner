@@ -3058,7 +3058,7 @@ function detectPitch() {
     return;
   }
 
-  const floorHz = 65;
+  const floorHz = 55; // 65→55：6弦の基音探索範囲を広げて精度改善を試みる
 
   const buf = new Float32Array(analyser.fftSize);
   analyser.getFloatTimeDomainData(buf);
