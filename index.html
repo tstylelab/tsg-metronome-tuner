@@ -1594,6 +1594,10 @@
         <div class="tip-title">🪗 ウクレレにも対応しています</div>
         <div class="tip-desc">チューナー画面に「Guitar / Uke」の切替ボタンがあります。ウクレレの標準チューニング（GCEA）に合わせた表示に切り替わります。</div>
       </div>
+      <div class="tip-item">
+        <div class="tip-title">💡 チューニングのコツ</div>
+        <div class="tip-desc">1秒おきにピッキングするとチューニングが合わせやすくなります。弾きっぱなしより、リズムよく弾き直す方が正確に反応します。</div>
+      </div>
     </div>
 
     <div class="modal-section">
@@ -1905,11 +1909,6 @@
       </div>
 
       <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
-      <div id="picking-hint" style="display:none; text-align:center; font-size:0.78rem;
-           color:#888; margin-top:6px; margin-bottom:2px;">
-        ♩ 1秒おきにピッキングするとチューニングが合わせやすくなります
-      </div>
-
       <div id="reconnect-wrap" style="display:none; text-align:center; margin-top:16px; margin-bottom:6px;">
         <button id="reconnect-btn" onclick="reconnectMic()"
           style="background:#1a1a2e; border:none; border-radius:8px;
@@ -2993,7 +2992,6 @@ async function toggleMic() {
       btn.classList.add('listening');
       btnText.textContent = 'マイクをオフにする';
       document.getElementById('reconnect-wrap').style.display = 'block';
-      document.getElementById('picking-hint').style.display = 'block';
       detectPitch();
     } catch (e) {
       document.getElementById('tuner-status').textContent = 'マイクのアクセスが拒否されました';
@@ -3009,7 +3007,6 @@ async function toggleMic() {
     btn.classList.remove('listening');
     btnText.textContent = 'マイクをオンにする';
     document.getElementById('reconnect-wrap').style.display = 'none';
-    document.getElementById('picking-hint').style.display = 'none';
     resetTunerUI();
   }
 }
