@@ -3045,6 +3045,7 @@ function resetTunerUI() {
   pendingNote = null; confirmCount = 0;
   inTuneFrames = 0; bellFired = false;
   holdUntil = 0;
+  prevRms = null; attackSkipFrames = 0;
   const noteEl = document.getElementById('tuner-note');
   if (noteEl) { noteEl.textContent = '—'; noteEl.style.color = ''; }
   document.getElementById('tuner-freq').textContent = '';
@@ -3065,6 +3066,12 @@ let silenceTimer = null;
 let holdUntil = 0;
 const HOLD_MS = 1000; // ホールド時間（ミリ秒）
 
+// アタックスキップ：弦を弾いた瞬間は倍音だらけで誤った音名が出やすい。
+// 音量が急上昇した直後の数フレームは表示を更新せず、波形が落ち着くのを待つ。
+let prevRms = null;
+let attackSkipFrames = 0;
+const ATTACK_SKIP = 12; // スキップするフレーム数（約200ms）
+
 function detectPitch() {
   if (!tunerActive) return;
 
@@ -3081,12 +3088,26 @@ function detectPitch() {
   const buf = new Float32Array(analyser.fftSize);
   analyser.getFloatTimeDomainData(buf);
 
+  // アタック検出：RMSが前フレームの2倍以上に跳ね上がったら打撃音と判断し
+  // ATTACK_SKIPフレーム分だけ表示更新をスキップして波形が落ち着くのを待つ。
+  let rmsNow = 0;
+  for (let i = 0; i < buf.length; i++) rmsNow += buf[i] * buf[i];
+  rmsNow = Math.sqrt(rmsNow / buf.length);
+  if (prevRms !== null && rmsNow > prevRms * 2.0 && rmsNow > 0.03) {
+    attackSkipFrames = ATTACK_SKIP;
+  }
+  prevRms = rmsNow;
+
+  if (attackSkipFrames > 0) {
+    attackSkipFrames--;
+    tunerAnimId = requestAnimationFrame(detectPitch);
+    return;
+  }
+
   // autoCorrelate は { freq, confidence } か null を返す（null = 検出失敗）
   const result = autoCorrelate(buf, tunerAudioCtx.sampleRate, floorHz);
 
-  // ② 確信度ゲート：confidence が高いフレームだけ表示に反映する。
-  //    弦を弾いた瞬間のアタック（打撃音）は音量は大きいが確信度が低いので、
-  //    ここで弾かれて「ピタッと止まる」表示になる。
+  // 確信度ゲート：confidence が高いフレームだけ表示に反映する。
   if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= 0.90) {
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     updateTunerUI(result.freq);
