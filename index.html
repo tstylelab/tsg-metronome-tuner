@@ -3032,7 +3032,7 @@ function detectPitch() {
   // ② 確信度ゲート：confidence が高いフレームだけ表示に反映する。
   //    弦を弾いた瞬間のアタック（打撃音）は音量は大きいが確信度が低いので、
   //    ここで弾かれて「ピタッと止まる」表示になる。
-  if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= 0.80) {
+  if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= 0.90) {
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     if (attackSkipFrames > 0) {
       attackSkipFrames--; // アタック直後：この数フレームは表示更新を見送る
