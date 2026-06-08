@@ -1905,6 +1905,10 @@
       </div>
 
       <div class="tuner-status" id="tuner-status">マイクをオンにして弦を弾いてください</div>
+      <div id="picking-hint" style="display:none; text-align:center; font-size:0.78rem;
+           color:#888; margin-top:6px; margin-bottom:2px;">
+        ♩ 1秒おきにピッキングするとチューニングが合わせやすくなります
+      </div>
 
       <div id="reconnect-wrap" style="display:none; text-align:center; margin-top:16px; margin-bottom:6px;">
         <button id="reconnect-btn" onclick="reconnectMic()"
@@ -2989,6 +2993,7 @@ async function toggleMic() {
       btn.classList.add('listening');
       btnText.textContent = 'マイクをオフにする';
       document.getElementById('reconnect-wrap').style.display = 'block';
+      document.getElementById('picking-hint').style.display = 'block';
       detectPitch();
     } catch (e) {
       document.getElementById('tuner-status').textContent = 'マイクのアクセスが拒否されました';
@@ -3004,6 +3009,7 @@ async function toggleMic() {
     btn.classList.remove('listening');
     btnText.textContent = 'マイクをオンにする';
     document.getElementById('reconnect-wrap').style.display = 'none';
+    document.getElementById('picking-hint').style.display = 'none';
     resetTunerUI();
   }
 }
