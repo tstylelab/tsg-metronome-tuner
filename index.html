@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<link rel="icon" type="image/png" href="images/favicon.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TSG Metronome & Tuner</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1142,13 +1143,15 @@
   }
 
   .live-slots-label {
-    font-size: 0.78rem;
-    font-weight: 700;
-    color: #888;
-    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #fff;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
-    margin-bottom: 10px;
-    margin-top: 18px;
+    background: #1a1a2e;
+    padding: 4px 10px;
+    border-radius: 5px;
+    line-height: 1;
   }
 
   .live-slots {
@@ -1743,7 +1746,15 @@
         <button class="live-fine-btn" onclick="adjustLiveBpm(+1)">+</button>
       </div>
 
-      <div class="live-slots-label">セットリスト</div>
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; margin-top:18px;">
+        <div class="live-slots-label">SETLIST</div>
+        <button onclick="resetLive()"
+          style="padding:4px 10px; border:1.5px solid #e0b0b0; border-radius:6px;
+                 background:#fff5f5; color:#c0392b; font-size:0.78rem; font-weight:700;
+                 cursor:pointer; transition:background 0.15s; line-height:1;"
+          onmouseover="this.style.background='#fde8e8'"
+          onmouseout="this.style.background='#fff5f5'">🗑 一覧をリセット</button>
+      </div>
       <div class="live-slots" id="live-slots"></div>
 
       <div style="display:flex; gap:8px; align-items:center; margin-bottom:10px;">
@@ -1828,14 +1839,6 @@
         </div>
       </div>
 
-      <button onclick="resetLive()"
-        style="width:100%; margin-top:10px; padding:11px; border:1.5px solid #e0b0b0;
-               border-radius:8px; background:#fff5f5; color:#c0392b; font-size:0.85rem;
-               font-weight:700; cursor:pointer; letter-spacing:0.04em; transition:background 0.15s;"
-        onmouseover="this.style.background='#fde8e8'"
-        onmouseout="this.style.background='#fff5f5'">
-        🗑 セットリストをリセット
-      </button>
 
       <div class="app-banner-section">
         <div class="app-section-header">
