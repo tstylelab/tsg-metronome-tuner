@@ -1737,6 +1737,12 @@
         <div class="beat-dot" id="lbdot-3"></div>
       </div>
 
+      <div class="live-bpm-row">
+        <button class="live-fine-btn" onclick="adjustLiveBpm(-1)">−</button>
+        <input type="range" id="live-bpm-slider" min="30" max="240" value="120" oninput="setLiveBpm(+this.value)">
+        <button class="live-fine-btn" onclick="adjustLiveBpm(+1)">+</button>
+      </div>
+
       <div class="live-slots-label">セットリスト</div>
       <div class="live-slots" id="live-slots"></div>
 
@@ -1758,12 +1764,6 @@
           <option value="7">7/4</option>
         </select>
         </div>
-      </div>
-
-      <div class="live-bpm-row">
-        <button class="live-fine-btn" onclick="adjustLiveBpm(-1)">−</button>
-        <input type="range" id="live-bpm-slider" min="30" max="240" value="120" oninput="setLiveBpm(+this.value)">
-        <button class="live-fine-btn" onclick="adjustLiveBpm(+1)">+</button>
       </div>
 
       <div class="btn-row">
