@@ -2974,12 +2974,17 @@ async function toggleMic() {
       // ① 入力フィルター：マイクの生音には低域のゴロゴロ音（手の擦れ・空調）と
       //    高域のサー音が混ざっている。これを取り除いてから解析すると、
       //    打音や軽い接触に反応しにくくなり、検出が安定する。
-      //    マイク → ハイパス(25Hz) → ローパス(2000Hz) → アナライザー の順で接続。
+      //    マイク → ハイパス(25Hz) → ローパス(2000Hz) → ゲイン → アナライザー の順で接続。
       const hp = tunerAudioCtx.createBiquadFilter();
       hp.type = 'highpass'; hp.frequency.value = 25;
       const lp = tunerAudioCtx.createBiquadFilter();
       lp.type = 'lowpass'; lp.frequency.value = 2000;
-      source.connect(hp); hp.connect(lp); lp.connect(analyser);
+      // ソフトウェアゲイン：エレキ生音など微弱な信号を底上げする。
+      // 波形の「形」を変えずに増幅するのでピッチ精度は落ちない。
+      // 無音時も同率で増幅されるが、RMS足切りが守るので誤反応しにくい。
+      const inputGain = tunerAudioCtx.createGain();
+      inputGain.gain.value = 2.5;
+      source.connect(hp); hp.connect(lp); lp.connect(inputGain); inputGain.connect(analyser);
       tunerActive = true;
       btn.classList.add('listening');
       btnText.textContent = 'マイクをオフにする';
