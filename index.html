@@ -2984,6 +2984,7 @@ function resetTunerUI() {
   outsideLockCount = 0; freqBuffer.length = 0;
   pendingNote = null; confirmCount = 0;
   inTuneFrames = 0; bellFired = false;
+  holdUntil = 0;
   const noteEl = document.getElementById('tuner-note');
   if (noteEl) { noteEl.textContent = '—'; noteEl.style.color = ''; }
   document.getElementById('tuner-freq').textContent = '';
@@ -3000,8 +3001,20 @@ function resetTunerUI() {
 
 let silenceTimer = null;
 
+// IN TUNE 表示のホールド：ベルが鳴ったらこの時刻まで表示を固定する
+let holdUntil = 0;
+const HOLD_MS = 1000; // ホールド時間（ミリ秒）
+
 function detectPitch() {
   if (!tunerActive) return;
+
+  // ホールド中：表示を固定したまま次フレームへ。
+  // 新しい検出も無音リセットも行わず、読み取り時間を確保する。
+  if (holdUntil && performance.now() < holdUntil) {
+    if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
+    tunerAnimId = requestAnimationFrame(detectPitch);
+    return;
+  }
 
   const floorHz = 65;
 
@@ -3252,6 +3265,9 @@ function updateTunerUI(rawFreq) {
     if (inTuneFrames >= IN_TUNE_FRAMES && !bellFired) {
       playInTuneBell();
       bellFired = true;
+      // ピコーンと鳴った瞬間の表示を一定時間ホールドして、
+      // 何セントずれているかをゆっくり読み取れるようにする。
+      holdUntil = performance.now() + HOLD_MS;
     }
     gauge.style.left = '47%';
     gauge.style.width = '6%';
