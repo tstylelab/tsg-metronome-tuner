@@ -233,11 +233,12 @@
   /* ===== PULSE VISUAL ===== */
   .visual-pulse {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    height: 62px;
+    height: 52px;
     visibility: hidden;
-    margin: 0 0 10px;
+    margin: 0 0 8px;
+    padding: 0 24px;
   }
 
   .visual-pulse.vis-active { visibility: visible; }
@@ -374,7 +375,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
-    margin-bottom: 20px;
+    margin-bottom: 10px;
   }
 
   .beat-label {
@@ -406,9 +407,9 @@
   .beat-indicators {
     display: flex;
     justify-content: center;
-    align-items: flex-start;
-    gap: 10px;
-    margin-bottom: 20px;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 14px;
   }
 
   .beat-dot {
@@ -470,7 +471,6 @@
   }
   /* タップ可能であることを示す */
   .beat-dot { cursor: pointer; }
-  .beat-indicators { gap: 7px; }
 
   /* Buttons */
   .btn-row {
@@ -984,11 +984,11 @@
 
   .subdiv-btn {
     flex: 1;
-    padding: 9px 4px;
+    padding: 5px 3px;
     border: 1.5px solid #dde0e8;
     border-radius: 8px;
     background: #f7f8fa;
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     font-weight: 700;
     color: #444;
     cursor: pointer;
@@ -999,11 +999,11 @@
   }
   .subdiv-btn span {
     display: block;
-    font-size: 0.6rem;
+    font-size: 0.58rem;
     font-weight: 500;
     color: #999;
-    margin-top: 3px;
-    letter-spacing: 0.04em;
+    margin-top: 2px;
+    letter-spacing: 0.03em;
   }
   .subdiv-btn.selected {
     border-color: #2176ae;
@@ -1521,8 +1521,8 @@
 
   /* ===== SOUND BUTTONS ===== */
   .beat-row .groove-btn {
-    font-size: 1rem;
-    padding: 6px 4px;
+    font-size: 0.9rem;
+    padding: 4px 4px;
     background: linear-gradient(to bottom, #ffffff, #e8eaef);
     box-shadow: 0 3px 0 #b8bcc8, 0 2px 6px rgba(0,0,0,0.1);
     border-color: #c8ccd6;
@@ -1712,13 +1712,6 @@
       <div class="bpm-display">
         <div class="bpm-number" id="bpm-display">120</div>
         <div class="bpm-label">BPM</div>
-      </div>
-
-      <!-- Pulse visual -->
-      <div class="visual-pulse" id="vis-pulse">
-        <div class="pulse-wrap">
-          <div class="pulse-circle" id="pulse-circle"></div>
-        </div>
       </div>
 
       <div class="beat-indicators" id="beat-indicators"></div>
@@ -2081,13 +2074,8 @@ let visualStyle = 'pendulum';
 let beatMuted = [];
 let subMuted = [];
 
-function showVisual() {
-  document.getElementById('vis-pulse').classList.add('vis-active');
-}
-
-function hideVisual() {
-  document.getElementById('vis-pulse').classList.remove('vis-active');
-}
+function showVisual() {}
+function hideVisual() {}
 let shuffleRatio = 0.67;
 
 const SHUFFLE_GROOVES = ['shuffle', 'shuffle-back', 'one-shuffle-back', 'sixteenth-shuffle'];
@@ -2225,31 +2213,25 @@ function renderBeatDots() {
   cont.innerHTML = '';
   const subs = getSubsPerBeat();
   for (let i = 0; i < beats; i++) {
-    const group = document.createElement('div');
-    group.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:5px;';
-
     // メインドット
     const d = document.createElement('div');
     d.className = 'beat-dot' + (i === 0 ? ' accent' : '') + (beatMuted[i] ? ' muted' : '');
     d.id = 'bdot-' + i;
     d.onclick = () => toggleBeatMute(i);
-    group.appendChild(d);
+    // 拍グループ間の間隔（最後の拍以外）
+    if (subs > 0 && i < beats - 1) d.style.marginRight = '2px';
+    cont.appendChild(d);
 
-    // サブドット行
-    if (subs > 0) {
-      const subRow = document.createElement('div');
-      subRow.style.cssText = 'display:flex;gap:4px;justify-content:center;';
-      for (let j = 0; j < subs; j++) {
-        const s = document.createElement('div');
-        s.className = 'beat-sub-dot' + (subMuted[i] && subMuted[i][j] ? ' muted' : '');
-        s.id = 'sdot-' + i + '-' + j;
-        s.onclick = () => toggleSubMute(i, j);
-        subRow.appendChild(s);
-      }
-      group.appendChild(subRow);
+    // サブドット（横一列）
+    for (let j = 0; j < subs; j++) {
+      const s = document.createElement('div');
+      s.className = 'beat-sub-dot' + (subMuted[i] && subMuted[i][j] ? ' muted' : '');
+      s.id = 'sdot-' + i + '-' + j;
+      s.onclick = () => toggleSubMute(i, j);
+      // 拍グループ末尾に間隔（最後の拍以外）
+      if (j === subs - 1 && i < beats - 1) s.style.marginRight = '10px';
+      cont.appendChild(s);
     }
-
-    cont.appendChild(group);
   }
 }
 
@@ -2401,12 +2383,6 @@ function flashBeat(beat) {
     if (d) d.classList.toggle('active', i === beat);
   }
 
-  // パルス
-  const circle = document.getElementById('pulse-circle');
-  circle.classList.remove('beat', 'beat-accent');
-  void circle.offsetWidth;
-  circle.classList.add(isAccent ? 'beat-accent' : 'beat');
-  setTimeout(() => circle.classList.remove('beat', 'beat-accent'), 200);
 }
 
 function flashSubDot(beat, subIndex) {
@@ -2467,7 +2443,6 @@ function toggleMetronome() {
     btn.classList.remove('running');
     document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
     hideVisual();
-    document.getElementById('pulse-circle').classList.remove('beat','beat-accent');
   }
 }
 
