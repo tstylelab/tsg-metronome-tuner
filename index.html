@@ -157,25 +157,63 @@
   /* ===== METRONOME ===== */
   .bpm-display {
     text-align: center;
-    margin-bottom: 6px;
-    margin-top: -4px;
+    margin-bottom: 16px;
+    margin-top: 0;
+    background: linear-gradient(160deg, #1e2035, #141425);
+    border-radius: 14px;
+    padding: 14px 20px 10px;
+    border: 1px solid rgba(255,255,255,0.06);
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(255,255,255,0.04);
+    transition: box-shadow 0.5s ease;
   }
 
   .bpm-number {
     font-family: 'Oswald', sans-serif;
-    font-size: 4.6rem;
+    font-size: 5rem;
     font-weight: 700;
-    color: #1a1a2e;
+    color: #eef0ff;
     line-height: 1;
-    letter-spacing: -0.02em;
+    letter-spacing: 0.02em;
+    text-shadow: 0 0 30px rgba(150,170,255,0.15);
+    transition: color 0.5s ease, text-shadow 0.5s ease;
   }
 
   .bpm-label {
-    font-size: 0.82rem;
-    color: #888;
-    letter-spacing: 0.15em;
+    font-size: 0.75rem;
+    color: rgba(200,210,230,0.4);
+    letter-spacing: 0.2em;
     text-transform: uppercase;
     margin-top: 2px;
+  }
+
+  /* C: 起動中グロー */
+  #metro-card.metro-running .bpm-display {
+    box-shadow: inset 0 2px 10px rgba(0,0,0,0.3), inset 0 -1px 0 rgba(255,255,255,0.04),
+                0 0 0 2px rgba(210,65,50,0.3), 0 0 24px rgba(210,65,50,0.14);
+  }
+  #metro-card.metro-running .bpm-number {
+    color: #ffb8b0;
+    text-shadow: 0 0 28px rgba(255,100,80,0.4);
+  }
+
+  /* B: セクション区切りラベル */
+  .section-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    color: #b8bcc8;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 14px 0 7px;
+  }
+  .section-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(to right, #dde0e8, transparent);
   }
 
   /* BPM Slider */
@@ -1711,7 +1749,7 @@
 
   <!-- ===== METRONOME PANEL ===== -->
   <div class="panel active" id="panel-metronome">
-    <div class="card">
+    <div class="card" id="metro-card">
 
       <div class="bpm-display">
         <div class="bpm-number" id="bpm-display">120</div>
@@ -1735,7 +1773,7 @@
       </div>
 
 
-      <!-- Subdivision buttons -->
+      <div class="section-label">Subdivision</div>
       <div class="subdiv-row">
         <button class="subdiv-btn" id="subdiv-8th"   onclick="setSubdivision('eighth')">8th</button>
         <button class="subdiv-btn" id="subdiv-16th"  onclick="setSubdivision('sixteenth')">16th</button>
@@ -1757,8 +1795,8 @@
         </div>
       </div>
 
-      <div class="beat-row" style="margin-top:14px;">
-        <span class="beat-label">音色</span>
+      <div class="section-label">Sound</div>
+      <div class="beat-row" style="margin-top:0;">
         <div style="display:flex;gap:6px;flex:1;">
           <button class="groove-btn selected" id="metro-sound-beep"  onclick="setMetroSound('beep')">Beep</button>
           <button class="groove-btn"          id="metro-sound-wood"  onclick="setMetroSound('wood')">Wood</button>
@@ -1766,8 +1804,8 @@
         </div>
       </div>
 
+      <div class="section-label">Time Sig</div>
       <div class="beat-row">
-        <span class="beat-label">拍子</span>
         <select class="beat-select" id="beat-select" onchange="onBeatSelectChange(this.value)">
           <option value="1">1 / 4</option>
           <option value="2">2 / 4</option>
@@ -2886,6 +2924,7 @@ function flashSubDot(beat, subIndex) {
 
 function toggleMetronome() {
   const btn = document.getElementById('start-btn');
+  const card = document.getElementById('metro-card');
   if (!metronomeRunning) {
     const ctx = getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
@@ -2895,11 +2934,13 @@ function toggleMetronome() {
     metronomeRunning = true;
     btn.textContent = 'STOP';
     btn.classList.add('running');
+    if (card) card.classList.add('metro-running');
   } else {
     clearTimeout(timerID);
     metronomeRunning = false;
     btn.textContent = 'START';
     btn.classList.remove('running');
+    if (card) card.classList.remove('metro-running');
     document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
   }
 }
