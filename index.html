@@ -406,6 +406,7 @@
   .beat-indicators {
     display: flex;
     justify-content: center;
+    align-items: flex-start;
     gap: 10px;
     margin-bottom: 20px;
   }
@@ -433,6 +434,43 @@
     background: #c0392b;
     transform: scale(1.4);
   }
+
+  /* ミュート時：タップで音をOFF */
+  .beat-dot.muted {
+    opacity: 0.22;
+    cursor: pointer;
+  }
+  .beat-dot.muted.active {
+    opacity: 0.22;
+    transform: none;
+    background: #e0e3ea;
+  }
+
+  /* サブディビジョンのドット（小さめ） */
+  .beat-sub-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: #c8ccd6;
+    transition: background 0.06s, transform 0.06s;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .beat-sub-dot.active {
+    background: #2176ae;
+    transform: scale(1.3);
+  }
+  .beat-sub-dot.muted {
+    opacity: 0.22;
+  }
+  .beat-sub-dot.muted.active {
+    opacity: 0.22;
+    transform: none;
+    background: #c8ccd6;
+  }
+  /* タップ可能であることを示す */
+  .beat-dot { cursor: pointer; }
+  .beat-indicators { gap: 7px; }
 
   /* Buttons */
   .btn-row {
@@ -2015,6 +2053,8 @@ let pendulumAnim = null;
 let currentSound = 'beep';
 let groove = 'normal';
 let visualStyle = 'pendulum';
+let beatMuted = [];
+let subMuted = [];
 
 function showVisual() {
   document.getElementById('vis-pulse').classList.add('vis-active');
@@ -2054,6 +2094,8 @@ function setGroove(val, el) {
   el.classList.add('selected');
   document.getElementById('shuffle-slider-wrap').style.display =
     SHUFFLE_GROOVES.includes(val) ? 'block' : 'none';
+  resetMuteState();
+  renderBeatDots();
 }
 
 let masterOut = null;
@@ -2123,17 +2165,67 @@ function hideLiveSliderHint() {
 function setBeats(val) {
   beats = val;
   currentBeat = 0;
+  resetMuteState();
   renderBeatDots();
+}
+
+function getSubsPerBeat() {
+  const g = groove;
+  if (['eighth','backbeat','one-backbeat','shuffle','shuffle-back','one-shuffle-back'].includes(g)) return 1;
+  if (['sixteenth','sixteenth-shuffle'].includes(g)) return 3;
+  if (['16back','one-16back'].includes(g)) return 1;
+  return 0;
+}
+
+function resetMuteState() {
+  beatMuted = new Array(beats).fill(false);
+  const subs = getSubsPerBeat();
+  subMuted = [];
+  for (let i = 0; i < beats; i++) subMuted.push(new Array(subs).fill(false));
+}
+
+function toggleBeatMute(i) {
+  beatMuted[i] = !beatMuted[i];
+  const d = document.getElementById('bdot-' + i);
+  if (d) d.classList.toggle('muted', beatMuted[i]);
+}
+
+function toggleSubMute(i, j) {
+  subMuted[i][j] = !subMuted[i][j];
+  const s = document.getElementById('sdot-' + i + '-' + j);
+  if (s) s.classList.toggle('muted', subMuted[i][j]);
 }
 
 function renderBeatDots() {
   const cont = document.getElementById('beat-indicators');
   cont.innerHTML = '';
+  const subs = getSubsPerBeat();
   for (let i = 0; i < beats; i++) {
+    const group = document.createElement('div');
+    group.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:5px;';
+
+    // メインドット
     const d = document.createElement('div');
-    d.className = 'beat-dot' + (i === 0 ? ' accent' : '');
+    d.className = 'beat-dot' + (i === 0 ? ' accent' : '') + (beatMuted[i] ? ' muted' : '');
     d.id = 'bdot-' + i;
-    cont.appendChild(d);
+    d.onclick = () => toggleBeatMute(i);
+    group.appendChild(d);
+
+    // サブドット行
+    if (subs > 0) {
+      const subRow = document.createElement('div');
+      subRow.style.cssText = 'display:flex;gap:4px;justify-content:center;';
+      for (let j = 0; j < subs; j++) {
+        const s = document.createElement('div');
+        s.className = 'beat-sub-dot' + (subMuted[i] && subMuted[i][j] ? ' muted' : '');
+        s.id = 'sdot-' + i + '-' + j;
+        s.onclick = () => toggleSubMute(i, j);
+        subRow.appendChild(s);
+      }
+      group.appendChild(subRow);
+    }
+
+    cont.appendChild(group);
   }
 }
 
@@ -2238,27 +2330,45 @@ function scheduler() {
     const noMain = ['backbeat', 'shuffle-back', '16back'];
     const oneOnly = ['one-backbeat', 'one-shuffle-back', 'one-16back'];
     const playMain = !noMain.includes(groove) && !(oneOnly.includes(groove) && !isAccent);
-    if (playMain) scheduleNote(t, isAccent);
+    if (playMain && !beatMuted[beat]) scheduleNote(t, isAccent);
 
-    // 細分割音
+    // 細分割音（サブミュートチェック付き）
+    const sm = subMuted[beat] || [];
     if (groove === 'eighth' || groove === 'backbeat' || groove === 'one-backbeat') {
-      scheduleSubNote(t + interval / 2);
+      if (!sm[0]) scheduleSubNote(t + interval / 2);
     } else if (groove === 'shuffle' || groove === 'shuffle-back' || groove === 'one-shuffle-back') {
-      scheduleSubNote(t + interval * shuffleRatio);
+      if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio);
     } else if (groove === 'sixteenth') {
-      scheduleSubNote(t + interval / 4);
-      scheduleSubNote(t + interval / 2);
-      scheduleSubNote(t + interval * 3 / 4);
+      if (!sm[0]) scheduleSubNote(t + interval / 4);
+      if (!sm[1]) scheduleSubNote(t + interval / 2);
+      if (!sm[2]) scheduleSubNote(t + interval * 3 / 4);
     } else if (groove === 'sixteenth-shuffle') {
       // 各8分内でshuffleRatioを適用: 前半の裏 + 後半の表 + 後半の裏
-      scheduleSubNote(t + interval / 2 * shuffleRatio);
-      scheduleSubNote(t + interval / 2);
-      scheduleSubNote(t + interval / 2 + interval / 2 * shuffleRatio);
+      if (!sm[0]) scheduleSubNote(t + interval / 2 * shuffleRatio);
+      if (!sm[1]) scheduleSubNote(t + interval / 2);
+      if (!sm[2]) scheduleSubNote(t + interval / 2 + interval / 2 * shuffleRatio);
     } else if (groove === '16back' || groove === 'one-16back') {
-      scheduleSubNote(t + interval * 3 / 4);
+      if (!sm[0]) scheduleSubNote(t + interval * 3 / 4);
     }
 
     const delay = (t - ctx.currentTime) * 1000;
+    // サブドットフラッシュのスケジュール
+    const subFlashDelays = [];
+    if (groove === 'eighth' || groove === 'backbeat' || groove === 'one-backbeat') {
+      subFlashDelays.push([0, interval / 2]);
+    } else if (groove === 'shuffle' || groove === 'shuffle-back' || groove === 'one-shuffle-back') {
+      subFlashDelays.push([0, interval * shuffleRatio]);
+    } else if (groove === 'sixteenth') {
+      subFlashDelays.push([0, interval / 4], [1, interval / 2], [2, interval * 3 / 4]);
+    } else if (groove === 'sixteenth-shuffle') {
+      subFlashDelays.push([0, interval / 2 * shuffleRatio], [1, interval / 2], [2, interval / 2 + interval / 2 * shuffleRatio]);
+    } else if (groove === '16back' || groove === 'one-16back') {
+      subFlashDelays.push([0, interval * 3 / 4]);
+    }
+    subFlashDelays.forEach(([sj, dt]) => {
+      const sd = (t + dt - ctx.currentTime) * 1000;
+      setTimeout(() => flashSubDot(beat, sj), Math.max(0, sd));
+    });
     setTimeout(() => flashBeat(beat), Math.max(0, delay));
     currentBeat = (currentBeat + 1) % beats;
     nextNoteTime += interval;
@@ -2269,8 +2379,11 @@ function scheduler() {
 function flashBeat(beat) {
   const isAccent = beat === 0;
 
-  // ビートドット
-  document.querySelectorAll('.beat-dot').forEach((d, i) => d.classList.toggle('active', i === beat));
+  // ビートドット（全グループのメインドットのみ）
+  for (let i = 0; i < beats; i++) {
+    const d = document.getElementById('bdot-' + i);
+    if (d) d.classList.toggle('active', i === beat);
+  }
 
   // パルス
   const circle = document.getElementById('pulse-circle');
@@ -2278,6 +2391,16 @@ function flashBeat(beat) {
   void circle.offsetWidth;
   circle.classList.add(isAccent ? 'beat-accent' : 'beat');
   setTimeout(() => circle.classList.remove('beat', 'beat-accent'), 200);
+}
+
+function flashSubDot(beat, subIndex) {
+  // 全サブドットのactiveを外す
+  document.querySelectorAll('.beat-sub-dot').forEach(s => s.classList.remove('active'));
+  const s = document.getElementById('sdot-' + beat + '-' + subIndex);
+  if (s) {
+    s.classList.add('active');
+    setTimeout(() => s.classList.remove('active'), 120);
+  }
 }
 
 function animatePendulum() {
@@ -3405,6 +3528,7 @@ function updateTunerUI(rawFreq) {
 }
 
 // 全定義が完了してから初期化
+resetMuteState();
 renderBeatDots();
 initLiveSlots();
 initCapoBtns();
