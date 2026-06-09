@@ -1777,6 +1777,7 @@
           <option value="6">6 / 4</option>
           <option value="7">7 / 4</option>
           <option value="6.8">6 / 8</option>
+          <option value="7.8">7 / 8</option>
         </select>
         <button id="backbeat-btn" onclick="applyBackbeat()" style="
           flex:0 0 auto; padding:7px 11px;
@@ -2195,6 +2196,7 @@ function makeMetroSlotBtn(i) {
   const beatsVal = metroBeatsArr[i] || 4;
   const grooveVal = metroGroovesArr[i] || 'normal';
   const timeSigLabel = (beatsVal === 6 && grooveVal === 'eighth') ? '6/8'
+    : (beatsVal === 7 && grooveVal === 'eighth') ? '7/8'
     : (beatsVal !== 4 ? `${beatsVal}/4` : '');
   const bpmDisplay = metroSlots[i] !== null
     ? (timeSigLabel ? `${bpmVal}<span style="font-size:0.6rem;opacity:0.7"> ${timeSigLabel}</span>` : bpmVal)
@@ -2270,7 +2272,8 @@ function applyMetroSlot(idx) {
   const beatSel = document.getElementById('beat-select');
   if (beatSel) {
     const g_restore = metroGroovesArr[idx] || 'normal';
-    beatSel.value = (b === 6 && g_restore === 'eighth') ? '6.8' : b;
+    beatSel.value = (b === 6 && g_restore === 'eighth') ? '6.8'
+                  : (b === 7 && g_restore === 'eighth') ? '7.8' : b;
   }
   // Groove (subdivision)
   const g = metroGroovesArr[idx] || 'normal';
@@ -2311,7 +2314,9 @@ function autoSaveMetroSlot() {
   // スロットボタン表示を更新
   const bpmLbl = document.getElementById('mslot-bpm-' + metroSelectedSlot);
   if (bpmLbl) {
-    const tsl = (beats === 6 && groove === 'eighth') ? '6/8' : (beats !== 4 ? `${beats}/4` : '');
+    const tsl = (beats === 6 && groove === 'eighth') ? '6/8'
+      : (beats === 7 && groove === 'eighth') ? '7/8'
+      : (beats !== 4 ? `${beats}/4` : '');
     bpmLbl.innerHTML = tsl
       ? `${bpm}<span style="font-size:0.6rem;opacity:0.7"> ${tsl}</span>`
       : String(bpm);
@@ -2554,9 +2559,9 @@ function hideLiveSliderHint() {
 }
 
 function onBeatSelectChange(val) {
-  if (val === '6.8') {
-    // 6/8: 6拍 + 8分音符サブディビジョンを自動設定
-    beats = 6;
+  if (val === '6.8' || val === '7.8') {
+    // 6/8 or 7/8: 8分音符サブディビジョンを自動設定
+    beats = (val === '6.8') ? 6 : 7;
     currentBeat = 0;
     groove = 'eighth';
     const map = {'eighth':'subdiv-8th','sixteenth':'subdiv-16th','shuffle':'subdiv-8sh','sixteenth-shuffle':'subdiv-16sh'};
