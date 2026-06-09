@@ -481,7 +481,7 @@
   .btn {
     flex: 1;
     padding: 14px 10px;
-    border: none;
+    border: 1.5px solid transparent;
     border-radius: 8px;
     font-size: 0.95rem;
     font-weight: 700;
@@ -490,51 +490,56 @@
     transition: background 0.15s, transform 0.1s;
   }
 
-  .btn:active { transform: scale(0.97); }
+  .btn:active {
+    box-shadow: 0 1px 0 rgba(0,0,0,0.35);
+    transform: translateY(2px);
+  }
 
   .btn-primary {
-    background: #1a1a2e;
+    background: linear-gradient(to bottom, #2e2e50, #1a1a2e);
+    box-shadow: 0 3px 0 #0a0a18, 0 2px 6px rgba(0,0,0,0.2);
+    border-color: #1a1a2e;
     color: #fff;
   }
-
-  .btn-primary:hover { background: #2e2e50; }
+  .btn-primary:hover { background: linear-gradient(to bottom, #3a3a62, #252540); }
 
   .btn-primary.running {
-    background: #c0392b;
+    background: linear-gradient(to bottom, #d9534f, #c0392b);
+    box-shadow: 0 3px 0 #7a1f1a, 0 2px 6px rgba(0,0,0,0.2);
+    border-color: #a93226;
   }
-
-  .btn-primary.running:hover { background: #a93226; }
+  .btn-primary.running:hover { background: linear-gradient(to bottom, #c9403b, #a93226); }
 
   .btn-secondary {
-    background: #f7f8fa;
+    background: linear-gradient(to bottom, #ffffff, #e8eaef);
+    box-shadow: 0 3px 0 #b8bcc8, 0 2px 6px rgba(0,0,0,0.1);
+    border-color: #c8ccd6;
     color: #1a1a2e;
-    border: 1.5px solid #dde0e8;
   }
-
-  .btn-secondary:hover {
-    background: #e0e3ea;
-  }
+  .btn-secondary:hover { background: linear-gradient(to bottom, #f0f2f6, #dde0e8); }
 
   .btn-tap {
-    background: #2176ae;
+    background: linear-gradient(to bottom, #2d8fd4, #2176ae);
+    box-shadow: 0 3px 0 #0e4f78, 0 2px 6px rgba(0,0,0,0.15);
+    border-color: #1a5f8a;
     color: #fff;
   }
-
-  .btn-tap:hover { background: #1a5f8a; }
+  .btn-tap:hover { background: linear-gradient(to bottom, #3399de, #2480bc); }
 
   .btn-mute {
-    background: #f7f8fa;
+    background: linear-gradient(to bottom, #ffffff, #e8eaef);
+    box-shadow: 0 3px 0 #b8bcc8, 0 2px 6px rgba(0,0,0,0.1);
+    border-color: #c8ccd6;
     color: #1a1a2e;
-    border: 1.5px solid #dde0e8;
     font-size: 1.1rem;
   }
-
-  .btn-mute:hover { background: #e0e3ea; }
+  .btn-mute:hover { background: linear-gradient(to bottom, #f0f2f6, #dde0e8); }
 
   .btn-mute.muted {
-    background: #c0392b;
+    background: linear-gradient(to bottom, #d9534f, #c0392b);
+    box-shadow: 0 3px 0 #7a1f1a, 0 2px 6px rgba(0,0,0,0.2);
+    border-color: #a93226;
     color: #fff;
-    border-color: #c0392b;
   }
 
   /* ===== TUNER ===== */
@@ -984,33 +989,30 @@
 
   .subdiv-btn {
     flex: 1;
-    padding: 5px 3px;
-    border: 1.5px solid #dde0e8;
+    padding: 7px 3px;
+    border: 1.5px solid #c8ccd6;
     border-radius: 8px;
-    background: #f7f8fa;
+    background: linear-gradient(to bottom, #ffffff, #e8eaef);
+    box-shadow: 0 3px 0 #b8bcc8, 0 2px 6px rgba(0,0,0,0.1);
     font-size: 0.78rem;
     font-weight: 700;
-    color: #444;
+    color: #333;
     cursor: pointer;
     text-align: center;
     letter-spacing: 0.03em;
-    transition: background 0.12s, border-color 0.12s, color 0.12s;
-    line-height: 1.2;
+    transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.1s, transform 0.1s;
+    line-height: 1;
   }
-  .subdiv-btn span {
-    display: block;
-    font-size: 0.58rem;
-    font-weight: 500;
-    color: #999;
-    margin-top: 2px;
-    letter-spacing: 0.03em;
+  .subdiv-btn:active {
+    box-shadow: 0 1px 0 #b8bcc8;
+    transform: translateY(2px);
   }
   .subdiv-btn.selected {
-    border-color: #2176ae;
-    background: #2176ae;
+    background: linear-gradient(to bottom, #2e4060, #1a1a2e);
+    box-shadow: 0 3px 0 #0a0a18, 0 2px 6px rgba(0,0,0,0.2);
+    border-color: #1a1a2e;
     color: #fff;
   }
-  .subdiv-btn.selected span { color: rgba(255,255,255,0.65); }
 
   /* ===== GROOVE (Live panel only) ===== */
   .groove-toggle {
@@ -1539,9 +1541,6 @@
     border-color: #1a1a2e;
   }
 
-  .beat-row .groove-btn span {
-    font-size: 0.68rem;
-  }
 
   /* ===== IMAGE BANNER ===== */
   .img-banner-link {
@@ -1728,10 +1727,10 @@
 
       <!-- Subdivision buttons -->
       <div class="subdiv-row">
-        <button class="subdiv-btn" id="subdiv-8th"   onclick="setSubdivision('eighth')">8th<span>8分音符</span></button>
-        <button class="subdiv-btn" id="subdiv-16th"  onclick="setSubdivision('sixteenth')">16th<span>16分音符</span></button>
-        <button class="subdiv-btn" id="subdiv-8sh"   onclick="setSubdivision('shuffle')">8th Shuffle<span>8分ハネ</span></button>
-        <button class="subdiv-btn" id="subdiv-16sh"  onclick="setSubdivision('sixteenth-shuffle')">16th Shuffle<span>16分ハネ</span></button>
+        <button class="subdiv-btn" id="subdiv-8th"   onclick="setSubdivision('eighth')">8th</button>
+        <button class="subdiv-btn" id="subdiv-16th"  onclick="setSubdivision('sixteenth')">16th</button>
+        <button class="subdiv-btn" id="subdiv-8sh"   onclick="setSubdivision('shuffle')">8th Shuffle</button>
+        <button class="subdiv-btn" id="subdiv-16sh"  onclick="setSubdivision('sixteenth-shuffle')">16th Shuffle</button>
       </div>
 
       <!-- Shuffle Feel slider (表示はshuffle選択時のみ) -->
@@ -1751,9 +1750,9 @@
       <div class="beat-row" style="margin-top:14px;">
         <span class="beat-label">音色</span>
         <div style="display:flex;gap:6px;flex:1;">
-          <button class="groove-btn selected" id="metro-sound-beep"  onclick="setMetroSound('beep')">Beep<span>電子音</span></button>
-          <button class="groove-btn"          id="metro-sound-wood"  onclick="setMetroSound('wood')">Wood<span>木の音</span></button>
-          <button class="groove-btn"          id="metro-sound-hihat" onclick="setMetroSound('hihat')">Hi-hat<span>ハイハット</span></button>
+          <button class="groove-btn selected" id="metro-sound-beep"  onclick="setMetroSound('beep')">Beep</button>
+          <button class="groove-btn"          id="metro-sound-wood"  onclick="setMetroSound('wood')">Wood</button>
+          <button class="groove-btn"          id="metro-sound-hihat" onclick="setMetroSound('hihat')">Hi-hat</button>
         </div>
       </div>
 
