@@ -1761,10 +1761,13 @@
         <div class="beat-dot" id="lbdot-3"></div>
       </div>
 
+      <div id="live-slider-hint" style="text-align:center; font-size:0.75rem; color:#bbb;
+           letter-spacing:0.05em; margin-bottom:4px;">← スライドでBPM変更 →</div>
       <div class="live-bpm-row">
-        <button class="live-fine-btn" onclick="adjustLiveBpm(-1)">−</button>
-        <input type="range" id="live-bpm-slider" min="30" max="240" value="120" oninput="setLiveBpm(+this.value)">
-        <button class="live-fine-btn" onclick="adjustLiveBpm(+1)">+</button>
+        <button class="live-fine-btn" onclick="adjustLiveBpm(-1); hideLiveSliderHint();">−</button>
+        <input type="range" id="live-bpm-slider" min="30" max="240" value="120"
+          oninput="setLiveBpm(+this.value); hideLiveSliderHint();">
+        <button class="live-fine-btn" onclick="adjustLiveBpm(+1); hideLiveSliderHint();">+</button>
       </div>
 
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; margin-top:18px;">
@@ -2109,6 +2112,11 @@ function adjustBpm(delta) {
 
 function hideSliderHint() {
   const hint = document.getElementById('slider-hint');
+  if (hint) hint.style.display = 'none';
+}
+
+function hideLiveSliderHint() {
+  const hint = document.getElementById('live-slider-hint');
   if (hint) hint.style.display = 'none';
 }
 
