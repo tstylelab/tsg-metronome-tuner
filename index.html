@@ -1611,66 +1611,78 @@
 <div class="modal-overlay" id="help-modal" onclick="if(event.target===this)this.classList.remove('open')">
   <div class="modal-box">
     <button class="modal-close" onclick="document.getElementById('help-modal').classList.remove('open')">×</button>
-    <div class="modal-title">💡 これ、知ってましたか？</div>
-    <p style="font-size:0.82rem; color:#555; margin:0 0 16px; line-height:1.6;">メトロノームもチューナーも、初心者からプロまでしっかり使える本格仕様。プロギタリスト監修のTSGならではの便利機能を使いこなしましょう。</p>
+    <div class="modal-title">💡 使い方ガイド</div>
+    <p style="font-size:0.82rem; color:#555; margin:0 0 16px; line-height:1.6;">プロギタリスト監修のTSGならではの便利機能を使いこなしましょう。</p>
 
     <div class="modal-section">
-      <div class="modal-section-title">🎵 Metronome</div>
+      <div class="modal-section-title">🎵 Metronome — BPM設定</div>
       <div class="tip-item">
-        <div class="tip-title red">👆 テンポを耳で合わせられます（TAPテンポ）</div>
-        <div class="tip-desc">曲を聴きながらTAPボタンをリズムに合わせて叩くだけで、自動でBPMを計測します。「この曲何BPMだろう？」という時に便利です。</div>
+        <div class="tip-title red">👆 TAPボタンで曲のテンポを自動計測</div>
+        <div class="tip-desc">曲を聴きながらTAPをリズムに合わせて叩くだけでBPMを計測します。「この曲何BPMだろう？」という時に便利です。</div>
       </div>
       <div class="tip-item">
-        <div class="tip-title">🎶 シャッフルの跳ね感を自由に変えられます</div>
-        <div class="tip-desc">8th / 16th / 8th Shuffle / 16th Shuffleの4ボタンで細分割を切り替えられます。Shuffleを選ぶと「Shuffle Feel」スライダーが表示され、跳ね感を細かく調整できるので、ジャズのスイング練習にも最適です。</div>
+        <div class="tip-title">＋／－ボタンは長押しで高速変更できます</div>
+        <div class="tip-desc">1回タップで±1BPM。押し続けると自動的に加速していきます。大まかに変えてから微調整はスライダーで、という使い方がおすすめです。</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">🥁 Metronome — リズムパターン</div>
+      <div class="tip-item">
+        <div class="tip-title red">👆 ビートドットをタップして好きな音だけ鳴らせます</div>
+        <div class="tip-desc">画面のビートドット（○）をタップすると、その拍や細分割をON/OFFできます。「2拍目と4拍目だけ」「裏拍だけ」など自分でカスタムできます。</div>
       </div>
       <div class="tip-item">
-        <div class="tip-title">🎵 12/8拍子は4/4＋Shuffleで対応できます</div>
-        <div class="tip-desc">ブルースや遅いロックでよく使う12/8拍子は、拍子を「4/4」にして「8th Shuffle」をオンにすると同じフィールになります。BPMは付点四分音符の速さで設定するのが一般的です。</div>
+        <div class="tip-title">Backbeatボタンで裏拍パターンを一発設定</div>
+        <div class="tip-desc">Backbeatを押すと、現在のサブディビジョンに合わせた裏拍パターンを自動で設定します。4分音符なら2・4拍目のみ、8分音符なら1拍目頭＋全裏拍、16分音符なら1拍目頭＋各拍の4つ目だけが鳴ります。その後ドットを個別にタップして微調整もできます。</div>
       </div>
       <div class="tip-item">
-        <div class="tip-title">👆 ビートドットをタップして特定の音だけ消せます</div>
-        <div class="tip-desc">画面のビートドットをタップすると、その拍・細分割だけをON/OFFできます。「2拍目と4拍目だけ鳴らす」「裏拍だけ消す」など、自分でカスタムリズムを作れます。</div>
+        <div class="tip-title">8th / 16th / Shuffleで細分割を追加できます</div>
+        <div class="tip-desc">8th（8分音符）、16th（16分音符）、8th Shuffle、16th Shuffleの4ボタンで切り替えます。Shuffleを選ぶと「Shuffle Feel」スライダーが表示され、ジャズのスイング感も細かく調整できます。</div>
       </div>
       <div class="tip-item">
-        <div class="tip-title">🔇 音を消してテンポだけ目で確認できます</div>
-        <div class="tip-desc">MUTEボタンを押すと音は消えますが、ビートドットは動き続けます。夜間の練習や、バンドリハでの目視確認に使えます。</div>
+        <div class="tip-title">12/8拍子は「4/4 ＋ 8th Shuffle」で対応できます</div>
+        <div class="tip-desc">ブルースや遅いロックでよく使う12/8は、拍子を4/4にして8th Shuffleをオンにすると同じフィールになります。BPMは付点四分音符の速さで設定するのが一般的です。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">🔇 MUTEで音を消して目だけで確認</div>
+        <div class="tip-desc">MUTEをオンにすると音は消えますが、ビートドットは動き続けます。夜間の練習やバンドリハでの目視確認に使えます。</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">📋 Setlist</div>
+      <div class="tip-item">
+        <div class="tip-title red">📝 曲ごとのBPM・拍子・グルーブをまとめて登録</div>
+        <div class="tip-desc">「Setlist」トグルを開くとスロットが表示されます。BPM・拍子・サブディビジョン・音色をセットで保存でき、タップ一発で全設定を呼び出せます。ライブのセットリストや練習メニュー管理に最適です。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">設定は自動保存されます</div>
+        <div class="tip-desc">操作するたびに自動でブラウザに保存されます。リロードしても最後の状態が復元されます。スロットは「＋24曲」ボタンで最大24個まで増やせます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">💾 セットリストをファイルに書き出せます</div>
+        <div class="tip-desc">「保存」ボタンでJSONファイルに書き出せます。「今月のライブ」「基礎練習メニュー」など用途別に複数のリストを作って使い分けられます。「読み込み」で即座に復元できます。</div>
       </div>
     </div>
 
     <div class="modal-section">
       <div class="modal-section-title">🎸 Tuner</div>
       <div class="tip-item">
-        <div class="tip-title red">🔄 反応が悪い時はリセットできます</div>
+        <div class="tip-title red">🔄 反応が悪い時はリセットボタンをタップ</div>
         <div class="tip-desc">他のアプリでマイクを使った後など、反応が悪い時は「🔄 反応が悪い時はここをタップ」ボタンで即座に再接続できます。</div>
       </div>
       <div class="tip-item">
-        <div class="tip-title">🎸 カポタストや半音下げにも対応しています</div>
-        <div class="tip-desc">カポを付けている場合はカポフレットを選択、半音下げチューニングの場合は「半音下げ」ボタンをオンにすると、正確な音名で表示されます。</div>
+        <div class="tip-title">カポタストや半音下げにも対応しています</div>
+        <div class="tip-desc">カポを付けている場合はカポフレットを選択、半音下げチューニングなら「半音下げ」ボタンをオンにすると正確な音名で表示されます。</div>
       </div>
       <div class="tip-item">
         <div class="tip-title">🪗 ウクレレにも対応しています</div>
-        <div class="tip-desc">チューナー画面に「Guitar / Uke」の切替ボタンがあります。ウクレレの標準チューニング（GCEA）に合わせた表示に切り替わります。</div>
+        <div class="tip-desc">「Guitar / Uke」切替ボタンでウクレレの標準チューニング（GCEA）表示に切り替わります。</div>
       </div>
       <div class="tip-item">
         <div class="tip-title">💡 チューニングのコツ</div>
         <div class="tip-desc">1秒おきにピッキングするとチューニングが合わせやすくなります。弾きっぱなしより、リズムよく弾き直す方が正確に反応します。</div>
-      </div>
-    </div>
-
-    <div class="modal-section">
-      <div class="modal-section-title">🎵 Setlist</div>
-      <div class="tip-item">
-        <div class="tip-title red">📝 曲ごとのBPM・拍子・グルーブを最大24曲まで登録できます</div>
-        <div class="tip-desc">メトロノーム画面の「Setlist」トグルを開くと登録できます。曲名・BPM・拍子・サブディビジョンをセットで保存し、タップ一発で呼び出せます。ライブのセットリストや練習メニュー管理に最適です。</div>
-      </div>
-      <div class="tip-item">
-        <div class="tip-title">💾 セットリストをファイルに保存・管理できます</div>
-        <div class="tip-desc">「保存」ボタンで曲名・BPM・設定をJSONファイルに書き出せます。「今月のライブ」「基礎練習メニュー」など用途別に複数のリストを作って使い分けられます。読み込めば即座に復元できます。</div>
-      </div>
-      <div class="tip-item">
-        <div class="tip-title">✅ 更新しても消えません</div>
-        <div class="tip-desc">入力した内容はブラウザに自動保存されます。うっかりリロードしても、最後の状態がそのまま復元されます。スロットは最大24個まで増やせます。</div>
       </div>
     </div>
 
