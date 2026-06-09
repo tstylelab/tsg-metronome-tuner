@@ -406,24 +406,24 @@
   /* Beat indicators */
   .beat-indicators {
     display: flex;
-    justify-content: center;
+    justify-content: space-evenly;
     align-items: center;
-    gap: 6px;
+    gap: 0;
     margin-bottom: 14px;
   }
 
   .beat-dot {
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
-    background: #e0e3ea;
+    background: #9aa0b0;
     transition: background 0.06s, transform 0.06s;
   }
 
   .beat-dot.accent {
     background: #c0392b;
-    width: 26px;
-    height: 26px;
+    width: 32px;
+    height: 32px;
   }
 
   .beat-dot.active {
@@ -449,10 +449,10 @@
 
   /* サブディビジョンのドット（小さめ） */
   .beat-sub-dot {
-    width: 12px;
-    height: 12px;
+    width: 14px;
+    height: 14px;
     border-radius: 50%;
-    background: #c8ccd6;
+    background: #b0b6c4;
     transition: background 0.06s, transform 0.06s;
     cursor: pointer;
     flex-shrink: 0;
@@ -2218,8 +2218,6 @@ function renderBeatDots() {
     d.className = 'beat-dot' + (i === 0 ? ' accent' : '') + (beatMuted[i] ? ' muted' : '');
     d.id = 'bdot-' + i;
     d.onclick = () => toggleBeatMute(i);
-    // 拍グループ間の間隔（最後の拍以外）
-    if (subs > 0 && i < beats - 1) d.style.marginRight = '2px';
     cont.appendChild(d);
 
     // サブドット（横一列）
@@ -2228,8 +2226,6 @@ function renderBeatDots() {
       s.className = 'beat-sub-dot' + (subMuted[i] && subMuted[i][j] ? ' muted' : '');
       s.id = 'sdot-' + i + '-' + j;
       s.onclick = () => toggleSubMute(i, j);
-      // 拍グループ末尾に間隔（最後の拍以外）
-      if (j === subs - 1 && i < beats - 1) s.style.marginRight = '10px';
       cont.appendChild(s);
     }
   }
