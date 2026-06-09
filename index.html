@@ -27,72 +27,78 @@
   /* ===== HEADER ===== */
   header {
     background: #1a1a2e;
-    padding: 11px 20px 10px;
+    padding: 8px 20px 8px;
     text-align: center;
   }
 
   .header-inner {
     display: inline-flex;
-    align-items: center;
-    gap: 12px;
+    align-items: flex-end;
+    gap: 10px;
   }
 
-  .header-guitar svg {
+  .brand-main {
+    font-family: 'Oswald', sans-serif;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+
+  .brand-main svg {
     display: block;
     opacity: 0.92;
     filter: drop-shadow(0 2px 6px rgba(0,0,0,0.3));
   }
 
-  .header-text { text-align: left; }
-
-  .brand-main {
-    font-family: 'Oswald', sans-serif;
-    font-size: 2.1rem;
-    font-weight: 700;
-    color: #ffffff;
-    line-height: 1;
-    letter-spacing: 0.04em;
+  .brand-right {
+    padding-bottom: 3px;
+    border-bottom: 2.5px solid #c0392b;
+    text-align: left;
   }
 
   .brand-sub1 {
     font-family: 'Oswald', sans-serif;
-    font-size: 0.72rem;
+    font-size: 0.7rem;
     font-weight: 400;
     letter-spacing: 0.22em;
     color: #c0392b;
     text-transform: uppercase;
-    margin-top: 2px;
+    line-height: 1.2;
+  }
+
+  .brand-sub2-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
   }
 
   .brand-sub2 {
     font-family: 'Oswald', sans-serif;
     font-size: 1.05rem;
     font-weight: 600;
-    letter-spacing: 0.12em;
+    letter-spacing: 0.10em;
     color: #ffffff;
-    margin-top: 3px;
-  }
-
-  .brand-underline {
-    width: 100%;
-    height: 2px;
-    background: #c0392b;
-    margin-top: 3px;
-    border-radius: 1px;
+    text-transform: uppercase;
+    line-height: 1.2;
   }
 
   .brand-note {
-    font-size: 0.65rem;
-    color: rgba(255,255,255,0.5);
-    margin-top: 3px;
+    font-size: 0.6rem;
+    color: rgba(255,255,255,0.45);
     letter-spacing: 0.05em;
+    white-space: nowrap;
   }
 
   /* ===== TAB ===== */
   .tab-container {
     display: flex;
     justify-content: center;
-    padding: 13px 20px 0;
+    padding: 8px 20px 0;
   }
 
   .tab-wrap {
@@ -979,6 +985,52 @@
     100% { left: 10px; }
   }
 
+  /* ===== SETLIST TOGGLE ===== */
+  .setlist-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #1a1a2e 0%, #2e2e50 100%);
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(26,26,46,0.18);
+    transition: box-shadow 0.15s;
+  }
+  .setlist-toggle:active { box-shadow: 0 1px 3px rgba(26,26,46,0.2); transform: translateY(1px); }
+  .setlist-toggle-left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .setlist-toggle-icon {
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+  .setlist-toggle-label {
+    font-family: 'Oswald', sans-serif;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .setlist-toggle-sub {
+    font-size: 0.65rem;
+    font-weight: 500;
+    color: rgba(255,255,255,0.8);
+    letter-spacing: 0.04em;
+  }
+  .setlist-toggle-arrow {
+    font-size: 0.8rem;
+    color: rgba(255,255,255,0.5);
+    transition: transform 0.2s;
+  }
+  .setlist-toggle.open .setlist-toggle-arrow { transform: rotate(180deg); }
+
   /* ===== SUBDIVISION BUTTONS ===== */
   .subdiv-row {
     display: flex;
@@ -1580,8 +1632,8 @@
 
 <header>
   <div class="header-inner">
-    <div class="header-guitar">
-      <svg viewBox="0 0 48 108" width="30" height="68" xmlns="http://www.w3.org/2000/svg">
+    <div class="brand-main">
+      <svg viewBox="0 0 48 108" width="22" height="50" xmlns="http://www.w3.org/2000/svg">
         <!-- Headstock -->
         <rect x="17" y="1" width="14" height="13" rx="3" fill="rgba(255,255,255,0.92)"/>
         <!-- Tuners left -->
@@ -1618,13 +1670,14 @@
         <line x1="27" y1="16" x2="27" y2="100" stroke="rgba(26,26,46,0.18)" stroke-width="0.6"/>
         <line x1="28.5" y1="16" x2="28.5" y2="100" stroke="rgba(26,26,46,0.18)" stroke-width="0.6"/>
       </svg>
+      TSG
     </div>
-    <div class="header-text">
-      <div class="brand-main">TSG</div>
-      <div class="brand-sub1">GUITAR SCHOOL</div>
-      <div class="brand-sub2">Metronome &amp; Tuner</div>
-      <div class="brand-underline"></div>
-      <div class="brand-note">【プロギタリスト監修】</div>
+    <div class="brand-right">
+      <div class="brand-sub1">Guitar School</div>
+      <div class="brand-sub2-row">
+        <div class="brand-sub2">Metronome &amp; Tuner</div>
+        <span class="brand-note">【プロギタリスト監修】</span>
+      </div>
     </div>
   </div>
   <div class="header-wrap">
@@ -1773,6 +1826,58 @@
         <button class="btn btn-primary" id="start-btn" onclick="toggleMetronome()">START</button>
         <button class="btn btn-tap" onclick="tapTempo()">TAP</button>
         <button class="btn btn-mute" id="mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
+      </div>
+
+      <!-- Metro Setlist (折りたたみ) -->
+      <button class="setlist-toggle" id="metro-setlist-toggle" onclick="toggleMetroSetlist()">
+        <div class="setlist-toggle-left">
+          <span class="setlist-toggle-icon">🎵</span>
+          <span class="setlist-toggle-label">Setlist</span>
+          <span class="setlist-toggle-sub">曲ごとのBPM・拍子・グルーブを保存</span>
+        </div>
+        <span class="setlist-toggle-arrow">▼</span>
+      </button>
+      <div id="metro-setlist-panel" style="display:none; margin-top:12px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px;">
+          <div class="live-slots-label" style="flex-shrink:0;">SETLIST</div>
+          <div style="display:flex;gap:6px;margin-left:auto;">
+            <button id="metro-expand-btn" onclick="toggleMetroSlotExpand()"
+              style="padding:4px 10px;border:1.5px solid #b0c0d8;border-radius:6px;
+                     background:#f0f4fa;color:#2176ae;font-size:0.78rem;font-weight:700;
+                     cursor:pointer;line-height:1;"
+              onmouseover="this.style.background='#dce8f8'"
+              onmouseout="this.style.background='#f0f4fa'" title="12 → 24曲に増やす">＋24曲</button>
+            <button onclick="resetMetroSetlist()"
+              style="padding:4px 10px;border:1.5px solid #e0b0b0;border-radius:6px;
+                     background:#fff5f5;color:#c0392b;font-size:0.78rem;font-weight:700;
+                     cursor:pointer;line-height:1;"
+              onmouseover="this.style.background='#fde8e8'"
+              onmouseout="this.style.background='#fff5f5'">🗑 リセット</button>
+          </div>
+        </div>
+        <div class="live-slots" id="metro-slots"></div>
+        <div style="margin-bottom:10px;">
+          <input type="text" class="live-name-input" id="metro-slot-name"
+            placeholder="曲名を入力（任意）" maxlength="20"
+            oninput="updateMetroSlotName(this.value)"
+            style="width:100%;box-sizing:border-box;margin-bottom:0;">
+        </div>
+        <!-- セットリスト 保存/読み込み -->
+        <div style="margin-top:14px; border-top:1.5px solid #eee; padding-top:14px;">
+          <div class="live-slots-label" style="margin-top:0; margin-bottom:10px;">セットリスト 保存 / 読み込み</div>
+          <div style="display:flex; gap:8px; margin-bottom:8px;">
+            <input type="text" id="metro-setlist-name" placeholder="セット名（任意）"
+              style="flex:1; padding:9px 12px; border:1.5px solid #dde0e8; border-radius:7px;
+                     font-size:0.88rem; color:#222; background:#f7f8fa; outline:none;">
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn btn-secondary" onclick="saveMetroSetlistFile()" style="flex:1; padding:11px;">💾 保存</button>
+            <label class="btn btn-secondary" style="flex:1; padding:11px; cursor:pointer; text-align:center;">
+              📂 読み込み
+              <input type="file" id="metro-setlist-file" accept=".json" onchange="loadMetroSetlistFile(event)" style="display:none;">
+            </label>
+          </div>
+        </div>
       </div>
 
       <div class="app-banner-section">
@@ -2079,6 +2184,260 @@ let shuffleRatio = 0.67;
 
 const SHUFFLE_GROOVES = ['shuffle', 'shuffle-back', 'one-shuffle-back', 'sixteenth-shuffle'];
 
+// ===== METRO SETLIST =====
+const METRO_LS_KEY = 'tsg-metro-setlist';
+let metroSlots         = Array(24).fill(null);
+let metroNames         = Array(24).fill('');
+let metroBeatsArr      = Array(24).fill(4);
+let metroGroovesArr    = Array(24).fill('normal');
+let metroShuffleArr    = Array(24).fill(67);
+let metroSoundsArr     = Array(24).fill('beep');
+let metroSelectedSlot  = 0;
+let metroSetlistOpen   = false;
+let metroSlotCount     = 12;      // 12 or 24
+let _applyingSlot      = false;   // 無限ループ防止フラグ
+
+function saveMetroSetlist() {
+  localStorage.setItem(METRO_LS_KEY, JSON.stringify({
+    slots: metroSlots, names: metroNames, beats: metroBeatsArr,
+    grooves: metroGroovesArr, shuffleRatios: metroShuffleArr,
+    sounds: metroSoundsArr, selectedSlot: metroSelectedSlot,
+    slotCount: metroSlotCount
+  }));
+}
+
+function loadMetroSetlist() {
+  try {
+    const s = JSON.parse(localStorage.getItem(METRO_LS_KEY) || 'null');
+    if (!s) return;
+    if (Array.isArray(s.slots))        s.slots.forEach((v,i)=>{ if(i<24) metroSlots[i]=v; });
+    if (Array.isArray(s.names))        s.names.forEach((v,i)=>{ if(i<24) metroNames[i]=v||''; });
+    if (Array.isArray(s.beats))        s.beats.forEach((v,i)=>{ if(i<24) metroBeatsArr[i]=v||4; });
+    if (Array.isArray(s.grooves))      s.grooves.forEach((v,i)=>{ if(i<24) metroGroovesArr[i]=v||'normal'; });
+    if (Array.isArray(s.shuffleRatios))s.shuffleRatios.forEach((v,i)=>{ if(i<24) metroShuffleArr[i]=v||67; });
+    if (Array.isArray(s.sounds))       s.sounds.forEach((v,i)=>{ if(i<24) metroSoundsArr[i]=v||'beep'; });
+    if (typeof s.selectedSlot==='number') metroSelectedSlot = s.selectedSlot;
+    if (s.slotCount === 24) metroSlotCount = 24;
+  } catch(e) {}
+}
+
+function makeMetroSlotBtn(i) {
+  const btn = document.createElement('button');
+  btn.className = 'live-slot-btn' + (i === metroSelectedSlot ? ' selected' : '');
+  btn.id = 'metro-slot-' + i;
+  btn.onclick = () => selectMetroSlot(i);
+  const name = metroNames[i] || '';
+  const b = metroBeatsArr[i] || 4;
+  btn.innerHTML =
+    `<span class="slot-beats-badge${b!==4?' visible':''}" id="mslot-beats-${i}">${b}/4</span>`
+    + `<span class="slot-num">${i+1}</span>`
+    + `<span class="slot-name${name?' has-name':''}" id="mslot-name-${i}">${name}</span>`
+    + `<span class="slot-bpm" id="mslot-bpm-${i}">${metroSlots[i]!==null?metroSlots[i]:'—'}</span>`;
+  return btn;
+}
+
+function renderMetroSlots() {
+  const cont = document.getElementById('metro-slots');
+  if (!cont) return;
+  cont.innerHTML = '';
+  for (let i = 0; i < metroSlotCount; i++) cont.appendChild(makeMetroSlotBtn(i));
+  const ni = document.getElementById('metro-slot-name');
+  if (ni) ni.value = metroNames[metroSelectedSlot] || '';
+  updateMetroExpandBtn();
+}
+
+function toggleMetroSlotExpand() {
+  if (metroSlotCount === 12) {
+    metroSlotCount = 24;
+    const cont = document.getElementById('metro-slots');
+    for (let i = 12; i < 24; i++) cont.appendChild(makeMetroSlotBtn(i));
+  } else {
+    metroSlotCount = 12;
+    for (let i = 23; i >= 12; i--) {
+      const el = document.getElementById('metro-slot-' + i);
+      if (el) el.remove();
+    }
+    if (metroSelectedSlot >= 12) selectMetroSlot(0);
+  }
+  updateMetroExpandBtn();
+  saveMetroSetlist();
+}
+
+function updateMetroExpandBtn() {
+  const btn = document.getElementById('metro-expand-btn');
+  if (!btn) return;
+  if (metroSlotCount === 12) {
+    btn.textContent = '＋24曲';
+    btn.title = '12 → 24曲に増やす';
+  } else {
+    btn.textContent = '－12曲';
+    btn.title = '24 → 12曲に減らす';
+  }
+}
+
+function selectMetroSlot(idx) {
+  metroSelectedSlot = idx;
+  for (let i = 0; i < 12; i++) {
+    const b = document.getElementById('metro-slot-' + i);
+    if (b) b.classList.toggle('selected', i === idx);
+  }
+  const ni = document.getElementById('metro-slot-name');
+  if (ni) ni.value = metroNames[idx] || '';
+  applyMetroSlot(idx);
+  saveMetroSetlist();
+}
+
+function applyMetroSlot(idx) {
+  _applyingSlot = true;
+  // BPM
+  if (metroSlots[idx] !== null) setBpm(metroSlots[idx]);
+  // 拍子
+  const b = metroBeatsArr[idx] || 4;
+  beats = b;
+  currentBeat = 0;
+  const beatSel = document.getElementById('beat-select');
+  if (beatSel) beatSel.value = b;
+  // Groove (subdivision)
+  const g = metroGroovesArr[idx] || 'normal';
+  groove = g;
+  const gMap = {'eighth':'subdiv-8th','sixteenth':'subdiv-16th','shuffle':'subdiv-8sh','sixteenth-shuffle':'subdiv-16sh'};
+  Object.entries(gMap).forEach(([gv,id])=>{
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.toggle('selected', groove===gv);
+  });
+  const isShuf = groove==='shuffle'||groove==='sixteenth-shuffle';
+  const wrap = document.getElementById('shuffle-slider-wrap');
+  if (wrap) wrap.style.display = isShuf ? 'block' : 'none';
+  // Shuffle ratio
+  const sr = metroShuffleArr[idx] || 67;
+  shuffleRatio = sr / 100;
+  const slEl = document.getElementById('shuffle-slider');
+  if (slEl) slEl.value = sr;
+  setShuffleRatio(sr);
+  // Sound
+  const snd = metroSoundsArr[idx] || 'beep';
+  currentSound = snd;
+  ['beep','wood','hihat'].forEach(s=>{
+    const btn = document.getElementById('metro-sound-'+s);
+    if (btn) btn.classList.toggle('selected', s===snd);
+  });
+  resetMuteState();
+  renderBeatDots();
+  _applyingSlot = false;
+}
+
+function autoSaveMetroSlot() {
+  if (_applyingSlot) return;
+  metroSlots[metroSelectedSlot]       = bpm;
+  metroBeatsArr[metroSelectedSlot]    = beats;
+  metroGroovesArr[metroSelectedSlot]  = groove;
+  metroShuffleArr[metroSelectedSlot]  = Math.round(shuffleRatio * 100);
+  metroSoundsArr[metroSelectedSlot]   = currentSound;
+  // スロットボタン表示を更新
+  const bpmLbl = document.getElementById('mslot-bpm-' + metroSelectedSlot);
+  if (bpmLbl) bpmLbl.textContent = bpm;
+  const badge = document.getElementById('mslot-beats-' + metroSelectedSlot);
+  if (badge) { badge.textContent = beats+'/4'; badge.classList.toggle('visible', beats!==4); }
+  saveMetroSetlist();
+}
+
+function updateMetroSlotName(val) {
+  metroNames[metroSelectedSlot] = val;
+  const el = document.getElementById('mslot-name-' + metroSelectedSlot);
+  if (el) { el.textContent = val; el.classList.toggle('has-name', val.length > 0); }
+  saveMetroSetlist();
+}
+
+function resetMetroSetlist() {
+  if (!confirm('セットリストをリセットしますか？')) return;
+  metroSlots = Array(24).fill(null);
+  metroNames = Array(24).fill('');
+  metroBeatsArr = Array(24).fill(4);
+  metroGroovesArr = Array(24).fill('normal');
+  metroShuffleArr = Array(24).fill(67);
+  metroSoundsArr = Array(24).fill('beep');
+  metroSelectedSlot = 0;
+  metroSlotCount = 12;
+  localStorage.removeItem(METRO_LS_KEY);
+  renderMetroSlots();
+}
+
+function toggleMetroSetlist() {
+  const panel = document.getElementById('metro-setlist-panel');
+  const btn   = document.getElementById('metro-setlist-toggle');
+  metroSetlistOpen = !metroSetlistOpen;
+  panel.style.display = metroSetlistOpen ? 'block' : 'none';
+  btn.classList.toggle('open', metroSetlistOpen);
+}
+
+function saveMetroSetlistFile() {
+  const name = document.getElementById('metro-setlist-name')?.value || '';
+  const dateStr = new Date().toLocaleDateString('ja-JP');
+  const data = {
+    name: name || 'Metro Setlist',
+    date: dateStr,
+    slots: metroSlots,
+    names: metroNames,
+    beats: metroBeatsArr,
+    grooves: metroGroovesArr,
+    shuffleRatios: metroShuffleArr,
+    sounds: metroSoundsArr
+  };
+  const json = JSON.stringify(data, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (name || 'metro-setlist') + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function loadMetroSetlistFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      metroSlots    = Array(12).fill(null);
+      metroNames    = Array(12).fill('');
+      metroBeatsArr = Array(12).fill(4);
+      metroGroovesArr = Array(12).fill('normal');
+      metroShuffleArr = Array(12).fill(67);
+      metroSoundsArr  = Array(12).fill('beep');
+      if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<12) metroSlots[i]=v; });
+      if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<12) metroNames[i]=v||''; });
+      if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<12) metroBeatsArr[i]=v||4; });
+      if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<12) metroGroovesArr[i]=v||'normal'; });
+      if (Array.isArray(data.shuffleRatios))data.shuffleRatios.forEach((v,i)=>{ if(i<12) metroShuffleArr[i]=v||67; });
+      if (Array.isArray(data.sounds))       data.sounds.forEach((v,i)=>{ if(i<12) metroSoundsArr[i]=v||'beep'; });
+      if (data.name) { const ni = document.getElementById('metro-setlist-name'); if(ni) ni.value=data.name; }
+      metroSelectedSlot = 0;
+      saveMetroSetlist();
+      renderMetroSlots();
+      applyMetroSlot(0);
+    } catch(err) { alert('読み込みに失敗しました'); }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+function initMetroSetlist() {
+  loadMetroSetlist();
+  renderMetroSlots();
+  if (metroSlotCount === 24) {
+    const cont = document.getElementById('metro-slots');
+    if (cont && cont.children.length === 12) {
+      for (let i = 12; i < 24; i++) cont.appendChild(makeMetroSlotBtn(i));
+    }
+    updateMetroExpandBtn();
+  }
+  if (metroSlots[metroSelectedSlot] !== null) {
+    applyMetroSlot(metroSelectedSlot);
+  }
+}
+
 function setShuffleRatio(val) {
   shuffleRatio = val / 100;
   let label = '';
@@ -2089,6 +2448,7 @@ function setShuffleRatio(val) {
   else label = '（ディープスイング）';
   document.getElementById('shuffle-ratio-label').innerHTML =
     val + '% <span style="font-size:0.75rem; color:#666; font-weight:600">' + label + '</span>';
+  autoSaveMetroSlot();
 }
 
 function setSubdivision(val) {
@@ -2109,6 +2469,7 @@ function setSubdivision(val) {
   if (wrap) wrap.style.display = isShuf ? 'block' : 'none';
   resetMuteState();
   renderBeatDots();
+  autoSaveMetroSlot();
 }
 
 let masterOut = null;
@@ -2152,12 +2513,14 @@ function setMetroSound(val) {
     const b = document.getElementById('metro-sound-' + s);
     if (b) b.classList.toggle('selected', s === val);
   });
+  autoSaveMetroSlot();
 }
 
 function setBpm(val) {
   bpm = Math.min(240, Math.max(30, val));
   document.getElementById('bpm-display').textContent = bpm;
   document.getElementById('bpm-slider').value = bpm;
+  autoSaveMetroSlot();
 }
 
 function adjustBpm(delta) {
@@ -2180,6 +2543,7 @@ function setBeats(val) {
   currentBeat = 0;
   resetMuteState();
   renderBeatDots();
+  autoSaveMetroSlot();
 }
 
 function getSubsPerBeat() {
@@ -3516,6 +3880,7 @@ function updateTunerUI(rawFreq) {
 // 全定義が完了してから初期化
 resetMuteState();
 renderBeatDots();
+initMetroSetlist();
 initLiveSlots();
 initCapoBtns();
 renderStringButtons();
