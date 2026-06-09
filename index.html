@@ -2484,10 +2484,10 @@ function startBpmHold(delta) {
   _bpmHoldTimer = setTimeout(function repeat() {
     adjustBpm(delta);
     _bpmHoldStep++;
-    // 加速: 最初300ms → 徐々に縮まって最速50ms
-    const interval = Math.max(50, 300 - _bpmHoldStep * 20);
+    // 加速: 最初150ms → 急速に縮まって最速25ms
+    const interval = Math.max(25, 150 - _bpmHoldStep * 25);
     _bpmHoldTimer = setTimeout(repeat, interval);
-  }, 400);  // 長押し判定: 400ms後に連射開始
+  }, 300);  // 長押し判定: 300ms後に連射開始
 }
 
 function stopBpmHold() {
