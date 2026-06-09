@@ -1773,26 +1773,10 @@
       </div>
 
 
-      <div class="section-label">Subdivision</div>
-      <div class="subdiv-row">
-        <button class="subdiv-btn" id="subdiv-8th"   onclick="setSubdivision('eighth')">8th</button>
-        <button class="subdiv-btn" id="subdiv-16th"  onclick="setSubdivision('sixteenth')">16th</button>
-        <button class="subdiv-btn" id="subdiv-8sh"   onclick="setSubdivision('shuffle')">8th Shuffle</button>
-        <button class="subdiv-btn" id="subdiv-16sh"  onclick="setSubdivision('sixteenth-shuffle')">16th Shuffle</button>
-      </div>
-
-      <!-- Shuffle Feel slider (表示はshuffle選択時のみ) -->
-      <div id="shuffle-slider-wrap" style="display:none; margin-bottom:12px;">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <span style="font-size:0.82rem; font-weight:700; color:#444; letter-spacing:0.06em; text-transform:uppercase;">Shuffle Feel</span>
-          <span style="font-size:0.88rem; font-weight:700; color:#2176ae;" id="shuffle-ratio-label">67% <span style="font-size:0.75rem; color:#666; font-weight:600">（標準シャッフル）</span></span>
-        </div>
-        <input type="range" id="shuffle-slider" min="51" max="80" value="67" oninput="setShuffleRatio(+this.value)">
-        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:0.72rem; color:#888; font-weight:600;">
-          <span>51% ほぼイーブン</span>
-          <span>67% 標準</span>
-          <span>80% ディープ</span>
-        </div>
+      <div class="btn-row" style="margin-bottom:6px;">
+        <button class="btn btn-primary" id="start-btn" onclick="toggleMetronome()">START</button>
+        <button class="btn btn-tap" onclick="tapTempo()">TAP</button>
+        <button class="btn btn-mute" id="mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
       </div>
 
       <div class="section-label">Sound</div>
@@ -1831,10 +1815,26 @@
            ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Backbeat</button>
       </div>
 
-      <div class="btn-row">
-        <button class="btn btn-primary" id="start-btn" onclick="toggleMetronome()">START</button>
-        <button class="btn btn-tap" onclick="tapTempo()">TAP</button>
-        <button class="btn btn-mute" id="mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
+      <div class="section-label">Subdivision</div>
+      <div class="subdiv-row">
+        <button class="subdiv-btn" id="subdiv-8th"   onclick="setSubdivision('eighth')">8th</button>
+        <button class="subdiv-btn" id="subdiv-16th"  onclick="setSubdivision('sixteenth')">16th</button>
+        <button class="subdiv-btn" id="subdiv-8sh"   onclick="setSubdivision('shuffle')">8th Shuffle</button>
+        <button class="subdiv-btn" id="subdiv-16sh"  onclick="setSubdivision('sixteenth-shuffle')">16th Shuffle</button>
+      </div>
+
+      <!-- Shuffle Feel slider (表示はshuffle選択時のみ) -->
+      <div id="shuffle-slider-wrap" style="display:none; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:0.82rem; font-weight:700; color:#444; letter-spacing:0.06em; text-transform:uppercase;">Shuffle Feel</span>
+          <span style="font-size:0.88rem; font-weight:700; color:#2176ae;" id="shuffle-ratio-label">67% <span style="font-size:0.75rem; color:#666; font-weight:600">（標準シャッフル）</span></span>
+        </div>
+        <input type="range" id="shuffle-slider" min="51" max="80" value="67" oninput="setShuffleRatio(+this.value)">
+        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:0.72rem; color:#888; font-weight:600;">
+          <span>51% ほぼイーブン</span>
+          <span>67% 標準</span>
+          <span>80% ディープ</span>
+        </div>
       </div>
 
       <!-- Metro Setlist (折りたたみ) -->
