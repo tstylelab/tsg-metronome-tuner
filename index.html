@@ -1697,10 +1697,12 @@
 
       <div class="beat-indicators" id="beat-indicators"></div>
       <div id="beat-tap-hint" style="text-align:center; font-size:0.72rem; color:#bbb;
-           letter-spacing:0.05em; margin-top:4px; margin-bottom:0;">👆 ドットをタップでON/OFF</div>
+           letter-spacing:0.05em; margin-top:4px; margin-bottom:0;
+           transition:opacity 1s ease; opacity:1;">👆 ドットをタップでON/OFF</div>
 
       <div id="slider-hint" style="text-align:center; font-size:0.75rem; color:#bbb;
-           letter-spacing:0.05em; margin-bottom:4px;">← スライドでBPM変更 →</div>
+           letter-spacing:0.05em; margin-bottom:4px;
+           transition:opacity 1s ease; opacity:1;">← スライドでBPM変更 →</div>
       <div class="live-bpm-row" style="margin-bottom:12px;">
         <button class="live-fine-btn" onclick="adjustBpm(-1)">−</button>
         <input type="range" id="bpm-slider" min="30" max="240" value="120"
@@ -2470,7 +2472,30 @@ function adjustBpm(delta) {
 
 function hideSliderHint() {
   const hint = document.getElementById('slider-hint');
-  if (hint) hint.style.display = 'none';
+  if (hint) { hint.style.opacity = '0'; setTimeout(() => hint.style.display = 'none', 1000); }
+}
+
+function initHints() {
+  const ids = ['beat-tap-hint', 'slider-hint'];
+  if (localStorage.getItem('tsg-hints-seen')) {
+    // 2回目以降は最初から非表示
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) { el.style.opacity = '0'; el.style.display = 'none'; }
+    });
+    return;
+  }
+  // 初回：3秒表示してフェードアウト
+  setTimeout(() => {
+    ids.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) {
+        el.style.opacity = '0';
+        setTimeout(() => el.style.display = 'none', 1000);
+      }
+    });
+    localStorage.setItem('tsg-hints-seen', '1');
+  }, 3000);
 }
 
 function hideLiveSliderHint() {
@@ -3812,6 +3837,7 @@ function updateTunerUI(rawFreq) {
 resetMuteState();
 renderBeatDots();
 initMetroSetlist();
+initHints();
 initLiveSlots();
 initCapoBtns();
 renderStringButtons();
