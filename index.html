@@ -412,8 +412,8 @@
   }
 
   .beat-dot {
-    width: 16px;
-    height: 16px;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
     background: #e0e3ea;
     transition: background 0.06s, transform 0.06s;
@@ -421,8 +421,8 @@
 
   .beat-dot.accent {
     background: #c0392b;
-    width: 20px;
-    height: 20px;
+    width: 26px;
+    height: 26px;
   }
 
   .beat-dot.active {
@@ -448,8 +448,8 @@
 
   /* サブディビジョンのドット（小さめ） */
   .beat-sub-dot {
-    width: 9px;
-    height: 9px;
+    width: 12px;
+    height: 12px;
     border-radius: 50%;
     background: #c8ccd6;
     transition: background 0.06s, transform 0.06s;
@@ -974,7 +974,45 @@
     100% { left: 10px; }
   }
 
-  /* ===== GROOVE ===== */
+  /* ===== SUBDIVISION BUTTONS ===== */
+  .subdiv-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+    margin-top: 10px;
+  }
+
+  .subdiv-btn {
+    flex: 1;
+    padding: 9px 4px;
+    border: 1.5px solid #dde0e8;
+    border-radius: 8px;
+    background: #f7f8fa;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #444;
+    cursor: pointer;
+    text-align: center;
+    letter-spacing: 0.03em;
+    transition: background 0.12s, border-color 0.12s, color 0.12s;
+    line-height: 1.2;
+  }
+  .subdiv-btn span {
+    display: block;
+    font-size: 0.6rem;
+    font-weight: 500;
+    color: #999;
+    margin-top: 3px;
+    letter-spacing: 0.04em;
+  }
+  .subdiv-btn.selected {
+    border-color: #2176ae;
+    background: #2176ae;
+    color: #fff;
+  }
+  .subdiv-btn.selected span { color: rgba(255,255,255,0.65); }
+
+  /* ===== GROOVE (Live panel only) ===== */
   .groove-toggle {
     width: 100%;
     margin-top: 14px;
@@ -1610,7 +1648,7 @@
       </div>
       <div class="tip-item">
         <div class="tip-title">🎶 シャッフルの跳ね感を自由に変えられます</div>
-        <div class="tip-desc">「GROOVE / SUBDIVISION」を開くと、シャッフルやシンコペーションなど11パターンが選べます。「Shuffle Feel」スライダーで跳ね感も細かく調整できるので、ジャズのスイング練習にも最適です。</div>
+        <div class="tip-desc">8th / 16th / 8th Shuffle / 16th Shuffleの4ボタンで細分割を切り替えられます。Shuffleを選ぶと「Shuffle Feel」スライダーが表示され、跳ね感を細かく調整できるので、ジャズのスイング練習にも最適です。</div>
       </div>
       <div class="tip-item">
         <div class="tip-title">🔇 音を消してテンポだけ目で確認できます</div>
@@ -1695,6 +1733,28 @@
       </div>
 
 
+      <!-- Subdivision buttons -->
+      <div class="subdiv-row">
+        <button class="subdiv-btn" id="subdiv-8th"   onclick="setSubdivision('eighth')">8th<span>8分音符</span></button>
+        <button class="subdiv-btn" id="subdiv-16th"  onclick="setSubdivision('sixteenth')">16th<span>16分音符</span></button>
+        <button class="subdiv-btn" id="subdiv-8sh"   onclick="setSubdivision('shuffle')">8th Shuffle<span>8分ハネ</span></button>
+        <button class="subdiv-btn" id="subdiv-16sh"  onclick="setSubdivision('sixteenth-shuffle')">16th Shuffle<span>16分ハネ</span></button>
+      </div>
+
+      <!-- Shuffle Feel slider (表示はshuffle選択時のみ) -->
+      <div id="shuffle-slider-wrap" style="display:none; margin-bottom:12px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+          <span style="font-size:0.82rem; font-weight:700; color:#444; letter-spacing:0.06em; text-transform:uppercase;">Shuffle Feel</span>
+          <span style="font-size:0.88rem; font-weight:700; color:#2176ae;" id="shuffle-ratio-label">67% <span style="font-size:0.75rem; color:#666; font-weight:600">（標準シャッフル）</span></span>
+        </div>
+        <input type="range" id="shuffle-slider" min="51" max="80" value="67" oninput="setShuffleRatio(+this.value)">
+        <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:0.72rem; color:#888; font-weight:600;">
+          <span>51% ほぼイーブン</span>
+          <span>67% 標準</span>
+          <span>80% ディープ</span>
+        </div>
+      </div>
+
       <div class="beat-row" style="margin-top:14px;">
         <span class="beat-label">音色</span>
         <div style="display:flex;gap:6px;flex:1;">
@@ -1721,41 +1781,6 @@
         <button class="btn btn-primary" id="start-btn" onclick="toggleMetronome()">START</button>
         <button class="btn btn-tap" onclick="tapTempo()">TAP</button>
         <button class="btn btn-mute" id="mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
-      </div>
-
-      <button class="groove-toggle" id="groove-toggle" onclick="toggleGroove()">
-        <span style="display:block; font-size:0.82rem; letter-spacing:0.06em;">▼ &nbsp;GROOVE / SUBDIVISION</span>
-        <span style="display:block; font-size:0.7rem; font-weight:500; color:#888; margin-top:3px; letter-spacing:0.04em;">シャッフル / 8分・16分 / ハネ率 / 裏拍</span>
-      </button>
-
-      <div class="groove-panel" id="groove-panel">
-        <div class="groove-label">リズムパターン</div>
-
-        <div id="shuffle-slider-wrap" style="display:none; margin-bottom:14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-            <span style="font-size:0.82rem; font-weight:700; color:#444; letter-spacing:0.06em; text-transform:uppercase;">Shuffle Feel</span>
-            <span style="font-size:0.88rem; font-weight:700; color:#2176ae;" id="shuffle-ratio-label">67% <span style="font-size:0.75rem; color:#666; font-weight:600">（標準シャッフル）</span></span>
-          </div>
-          <input type="range" id="shuffle-slider" min="51" max="80" value="67" oninput="setShuffleRatio(+this.value)">
-          <div style="display:flex; justify-content:space-between; margin-top:6px; font-size:0.72rem; color:#888; font-weight:600;">
-            <span>51% ほぼイーブン</span>
-            <span>67% 標準</span>
-            <span>80% ディープ</span>
-          </div>
-        </div>
-        <div class="groove-grid">
-          <button class="groove-btn selected" onclick="setGroove('normal', this)">Normal<span>拍のみ</span></button>
-          <button class="groove-btn" onclick="setGroove('eighth', this)">8th<span>8分音符</span></button>
-          <button class="groove-btn" onclick="setGroove('shuffle', this)">Shuffle<span>8分シャッフル</span></button>
-          <button class="groove-btn" onclick="setGroove('sixteenth', this)">16th<span>16分音符</span></button>
-          <button class="groove-btn" onclick="setGroove('sixteenth-shuffle', this)">16th Shuffle<span>16分シャッフル</span></button>
-          <button class="groove-btn" onclick="setGroove('one-backbeat', this)">1拍目＋裏<span>8分・頭＋裏拍</span></button>
-          <button class="groove-btn" onclick="setGroove('backbeat', this)">裏拍のみ<span>8分・裏拍のみ</span></button>
-          <button class="groove-btn" onclick="setGroove('one-shuffle-back', this)">1拍目＋裏<span>シャッフル版</span></button>
-          <button class="groove-btn" onclick="setGroove('shuffle-back', this)">裏拍のみ<span>シャッフル版</span></button>
-          <button class="groove-btn" onclick="setGroove('one-16back', this)">1拍目＋裏裏<span>16分4つ目版</span></button>
-          <button class="groove-btn" onclick="setGroove('16back', this)">裏裏のみ<span>16分4つ目のみ</span></button>
-        </div>
       </div>
 
       <div class="app-banner-section">
@@ -2079,21 +2104,22 @@ function setShuffleRatio(val) {
     val + '% <span style="font-size:0.75rem; color:#666; font-weight:600">' + label + '</span>';
 }
 
-function toggleGroove() {
-  const panel = document.getElementById('groove-panel');
-  const btn = document.getElementById('groove-toggle');
-  const open = panel.classList.toggle('open');
-  btn.classList.toggle('open', open);
-  const arrow = open ? '▲' : '▼';
-  btn.innerHTML = `<span style='display:block;font-size:0.82rem;letter-spacing:0.06em;'>${arrow} &nbsp;GROOVE / SUBDIVISION</span><span style='display:block;font-size:0.7rem;font-weight:500;color:#888;margin-top:3px;letter-spacing:0.04em;'>シャッフル / 8分・16分 / ハネ率 / 裏拍</span>`;
-}
-
-function setGroove(val, el) {
-  groove = val;
-  document.querySelectorAll('.groove-btn').forEach(b => b.classList.remove('selected'));
-  el.classList.add('selected');
-  document.getElementById('shuffle-slider-wrap').style.display =
-    SHUFFLE_GROOVES.includes(val) ? 'block' : 'none';
+function setSubdivision(val) {
+  // 同じボタンを再タップ → normal（解除）
+  groove = (groove === val) ? 'normal' : val;
+  const map = {
+    'eighth': 'subdiv-8th',
+    'sixteenth': 'subdiv-16th',
+    'shuffle': 'subdiv-8sh',
+    'sixteenth-shuffle': 'subdiv-16sh'
+  };
+  Object.entries(map).forEach(([g, id]) => {
+    const btn = document.getElementById(id);
+    if (btn) btn.classList.toggle('selected', groove === g);
+  });
+  const isShuf = groove === 'shuffle' || groove === 'sixteenth-shuffle';
+  const wrap = document.getElementById('shuffle-slider-wrap');
+  if (wrap) wrap.style.display = isShuf ? 'block' : 'none';
   resetMuteState();
   renderBeatDots();
 }
@@ -2170,10 +2196,8 @@ function setBeats(val) {
 }
 
 function getSubsPerBeat() {
-  const g = groove;
-  if (['eighth','backbeat','one-backbeat','shuffle','shuffle-back','one-shuffle-back'].includes(g)) return 1;
-  if (['sixteenth','sixteenth-shuffle'].includes(g)) return 3;
-  if (['16back','one-16back'].includes(g)) return 1;
+  if (groove === 'eighth' || groove === 'shuffle') return 1;
+  if (groove === 'sixteenth' || groove === 'sixteenth-shuffle') return 3;
   return 0;
 }
 
@@ -2327,43 +2351,35 @@ function scheduler() {
     const isAccent = beat === 0;
 
     // メインビートを鳴らすか
-    const noMain = ['backbeat', 'shuffle-back', '16back'];
-    const oneOnly = ['one-backbeat', 'one-shuffle-back', 'one-16back'];
-    const playMain = !noMain.includes(groove) && !(oneOnly.includes(groove) && !isAccent);
-    if (playMain && !beatMuted[beat]) scheduleNote(t, isAccent);
+    if (!beatMuted[beat]) scheduleNote(t, isAccent);
 
     // 細分割音（サブミュートチェック付き）
     const sm = subMuted[beat] || [];
-    if (groove === 'eighth' || groove === 'backbeat' || groove === 'one-backbeat') {
+    if (groove === 'eighth') {
       if (!sm[0]) scheduleSubNote(t + interval / 2);
-    } else if (groove === 'shuffle' || groove === 'shuffle-back' || groove === 'one-shuffle-back') {
+    } else if (groove === 'shuffle') {
       if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio);
     } else if (groove === 'sixteenth') {
       if (!sm[0]) scheduleSubNote(t + interval / 4);
       if (!sm[1]) scheduleSubNote(t + interval / 2);
       if (!sm[2]) scheduleSubNote(t + interval * 3 / 4);
     } else if (groove === 'sixteenth-shuffle') {
-      // 各8分内でshuffleRatioを適用: 前半の裏 + 後半の表 + 後半の裏
       if (!sm[0]) scheduleSubNote(t + interval / 2 * shuffleRatio);
       if (!sm[1]) scheduleSubNote(t + interval / 2);
       if (!sm[2]) scheduleSubNote(t + interval / 2 + interval / 2 * shuffleRatio);
-    } else if (groove === '16back' || groove === 'one-16back') {
-      if (!sm[0]) scheduleSubNote(t + interval * 3 / 4);
     }
 
     const delay = (t - ctx.currentTime) * 1000;
     // サブドットフラッシュのスケジュール
     const subFlashDelays = [];
-    if (groove === 'eighth' || groove === 'backbeat' || groove === 'one-backbeat') {
+    if (groove === 'eighth') {
       subFlashDelays.push([0, interval / 2]);
-    } else if (groove === 'shuffle' || groove === 'shuffle-back' || groove === 'one-shuffle-back') {
+    } else if (groove === 'shuffle') {
       subFlashDelays.push([0, interval * shuffleRatio]);
     } else if (groove === 'sixteenth') {
       subFlashDelays.push([0, interval / 4], [1, interval / 2], [2, interval * 3 / 4]);
     } else if (groove === 'sixteenth-shuffle') {
       subFlashDelays.push([0, interval / 2 * shuffleRatio], [1, interval / 2], [2, interval / 2 + interval / 2 * shuffleRatio]);
-    } else if (groove === '16back' || groove === 'one-16back') {
-      subFlashDelays.push([0, interval * 3 / 4]);
     }
     subFlashDelays.forEach(([sj, dt]) => {
       const sd = (t + dt - ctx.currentTime) * 1000;
