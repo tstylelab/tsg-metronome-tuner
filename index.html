@@ -2496,31 +2496,29 @@ function stopBpmHold() {
 }
 
 function hideSliderHint() {
-  const hint = document.getElementById('slider-hint');
-  if (hint) { hint.style.opacity = '0'; setTimeout(() => hint.style.display = 'none', 1000); }
+  dismissHint('slider-hint', 'tsg-hint-slider-seen');
+}
+
+function dismissHint(id, lsKey) {
+  const el = document.getElementById(id);
+  if (el && el.style.display !== 'none') {
+    el.style.opacity = '0';
+    setTimeout(() => el.style.display = 'none', 1000);
+  }
+  localStorage.setItem(lsKey, '1');
 }
 
 function initHints() {
-  const ids = ['beat-tap-hint', 'slider-hint'];
-  if (localStorage.getItem('tsg-hints-seen')) {
-    // 2回目以降は最初から非表示
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) { el.style.opacity = '0'; el.style.display = 'none'; }
-    });
-    return;
+  // ドットヒント：タップ済みなら非表示
+  if (localStorage.getItem('tsg-hint-tap-seen')) {
+    const el = document.getElementById('beat-tap-hint');
+    if (el) { el.style.opacity = '0'; el.style.display = 'none'; }
   }
-  // 初回：3秒表示してフェードアウト
-  setTimeout(() => {
-    ids.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) {
-        el.style.opacity = '0';
-        setTimeout(() => el.style.display = 'none', 1000);
-      }
-    });
-    localStorage.setItem('tsg-hints-seen', '1');
-  }, 3000);
+  // スライダーヒント：操作済みなら非表示
+  if (localStorage.getItem('tsg-hint-slider-seen')) {
+    const el = document.getElementById('slider-hint');
+    if (el) { el.style.opacity = '0'; el.style.display = 'none'; }
+  }
 }
 
 function hideLiveSliderHint() {
@@ -2574,12 +2572,14 @@ function toggleBeatMute(i) {
   beatMuted[i] = !beatMuted[i];
   const d = document.getElementById('bdot-' + i);
   if (d) d.classList.toggle('muted', beatMuted[i]);
+  dismissHint('beat-tap-hint', 'tsg-hint-tap-seen');
 }
 
 function toggleSubMute(i, j) {
   subMuted[i][j] = !subMuted[i][j];
   const s = document.getElementById('sdot-' + i + '-' + j);
   if (s) s.classList.toggle('muted', subMuted[i][j]);
+  dismissHint('beat-tap-hint', 'tsg-hint-tap-seen');
 }
 
 function renderBeatDots() {
