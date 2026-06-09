@@ -1625,6 +1625,10 @@
         <div class="tip-desc">8th / 16th / 8th Shuffle / 16th Shuffleの4ボタンで細分割を切り替えられます。Shuffleを選ぶと「Shuffle Feel」スライダーが表示され、跳ね感を細かく調整できるので、ジャズのスイング練習にも最適です。</div>
       </div>
       <div class="tip-item">
+        <div class="tip-title">🎵 12/8拍子は4/4＋Shuffleで対応できます</div>
+        <div class="tip-desc">ブルースや遅いロックでよく使う12/8拍子は、拍子を「4/4」にして「8th Shuffle」をオンにすると同じフィールになります。BPMは付点四分音符の速さで設定するのが一般的です。</div>
+      </div>
+      <div class="tip-item">
         <div class="tip-title">👆 ビートドットをタップして特定の音だけ消せます</div>
         <div class="tip-desc">画面のビートドットをタップすると、その拍・細分割だけをON/OFFできます。「2拍目と4拍目だけ鳴らす」「裏拍だけ消す」など、自分でカスタムリズムを作れます。</div>
       </div>
@@ -1675,8 +1679,8 @@
 
 <div class="tab-container">
   <div class="tab-wrap">
-    <button class="tab-btn active" onclick="switchTab('metronome')">🥁 Metronome</button>
-    <button class="tab-btn" onclick="switchTab('tuner')">🎸 Tuner</button>
+    <button class="tab-btn active" onclick="switchTab('metronome')"><svg width="13" height="15" viewBox="0 0 13 15" style="vertical-align:-2px;margin-right:5px;"><polygon points="6.5,1 12,14 1,14" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><line x1="6.5" y1="14" x2="9.5" y2="6" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/><circle cx="9.5" cy="5.5" r="1.2" fill="currentColor"/></svg>Metronome</button>
+    <button class="tab-btn" onclick="switchTab('tuner')"><svg width="16" height="13" viewBox="0 0 16 13" style="vertical-align:-1px;margin-right:5px;"><path d="M1,6.5 C2.5,1 4,1 5.5,6.5 S8.5,12 10,6.5 S12.5,1 14,6.5" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Tuner</button>
   </div>
 </div>
 
@@ -1738,7 +1742,7 @@
 
       <div class="beat-row">
         <span class="beat-label">拍子</span>
-        <select class="beat-select" id="beat-select" onchange="setBeats(+this.value)">
+        <select class="beat-select" id="beat-select" onchange="onBeatSelectChange(this.value)">
           <option value="1">1 / 4</option>
           <option value="2">2 / 4</option>
           <option value="3">3 / 4</option>
@@ -1746,6 +1750,7 @@
           <option value="5">5 / 4</option>
           <option value="6">6 / 4</option>
           <option value="7">7 / 4</option>
+          <option value="6.8">6 / 8</option>
         </select>
       </div>
 
@@ -2150,8 +2155,11 @@ function makeMetroSlotBtn(i) {
   const name  = metroNames[i] || '';
   const bpmVal = metroSlots[i] !== null ? metroSlots[i] : '—';
   const beatsVal = metroBeatsArr[i] || 4;
+  const grooveVal = metroGroovesArr[i] || 'normal';
+  const timeSigLabel = (beatsVal === 6 && grooveVal === 'eighth') ? '6/8'
+    : (beatsVal !== 4 ? `${beatsVal}/4` : '');
   const bpmDisplay = metroSlots[i] !== null
-    ? (beatsVal !== 4 ? `${bpmVal}<span style="font-size:0.6rem;opacity:0.7"> ${beatsVal}/4</span>` : bpmVal)
+    ? (timeSigLabel ? `${bpmVal}<span style="font-size:0.6rem;opacity:0.7"> ${timeSigLabel}</span>` : bpmVal)
     : '—';
   btn.innerHTML =
     `<div class="metro-slot-top">`
@@ -2222,7 +2230,10 @@ function applyMetroSlot(idx) {
   beats = b;
   currentBeat = 0;
   const beatSel = document.getElementById('beat-select');
-  if (beatSel) beatSel.value = b;
+  if (beatSel) {
+    const g_restore = metroGroovesArr[idx] || 'normal';
+    beatSel.value = (b === 6 && g_restore === 'eighth') ? '6.8' : b;
+  }
   // Groove (subdivision)
   const g = metroGroovesArr[idx] || 'normal';
   groove = g;
@@ -2262,8 +2273,9 @@ function autoSaveMetroSlot() {
   // スロットボタン表示を更新
   const bpmLbl = document.getElementById('mslot-bpm-' + metroSelectedSlot);
   if (bpmLbl) {
-    bpmLbl.innerHTML = beats !== 4
-      ? `${bpm}<span style="font-size:0.6rem;opacity:0.7"> ${beats}/4</span>`
+    const tsl = (beats === 6 && groove === 'eighth') ? '6/8' : (beats !== 4 ? `${beats}/4` : '');
+    bpmLbl.innerHTML = tsl
+      ? `${bpm}<span style="font-size:0.6rem;opacity:0.7"> ${tsl}</span>`
       : String(bpm);
   }
   saveMetroSetlist();
@@ -2464,6 +2476,27 @@ function hideSliderHint() {
 function hideLiveSliderHint() {
   const hint = document.getElementById('live-slider-hint');
   if (hint) hint.style.display = 'none';
+}
+
+function onBeatSelectChange(val) {
+  if (val === '6.8') {
+    // 6/8: 6拍 + 8分音符サブディビジョンを自動設定
+    beats = 6;
+    currentBeat = 0;
+    groove = 'eighth';
+    const map = {'eighth':'subdiv-8th','sixteenth':'subdiv-16th','shuffle':'subdiv-8sh','sixteenth-shuffle':'subdiv-16sh'};
+    Object.entries(map).forEach(([g,id]) => {
+      const btn = document.getElementById(id);
+      if (btn) btn.classList.toggle('selected', g === 'eighth');
+    });
+    const wrap = document.getElementById('shuffle-slider-wrap');
+    if (wrap) wrap.style.display = 'none';
+    resetMuteState();
+    renderBeatDots();
+    autoSaveMetroSlot();
+  } else {
+    setBeats(+val);
+  }
 }
 
 function setBeats(val) {
