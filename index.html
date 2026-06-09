@@ -176,145 +176,6 @@
     margin-top: 2px;
   }
 
-  /* Pendulum */
-  .pendulum-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 2px 0 12px;
-    gap: 5px;
-    width: 100%;
-    visibility: hidden;
-  }
-
-  .pendulum-container.active {
-    visibility: visible;
-  }
-
-  .pendulum-label {
-    font-size: 0.62rem;
-    font-weight: 700;
-    color: #bbb;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-  }
-
-  .pendulum-label::before,
-  .pendulum-label::after {
-    content: '';
-    width: 28px;
-    height: 1px;
-    background: #e0e3ea;
-  }
-
-  .pendulum-track {
-    width: 200px;
-    height: 8px;
-    background: #e0e3ea;
-    border-radius: 4px;
-    position: relative;
-    overflow: visible;
-  }
-
-  .pendulum-dot {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    background: #1a1a2e;
-    position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    transition: background 0.05s;
-    box-shadow: 0 2px 8px rgba(26,26,46,0.25);
-  }
-
-  .pendulum-dot.beat {
-    background: #c0392b;
-  }
-
-  /* ===== PULSE VISUAL ===== */
-  .visual-pulse {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    height: 52px;
-    visibility: hidden;
-    margin: 0 0 8px;
-    padding: 0 24px;
-  }
-
-  .visual-pulse.vis-active { visibility: visible; }
-
-  .pulse-wrap {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  .pulse-circle {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    background: linear-gradient(145deg, #eaecf0, #d4d8df);
-    box-shadow:
-      3px 3px 8px rgba(0,0,0,0.12),
-      -2px -2px 6px rgba(255,255,255,0.85);
-    position: relative;
-    transition: transform 0.07s cubic-bezier(0.2,0.8,0.4,1), background 0.06s, box-shadow 0.07s;
-  }
-
-  /* ハイライト（宝石の輝き） */
-  .pulse-circle::after {
-    content: '';
-    position: absolute;
-    top: 7px;
-    left: 9px;
-    width: 11px;
-    height: 7px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.62);
-    filter: blur(1px);
-    transition: opacity 0.07s;
-  }
-
-  /* 通常ビート */
-  .pulse-circle.beat {
-    background: linear-gradient(145deg, #52526e, #3a3a52);
-    box-shadow:
-      2px 2px 6px rgba(0,0,0,0.18),
-      -1px -1px 4px rgba(255,255,255,0.06),
-      0 0 12px rgba(58,58,82,0.4);
-    transform: scale(1.14);
-  }
-
-  .pulse-circle.beat::after { opacity: 0.2; }
-
-  /* アクセント（1拍目）*/
-  .pulse-circle.beat-accent {
-    background: linear-gradient(145deg, #c26858, #a84e40);
-    box-shadow:
-      2px 2px 6px rgba(0,0,0,0.18),
-      -1px -1px 4px rgba(255,255,255,0.05),
-      0 0 15px rgba(168,78,64,0.45);
-    transform: scale(1.2);
-  }
-
-  .pulse-circle.beat-accent::after { opacity: 0.22; }
-
-  @keyframes heartbeat {
-    0%   { transform: scale(1.2); }
-    35%  { transform: scale(1.1); }
-    55%  { transform: scale(1.17); }
-    100% { transform: scale(1); }
-  }
-
-  .pulse-circle.beat-accent { animation: heartbeat 0.32s ease-out forwards; }
-
   /* BPM Slider */
   .bpm-slider-wrap {
     margin-bottom: 20px;
@@ -1761,6 +1622,10 @@
         <div class="tip-desc">8th / 16th / 8th Shuffle / 16th Shuffleの4ボタンで細分割を切り替えられます。Shuffleを選ぶと「Shuffle Feel」スライダーが表示され、跳ね感を細かく調整できるので、ジャズのスイング練習にも最適です。</div>
       </div>
       <div class="tip-item">
+        <div class="tip-title">👆 ビートドットをタップして特定の音だけ消せます</div>
+        <div class="tip-desc">画面のビートドットをタップすると、その拍・細分割だけをON/OFFできます。「2拍目と4拍目だけ鳴らす」「裏拍だけ消す」など、自分でカスタムリズムを作れます。</div>
+      </div>
+      <div class="tip-item">
         <div class="tip-title">🔇 音を消してテンポだけ目で確認できます</div>
         <div class="tip-desc">MUTEボタンを押すと音は消えますが、ビートドットは動き続けます。夜間の練習や、バンドリハでの目視確認に使えます。</div>
       </div>
@@ -1787,18 +1652,18 @@
     </div>
 
     <div class="modal-section">
-      <div class="modal-section-title">📋 BPM Setlist</div>
+      <div class="modal-section-title">🎵 Setlist</div>
       <div class="tip-item">
-        <div class="tip-title red">📝 練習メニューのテンポを最大24曲まで登録できます</div>
-        <div class="tip-desc">ライブのセットリストはもちろん、「この曲は80BPMで練習、次は100BPMで」といった練習メニューのテンポをまとめて登録しておけます。スロットは24個あるので、1週間分の練習プランも一気に管理できます。</div>
+        <div class="tip-title red">📝 曲ごとのBPM・拍子・グルーブを最大24曲まで登録できます</div>
+        <div class="tip-desc">メトロノーム画面の「Setlist」トグルを開くと登録できます。曲名・BPM・拍子・サブディビジョンをセットで保存し、タップ一発で呼び出せます。ライブのセットリストや練習メニュー管理に最適です。</div>
       </div>
       <div class="tip-item">
         <div class="tip-title">💾 セットリストをファイルに保存・管理できます</div>
-        <div class="tip-desc">「保存」ボタンで曲名・BPMをファイルに書き出せます。「今月のライブ」「基礎練習メニュー」など用途別に複数のリストを作って使い分けられます。読み込めば即座に復元できます。</div>
+        <div class="tip-desc">「保存」ボタンで曲名・BPM・設定をJSONファイルに書き出せます。「今月のライブ」「基礎練習メニュー」など用途別に複数のリストを作って使い分けられます。読み込めば即座に復元できます。</div>
       </div>
       <div class="tip-item">
         <div class="tip-title">✅ 更新しても消えません</div>
-        <div class="tip-desc">入力した内容はブラウザに自動保存されます。うっかりリロードしても、最後の状態がそのまま復元されます。</div>
+        <div class="tip-desc">入力した内容はブラウザに自動保存されます。うっかりリロードしても、最後の状態がそのまま復元されます。スロットは最大24個まで増やせます。</div>
       </div>
     </div>
 
@@ -1809,7 +1674,6 @@
   <div class="tab-wrap">
     <button class="tab-btn active" onclick="switchTab('metronome')">Metronome</button>
     <button class="tab-btn" onclick="switchTab('tuner')">Tuner</button>
-    <button class="tab-btn" onclick="switchTab('live')">BPM Setlist</button>
   </div>
 </div>
 
@@ -1825,6 +1689,8 @@
       </div>
 
       <div class="beat-indicators" id="beat-indicators"></div>
+      <div id="beat-tap-hint" style="text-align:center; font-size:0.72rem; color:#bbb;
+           letter-spacing:0.05em; margin-top:4px; margin-bottom:0;">👆 ドットをタップでON/OFF</div>
 
       <div id="slider-hint" style="text-align:center; font-size:0.75rem; color:#bbb;
            letter-spacing:0.05em; margin-bottom:4px;">← スライドでBPM変更 →</div>
@@ -1957,8 +1823,8 @@
     </div>
   </div>
 
-  <!-- ===== LIVE MODE PANEL ===== -->
-  <div class="panel" id="panel-live">
+  <!-- LIVE MODE PANEL REMOVED -->
+  <div class="panel" id="panel-live" style="display:none!important">
     <div class="card">
 
       <div class="live-header">
@@ -2228,16 +2094,10 @@ let metronomeRunning = false;
 let audioCtx = null;
 let nextNoteTime = 0;
 let timerID = null;
-let pendulumDir = 1;
-let pendulumAnim = null;
 let currentSound = 'beep';
 let groove = 'normal';
-let visualStyle = 'pendulum';
 let beatMuted = [];
 let subMuted = [];
-
-function showVisual() {}
-function hideVisual() {}
 let shuffleRatio = 0.67;
 
 const SHUFFLE_GROOVES = ['shuffle', 'shuffle-back', 'one-shuffle-back', 'sixteenth-shuffle'];
@@ -2819,34 +2679,6 @@ function flashSubDot(beat, subIndex) {
   }
 }
 
-function animatePendulum() {
-  const track = document.getElementById('pendulum-track');
-  const dot = document.getElementById('pendulum-dot');
-  if (!track || !dot) return;
-  const trackW = track.offsetWidth;
-  const dotW = 22;
-  const maxX = trackW - dotW;
-  const duration = (60 / bpm) * 1000;
-
-  // ビートの瞬間に端へスナップ、次の端へ向けてアニメ開始
-  const snapX = pendulumDir > 0 ? 0 : maxX;
-  const targetX = pendulumDir > 0 ? maxX : 0;
-  pendulumDir *= -1;
-
-  dot.style.left = snapX + 'px';  // ← ビートと同時に端へ
-
-  let start = null;
-  if (pendulumAnim) cancelAnimationFrame(pendulumAnim);
-
-  function step(ts) {
-    if (!start) start = ts;
-    const p = Math.min((ts - start) / duration, 1);
-    const ease = p < 0.5 ? 2 * p * p : -1 + (4 - 2 * p) * p;
-    dot.style.left = (snapX + (targetX - snapX) * ease) + 'px';
-    if (p < 1) pendulumAnim = requestAnimationFrame(step);
-  }
-  pendulumAnim = requestAnimationFrame(step);
-}
 
 function toggleMetronome() {
   const btn = document.getElementById('start-btn');
@@ -2859,14 +2691,12 @@ function toggleMetronome() {
     metronomeRunning = true;
     btn.textContent = 'STOP';
     btn.classList.add('running');
-    showVisual();
   } else {
     clearTimeout(timerID);
     metronomeRunning = false;
     btn.textContent = 'START';
     btn.classList.remove('running');
     document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
-    hideVisual();
   }
 }
 
