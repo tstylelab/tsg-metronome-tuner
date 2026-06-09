@@ -2143,6 +2143,7 @@ let nextNoteTime = 0;
 let timerID = null;
 let currentSound = 'beep';
 let groove = 'normal';
+let is8thBase = false; // 6/8 or 7/8 selected: 8th note IS the beat
 let beatMuted = [];
 let subMuted = [];
 let shuffleRatio = 0.67;
@@ -2155,6 +2156,7 @@ let metroSlots         = Array(24).fill(null);
 let metroNames         = Array(24).fill('');
 let metroBeatsArr      = Array(24).fill(4);
 let metroGroovesArr    = Array(24).fill('normal');
+let metroIs8thBaseArr  = Array(24).fill(false);
 let metroShuffleArr    = Array(24).fill(67);
 let metroSoundsArr     = Array(24).fill('beep');
 let metroSelectedSlot  = 0;
@@ -2165,7 +2167,8 @@ let _applyingSlot      = false;   // 無限ループ防止フラグ
 function saveMetroSetlist() {
   localStorage.setItem(METRO_LS_KEY, JSON.stringify({
     slots: metroSlots, names: metroNames, beats: metroBeatsArr,
-    grooves: metroGroovesArr, shuffleRatios: metroShuffleArr,
+    grooves: metroGroovesArr, is8thBaseArr: metroIs8thBaseArr,
+    shuffleRatios: metroShuffleArr,
     sounds: metroSoundsArr, selectedSlot: metroSelectedSlot,
     slotCount: metroSlotCount
   }));
@@ -2179,6 +2182,7 @@ function loadMetroSetlist() {
     if (Array.isArray(s.names))        s.names.forEach((v,i)=>{ if(i<24) metroNames[i]=v||''; });
     if (Array.isArray(s.beats))        s.beats.forEach((v,i)=>{ if(i<24) metroBeatsArr[i]=v||4; });
     if (Array.isArray(s.grooves))      s.grooves.forEach((v,i)=>{ if(i<24) metroGroovesArr[i]=v||'normal'; });
+    if (Array.isArray(s.is8thBaseArr)) s.is8thBaseArr.forEach((v,i)=>{ if(i<24) metroIs8thBaseArr[i]=!!v; });
     if (Array.isArray(s.shuffleRatios))s.shuffleRatios.forEach((v,i)=>{ if(i<24) metroShuffleArr[i]=v||67; });
     if (Array.isArray(s.sounds))       s.sounds.forEach((v,i)=>{ if(i<24) metroSoundsArr[i]=v||'beep'; });
     if (typeof s.selectedSlot==='number') metroSelectedSlot = s.selectedSlot;
@@ -2194,9 +2198,9 @@ function makeMetroSlotBtn(i) {
   const name  = metroNames[i] || '';
   const bpmVal = metroSlots[i] !== null ? metroSlots[i] : '—';
   const beatsVal = metroBeatsArr[i] || 4;
-  const grooveVal = metroGroovesArr[i] || 'normal';
-  const timeSigLabel = (beatsVal === 6 && grooveVal === 'eighth') ? '6/8'
-    : (beatsVal === 7 && grooveVal === 'eighth') ? '7/8'
+  const slot8thBase = !!metroIs8thBaseArr[i];
+  const timeSigLabel = (slot8thBase && beatsVal === 6) ? '6/8'
+    : (slot8thBase && beatsVal === 7) ? '7/8'
     : (beatsVal !== 4 ? `${beatsVal}/4` : '');
   const bpmDisplay = metroSlots[i] !== null
     ? (timeSigLabel ? `${bpmVal}<span style="font-size:0.6rem;opacity:0.7"> ${timeSigLabel}</span>` : bpmVal)
@@ -2270,10 +2274,11 @@ function applyMetroSlot(idx) {
   beats = b;
   currentBeat = 0;
   const beatSel = document.getElementById('beat-select');
+  const restore8thBase = !!metroIs8thBaseArr[idx];
+  is8thBase = restore8thBase;
   if (beatSel) {
-    const g_restore = metroGroovesArr[idx] || 'normal';
-    beatSel.value = (b === 6 && g_restore === 'eighth') ? '6.8'
-                  : (b === 7 && g_restore === 'eighth') ? '7.8' : b;
+    beatSel.value = (b === 6 && restore8thBase) ? '6.8'
+                  : (b === 7 && restore8thBase) ? '7.8' : b;
   }
   // Groove (subdivision)
   const g = metroGroovesArr[idx] || 'normal';
@@ -2281,8 +2286,11 @@ function applyMetroSlot(idx) {
   const gMap = {'eighth':'subdiv-8th','sixteenth':'subdiv-16th','shuffle':'subdiv-8sh','sixteenth-shuffle':'subdiv-16sh'};
   Object.entries(gMap).forEach(([gv,id])=>{
     const btn = document.getElementById(id);
-    if (btn) btn.classList.toggle('selected', groove===gv);
+    // 8thBase では 8th/shuffle を selected 表示しない
+    const showSelected = groove===gv && !(is8thBase && (gv==='eighth'||gv==='shuffle'));
+    if (btn) btn.classList.toggle('selected', showSelected);
   });
+  updateSubdivBtnsFor8thBase(is8thBase);
   const isShuf = groove==='shuffle'||groove==='sixteenth-shuffle';
   const wrap = document.getElementById('shuffle-slider-wrap');
   if (wrap) wrap.style.display = isShuf ? 'block' : 'none';
@@ -2306,16 +2314,17 @@ function applyMetroSlot(idx) {
 
 function autoSaveMetroSlot() {
   if (_applyingSlot) return;
-  metroSlots[metroSelectedSlot]       = bpm;
-  metroBeatsArr[metroSelectedSlot]    = beats;
-  metroGroovesArr[metroSelectedSlot]  = groove;
-  metroShuffleArr[metroSelectedSlot]  = Math.round(shuffleRatio * 100);
-  metroSoundsArr[metroSelectedSlot]   = currentSound;
+  metroSlots[metroSelectedSlot]          = bpm;
+  metroBeatsArr[metroSelectedSlot]       = beats;
+  metroGroovesArr[metroSelectedSlot]     = groove;
+  metroIs8thBaseArr[metroSelectedSlot]   = is8thBase;
+  metroShuffleArr[metroSelectedSlot]     = Math.round(shuffleRatio * 100);
+  metroSoundsArr[metroSelectedSlot]      = currentSound;
   // スロットボタン表示を更新
   const bpmLbl = document.getElementById('mslot-bpm-' + metroSelectedSlot);
   if (bpmLbl) {
-    const tsl = (beats === 6 && groove === 'eighth') ? '6/8'
-      : (beats === 7 && groove === 'eighth') ? '7/8'
+    const tsl = (is8thBase && beats === 6) ? '6/8'
+      : (is8thBase && beats === 7) ? '7/8'
       : (beats !== 4 ? `${beats}/4` : '');
     bpmLbl.innerHTML = tsl
       ? `${bpm}<span style="font-size:0.6rem;opacity:0.7"> ${tsl}</span>`
@@ -2363,6 +2372,7 @@ function saveMetroSetlistFile() {
     names: metroNames,
     beats: metroBeatsArr,
     grooves: metroGroovesArr,
+    is8thBaseArr: metroIs8thBaseArr,
     shuffleRatios: metroShuffleArr,
     sounds: metroSoundsArr
   };
@@ -2386,13 +2396,15 @@ function loadMetroSetlistFile(event) {
       metroSlots    = Array(12).fill(null);
       metroNames    = Array(12).fill('');
       metroBeatsArr = Array(12).fill(4);
-      metroGroovesArr = Array(12).fill('normal');
-      metroShuffleArr = Array(12).fill(67);
-      metroSoundsArr  = Array(12).fill('beep');
+      metroGroovesArr   = Array(12).fill('normal');
+      metroIs8thBaseArr = Array(12).fill(false);
+      metroShuffleArr   = Array(12).fill(67);
+      metroSoundsArr    = Array(12).fill('beep');
       if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<12) metroSlots[i]=v; });
       if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<12) metroNames[i]=v||''; });
       if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<12) metroBeatsArr[i]=v||4; });
       if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<12) metroGroovesArr[i]=v||'normal'; });
+      if (Array.isArray(data.is8thBaseArr)) data.is8thBaseArr.forEach((v,i)=>{ if(i<12) metroIs8thBaseArr[i]=!!v; });
       if (Array.isArray(data.shuffleRatios))data.shuffleRatios.forEach((v,i)=>{ if(i<12) metroShuffleArr[i]=v||67; });
       if (Array.isArray(data.sounds))       data.sounds.forEach((v,i)=>{ if(i<12) metroSoundsArr[i]=v||'beep'; });
       if (data.name) { const ni = document.getElementById('metro-setlist-name'); if(ni) ni.value=data.name; }
@@ -2435,7 +2447,9 @@ function setShuffleRatio(val) {
 }
 
 function setSubdivision(val) {
-  // 同じボタンを再タップ → normal（解除）
+  // 6/8・7/8 では 8th・8th Shuffle は無効
+  if (is8thBase && (val === 'eighth' || val === 'shuffle')) return;
+  // 同じボタンを再タップ → normal に戻す（6/8 ベースも normal）
   groove = (groove === val) ? 'normal' : val;
   const map = {
     'eighth': 'subdiv-8th',
@@ -2558,23 +2572,44 @@ function hideLiveSliderHint() {
   if (hint) hint.style.display = 'none';
 }
 
+function updateSubdivBtnsFor8thBase(disable) {
+  // 6/8・7/8 のとき 8th と 8th Shuffle を無効化（16th・16th Shuffle は常に有効）
+  ['subdiv-8th', 'subdiv-8sh'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    if (disable) {
+      btn.disabled = true;
+      btn.style.opacity = '0.3';
+      btn.style.pointerEvents = 'none';
+    } else {
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.pointerEvents = '';
+    }
+  });
+}
+
 function onBeatSelectChange(val) {
   if (val === '6.8' || val === '7.8') {
-    // 6/8 or 7/8: 8分音符サブディビジョンを自動設定
+    // 6/8 or 7/8: 拍自体が8分音符 → サブなし（normal）がベース
+    is8thBase = true;
     beats = (val === '6.8') ? 6 : 7;
     currentBeat = 0;
-    groove = 'eighth';
-    const map = {'eighth':'subdiv-8th','sixteenth':'subdiv-16th','shuffle':'subdiv-8sh','sixteenth-shuffle':'subdiv-16sh'};
-    Object.entries(map).forEach(([g,id]) => {
+    groove = 'normal';
+    // サブディビジョンボタンの selected 状態をすべてリセット（8thBase では選択不要）
+    ['subdiv-8th','subdiv-16th','subdiv-8sh','subdiv-16sh'].forEach(id => {
       const btn = document.getElementById(id);
-      if (btn) btn.classList.toggle('selected', g === 'eighth');
+      if (btn) btn.classList.remove('selected');
     });
+    updateSubdivBtnsFor8thBase(true);
     const wrap = document.getElementById('shuffle-slider-wrap');
     if (wrap) wrap.style.display = 'none';
     resetMuteState();
     renderBeatDots();
     autoSaveMetroSlot();
   } else {
+    is8thBase = false;
+    updateSubdivBtnsFor8thBase(false);
     setBeats(+val);
   }
 }
@@ -2588,6 +2623,11 @@ function setBeats(val) {
 }
 
 function getSubsPerBeat() {
+  if (is8thBase) {
+    // 6/8・7/8: 各拍（8分音符）を16分音符に分割 → 1サブ/拍
+    if (groove === 'sixteenth' || groove === 'sixteenth-shuffle') return 1;
+    return 0; // normalベース = サブなし
+  }
   if (groove === 'eighth' || groove === 'shuffle') return 1;
   if (groove === 'sixteenth' || groove === 'sixteenth-shuffle') return 3;
   return 0;
@@ -2772,7 +2812,14 @@ function scheduler() {
 
     // 細分割音（サブミュートチェック付き）
     const sm = subMuted[beat] || [];
-    if (groove === 'eighth') {
+    if (is8thBase) {
+      // 6/8・7/8: 各拍（8分音符）の中間に16分音符サブ 1つ
+      if (groove === 'sixteenth') {
+        if (!sm[0]) scheduleSubNote(t + interval / 2);
+      } else if (groove === 'sixteenth-shuffle') {
+        if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio);
+      }
+    } else if (groove === 'eighth') {
       if (!sm[0]) scheduleSubNote(t + interval / 2);
     } else if (groove === 'shuffle') {
       if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio);
@@ -2789,7 +2836,13 @@ function scheduler() {
     const delay = (t - ctx.currentTime) * 1000;
     // サブドットフラッシュのスケジュール
     const subFlashDelays = [];
-    if (groove === 'eighth') {
+    if (is8thBase) {
+      if (groove === 'sixteenth') {
+        subFlashDelays.push([0, interval / 2]);
+      } else if (groove === 'sixteenth-shuffle') {
+        subFlashDelays.push([0, interval * shuffleRatio]);
+      }
+    } else if (groove === 'eighth') {
       subFlashDelays.push([0, interval / 2]);
     } else if (groove === 'shuffle') {
       subFlashDelays.push([0, interval * shuffleRatio]);
