@@ -1704,10 +1704,14 @@
            letter-spacing:0.05em; margin-bottom:4px;
            transition:opacity 1s ease; opacity:1;">← スライドでBPM変更 →</div>
       <div class="live-bpm-row" style="margin-bottom:12px;">
-        <button class="live-fine-btn" onclick="adjustBpm(-1)">−</button>
+        <button class="live-fine-btn"
+          onmousedown="startBpmHold(-1)" onmouseup="stopBpmHold()" onmouseleave="stopBpmHold()"
+          ontouchstart="startBpmHold(-1);event.preventDefault()" ontouchend="stopBpmHold()">−</button>
         <input type="range" id="bpm-slider" min="30" max="240" value="120"
           oninput="setBpm(+this.value); hideSliderHint();">
-        <button class="live-fine-btn" onclick="adjustBpm(+1)">+</button>
+        <button class="live-fine-btn"
+          onmousedown="startBpmHold(+1)" onmouseup="stopBpmHold()" onmouseleave="stopBpmHold()"
+          ontouchstart="startBpmHold(+1);event.preventDefault()" ontouchend="stopBpmHold()">+</button>
       </div>
 
 
@@ -2468,6 +2472,27 @@ function setBpm(val) {
 function adjustBpm(delta) {
   setBpm(bpm + delta);
   hideSliderHint();
+}
+
+// ===== 長押し連射 =====
+let _bpmHoldTimer = null;
+let _bpmHoldStep = 0;
+
+function startBpmHold(delta) {
+  adjustBpm(delta);  // 1回目はすぐ反応
+  _bpmHoldStep = 0;
+  _bpmHoldTimer = setTimeout(function repeat() {
+    adjustBpm(delta);
+    _bpmHoldStep++;
+    // 加速: 最初300ms → 徐々に縮まって最速50ms
+    const interval = Math.max(50, 300 - _bpmHoldStep * 20);
+    _bpmHoldTimer = setTimeout(repeat, interval);
+  }, 400);  // 長押し判定: 400ms後に連射開始
+}
+
+function stopBpmHold() {
+  if (_bpmHoldTimer) { clearTimeout(_bpmHoldTimer); _bpmHoldTimer = null; }
+  _bpmHoldStep = 0;
 }
 
 function hideSliderHint() {
