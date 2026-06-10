@@ -1803,6 +1803,7 @@
           <button class="groove-btn selected" id="metro-sound-beep"  onclick="setMetroSound('beep')">Beep</button>
           <button class="groove-btn"          id="metro-sound-wood"  onclick="setMetroSound('wood')">Wood</button>
           <button class="groove-btn"          id="metro-sound-hihat" onclick="setMetroSound('hihat')">Hi-hat</button>
+          <button class="groove-btn"          id="metro-sound-voice" onclick="setMetroSound('voice')">Voice</button>
         </div>
       </div>
 
@@ -2199,6 +2200,27 @@ let nextNoteTime = 0;
 let timerID = null;
 let currentSound = 'beep';
 let groove = 'normal';
+
+// ===== VOICE COUNT BUFFERS =====
+const voiceBuffers = {};
+let voiceLoaded = false;
+const VOICE_BEAT_NAMES = ['v1','v2','v3','v4','v5','v6','v7'];
+// 各拍(0-6)に対応する裏拍母音: 1→ア 2→ウ 3→イ 4→オ 5→ア 6→ウ 7→ウ
+const VOICE_SUB_NAMES  = ['va','vu','vi','vo','va','vu','vu'];
+
+async function loadVoiceBuffers() {
+  if (voiceLoaded) return;
+  const ctx = getAudioCtx();
+  const files = [...VOICE_BEAT_NAMES, 'va','vu','vi','vo'];
+  await Promise.all(files.map(async name => {
+    try {
+      const resp = await fetch('sounds/voice/' + name + '.mp3');
+      const arr  = await resp.arrayBuffer();
+      voiceBuffers[name] = await ctx.decodeAudioData(arr);
+    } catch(e) { console.warn('voice load failed:', name, e); }
+  }));
+  voiceLoaded = true;
+}
 let is8thBase = false; // 6/8 or 7/8 selected: 8th note IS the beat
 let beatMuted = [];
 let subMuted = [];
@@ -2359,10 +2381,11 @@ function applyMetroSlot(idx) {
   // Sound
   const snd = metroSoundsArr[idx] || 'beep';
   currentSound = snd;
-  ['beep','wood','hihat'].forEach(s=>{
+  ['beep','wood','hihat','voice'].forEach(s=>{
     const btn = document.getElementById('metro-sound-'+s);
     if (btn) btn.classList.toggle('selected', s===snd);
   });
+  if (snd === 'voice' && !voiceLoaded) loadVoiceBuffers();
   resetMuteState();
   renderBeatDots();
   _applyingSlot = false;
@@ -2562,10 +2585,11 @@ function toggleMute() {
 
 function setMetroSound(val) {
   currentSound = val;
-  ['beep','wood','hihat'].forEach(s => {
+  ['beep','wood','hihat','voice'].forEach(s => {
     const b = document.getElementById('metro-sound-' + s);
     if (b) b.classList.toggle('selected', s === val);
   });
+  if (val === 'voice' && !voiceLoaded) loadVoiceBuffers();
   autoSaveMetroSlot();
 }
 
@@ -2780,7 +2804,7 @@ function makeNoise(ctx, duration) {
   return src;
 }
 
-function scheduleNote(time, isAccent) {
+function scheduleNote(time, isAccent, beatIdx = 0) {
   const ctx = getAudioCtx();
   const out = masterOut;
 
@@ -2824,10 +2848,22 @@ function scheduleNote(time, isAccent) {
     gain.gain.exponentialRampToValueAtTime(0.001, time + decay);
     noise.connect(hipass); hipass.connect(bandpass); bandpass.connect(gain); gain.connect(out);
     noise.start(time); noise.stop(time + decay + 0.01);
+
+  } else if (currentSound === 'voice') {
+    const name = VOICE_BEAT_NAMES[beatIdx % VOICE_BEAT_NAMES.length];
+    const buf = voiceBuffers[name];
+    if (buf) {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.value = isAccent ? 0.9 : 0.75;
+      src.connect(g); g.connect(out);
+      src.start(time);
+    }
   }
 }
 
-function scheduleSubNote(time) {
+function scheduleSubNote(time, beatIdx = 0) {
   const ctx = getAudioCtx();
   const out = masterOut;
   if (currentSound === 'beep') {
@@ -2856,6 +2892,20 @@ function scheduleSubNote(time) {
     gain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
     noise.connect(hp); hp.connect(gain); gain.connect(out);
     noise.start(time); noise.stop(time + 0.07);
+
+  } else if (currentSound === 'voice') {
+    const name = VOICE_SUB_NAMES[beatIdx % VOICE_SUB_NAMES.length];
+    const buf = voiceBuffers[name];
+    if (buf) {
+      const src = ctx.createBufferSource();
+      src.buffer = buf;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0.55, time);
+      g.gain.exponentialRampToValueAtTime(0.001, time + 0.20);
+      src.connect(g); g.connect(out);
+      src.start(time);
+      src.stop(time + 0.22);
+    }
   }
 }
 
@@ -2868,29 +2918,29 @@ function scheduler() {
     const isAccent = beat === 0;
 
     // メインビートを鳴らすか
-    if (!beatMuted[beat]) scheduleNote(t, isAccent);
+    if (!beatMuted[beat]) scheduleNote(t, isAccent, beat);
 
     // 細分割音（サブミュートチェック付き）
     const sm = subMuted[beat] || [];
     if (is8thBase) {
       // 6/8・7/8: 各拍（8分音符）の中間に16分音符サブ 1つ
       if (groove === 'sixteenth') {
-        if (!sm[0]) scheduleSubNote(t + interval / 2);
+        if (!sm[0]) scheduleSubNote(t + interval / 2, beat);
       } else if (groove === 'sixteenth-shuffle') {
-        if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio);
+        if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio, beat);
       }
     } else if (groove === 'eighth') {
-      if (!sm[0]) scheduleSubNote(t + interval / 2);
+      if (!sm[0]) scheduleSubNote(t + interval / 2, beat);
     } else if (groove === 'shuffle') {
-      if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio);
+      if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio, beat);
     } else if (groove === 'sixteenth') {
-      if (!sm[0]) scheduleSubNote(t + interval / 4);
-      if (!sm[1]) scheduleSubNote(t + interval / 2);
-      if (!sm[2]) scheduleSubNote(t + interval * 3 / 4);
+      if (!sm[0]) scheduleSubNote(t + interval / 4, beat);
+      if (!sm[1]) scheduleSubNote(t + interval / 2, beat);
+      if (!sm[2]) scheduleSubNote(t + interval * 3 / 4, beat);
     } else if (groove === 'sixteenth-shuffle') {
-      if (!sm[0]) scheduleSubNote(t + interval / 2 * shuffleRatio);
-      if (!sm[1]) scheduleSubNote(t + interval / 2);
-      if (!sm[2]) scheduleSubNote(t + interval / 2 + interval / 2 * shuffleRatio);
+      if (!sm[0]) scheduleSubNote(t + interval / 2 * shuffleRatio, beat);
+      if (!sm[1]) scheduleSubNote(t + interval / 2, beat);
+      if (!sm[2]) scheduleSubNote(t + interval / 2 + interval / 2 * shuffleRatio, beat);
     }
 
     const delay = (t - ctx.currentTime) * 1000;
@@ -2950,6 +3000,7 @@ function toggleMetronome() {
   if (!metronomeRunning) {
     const ctx = getAudioCtx();
     if (ctx.state === 'suspended') ctx.resume();
+    if (currentSound === 'voice' && !voiceLoaded) loadVoiceBuffers();
     nextNoteTime = ctx.currentTime + 0.05;
     currentBeat = 0;
     scheduler();
