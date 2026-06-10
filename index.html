@@ -13,7 +13,7 @@
 <meta property="og:image" content="https://metrotuner.tsg-gt.com/images/banner-metronome.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@400;500;600;700&family=Oswald:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -955,8 +955,9 @@
   }
   .metro-slot-btn.selected .metro-slot-bpm { color: #fff; }
   .metro-slot-name {
-    font-size: 0.6rem;
-    font-weight: 600;
+    font-family: 'Barlow Semi Condensed', sans-serif;
+    font-size: 0.68rem;
+    font-weight: 500;
     color: #555;
     line-height: 1.3;
     overflow: hidden;
@@ -965,8 +966,58 @@
     -webkit-box-orient: vertical;
     word-break: break-all;
     min-height: 1.2em;
+    letter-spacing: 0.02em;
   }
   .metro-slot-btn.selected .metro-slot-name { color: rgba(255,255,255,0.85); }
+
+  /* ===== PICK SYMBOLS ===== */
+  .beat-dot { position: relative; }
+  .beat-sub-dot { position: relative; }
+
+  .pick-sym {
+    display: none;
+    position: absolute;
+    top: -16px;        /* 通常beat-dot(34px)基準 */
+    left: 50%;
+    transform: translateX(-50%);
+    line-height: 0;
+    pointer-events: none;
+    user-select: none;
+    color: #333;
+  }
+  /* accent dot(42px)は中心から上端が4px高いので top を4px小さく */
+  .beat-dot.accent .pick-sym { top: -12px; }
+  /* sub-dot(14px)は中心から上端が10px低いので top を10px大きく */
+  .beat-sub-dot .pick-sym { top: -26px; }
+
+  #beat-indicators.show-pick { padding-top: 24px; }
+  #beat-indicators.show-pick .pick-sym { display: inline-block; }
+  #beat-indicators.show-pick .beat-dot.muted .pick-sym,
+  #beat-indicators.show-pick .beat-sub-dot.muted .pick-sym { display: none; }
+
+  /* ===== ALL ACCENT BUTTON ===== */
+  #all-accent-btn.all-accent-active,
+  #pick-btn.pick-active {
+    background: linear-gradient(to bottom, #1a1a2e, #2d2d4e) !important;
+    color: #fff !important;
+    border-color: #1a1a2e !important;
+    box-shadow: 0 2px 0 #0a0a1a !important;
+  }
+
+  /* ===== DRAG & DROP ===== */
+  .metro-slot-drag-ghost {
+    opacity: 0.35;
+  }
+  .metro-slot-drag-chosen {
+    box-shadow: 0 6px 20px rgba(33,118,174,0.30);
+    border-color: #2176ae !important;
+  }
+  .metro-slot-dragging {
+    box-shadow: 0 10px 28px rgba(0,0,0,0.22);
+    transform: rotate(1.5deg) scale(1.03);
+    opacity: 0.95;
+    z-index: 100;
+  }
 
   /* ===== SETLIST TOGGLE ===== */
   .setlist-toggle {
@@ -1098,8 +1149,10 @@
     background: linear-gradient(to bottom, #ffffff, #e8eaef);
     box-shadow: 0 3px 0 #b8bcc8, 0 2px 6px rgba(0,0,0,0.08);
     color: #444;
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-family: 'Barlow Semi Condensed', sans-serif;
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.03em;
     cursor: pointer;
     text-align: center;
     transition: border-color 0.12s, background 0.12s, color 0.12s, box-shadow 0.1s, transform 0.1s;
@@ -1686,26 +1739,32 @@
       text-align: right;
     }
     #metro-setlist-panel .metro-slot-name {
-      font-size: 0.78rem;
-      font-weight: 700;
+      font-family: 'Barlow Semi Condensed', sans-serif;
+      font-size: 0.88rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
       display: block;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      color: #444;
+      color: #333;
       min-height: 0;
       cursor: text;
     }
     /* 選択中スロットの曲名は白文字を維持 */
     #metro-setlist-panel .metro-slot-btn.selected .metro-slot-name { color: rgba(255,255,255,0.9); }
 
-    /* ===== バナーを横並び・コンパクトに ===== */
+    /* ===== バナーを横並び・コンパクトに（両タブ共通サイズ） ===== */
     .app-banner-row {
       flex-direction: row;
+      max-width: 640px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .img-banner-link {
       width: auto;
       flex: 1;
+      max-width: 310px;
       margin: 0;
     }
   }
@@ -1926,13 +1985,37 @@
           border:1.5px solid #c8ccd6; border-radius:8px;
           background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
           box-shadow:0 2px 0 #b8bcc8;
-          font-size:0.75rem; font-weight:700; color:#555; cursor:pointer;
-          letter-spacing:0.04em; white-space:nowrap;
+          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.85rem; font-weight:600; color:#555; cursor:pointer;
+          letter-spacing:0.03em; white-space:nowrap;
           transition:box-shadow 0.1s,transform 0.1s;
         " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Backbeat</button>
+        <button id="all-accent-btn" onclick="setAllAccent(!allAccent)" style="
+          flex:0 0 auto; padding:7px 11px;
+          border:1.5px solid #c8ccd6; border-radius:8px;
+          background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
+          box-shadow:0 2px 0 #b8bcc8;
+          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.85rem; font-weight:600; color:#555; cursor:pointer;
+          letter-spacing:0.03em; white-space:nowrap;
+          transition:box-shadow 0.1s,transform 0.1s,background 0.15s,color 0.15s;
+        " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
+           onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
+           ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
+           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">All Accent</button>
+        <button id="pick-btn" onclick="setShowPick(!showPick)" style="
+          flex:0 0 auto; padding:7px 11px;
+          border:1.5px solid #c8ccd6; border-radius:8px;
+          background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
+          box-shadow:0 2px 0 #b8bcc8;
+          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.85rem; font-weight:600; color:#555; cursor:pointer;
+          letter-spacing:0.03em; white-space:nowrap;
+          transition:box-shadow 0.1s,transform 0.1s,background 0.15s,color 0.15s;
+        " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
+           onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
+           ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
+           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Pick</button>
       </div>
 
       <div class="section-label">Subdivision</div>
@@ -1992,6 +2075,7 @@
             placeholder="曲名を入力（任意）" maxlength="20"
             oninput="updateMetroSlotName(this.value)"
             style="width:100%;box-sizing:border-box;margin-bottom:0;">
+          <p style="margin:4px 0 0; font-size:0.68rem; color:#777; letter-spacing:0.02em;">PC/iPad：ダブルクリックで曲名入力 ／ ドラッグで曲順を入れ替え</p>
         </div>
         <!-- セットリスト 保存/読み込み -->
         <div style="margin-top:14px; border-top:1.5px solid #eee; padding-top:14px;">
@@ -2303,6 +2387,8 @@ let nextNoteTime = 0;
 let timerID = null;
 let currentSound = 'beep';
 let groove = 'normal';
+let allAccent = false;
+let showPick   = false;
 
 // ===== VOICE COUNT BUFFERS =====
 const voiceBuffers = {};
@@ -2340,18 +2426,75 @@ let metroGroovesArr    = Array(24).fill('normal');
 let metroIs8thBaseArr  = Array(24).fill(false);
 let metroShuffleArr    = Array(24).fill(67);
 let metroSoundsArr     = Array(24).fill('beep');
+let metroAllAccentArr  = Array(24).fill(false);
+let metroShowPickArr   = Array(24).fill(false);
+let metroBeatMutedArr  = Array(24).fill(null).map(() => []);
+let metroSubMutedArr   = Array(24).fill(null).map(() => []);
 let metroSelectedSlot  = 0;
 let metroSetlistOpen   = false;
 let metroSlotCount     = 12;      // 12 or 24
 let _applyingSlot      = false;   // 無限ループ防止フラグ
+let _metroSortable     = null;
+
+function initMetroSortable() {
+  if (typeof Sortable === 'undefined') {
+    // SortableJS未読み込みの場合はページ読み込み完了後に再試行
+    window.addEventListener('load', initMetroSortable, { once: true });
+    return;
+  }
+  const cont = document.getElementById('metro-slots');
+  if (!cont) return;
+  if (_metroSortable) { _metroSortable.destroy(); _metroSortable = null; }
+  _metroSortable = new Sortable(cont, {
+    animation: 150,
+    ghostClass:  'metro-slot-drag-ghost',
+    chosenClass: 'metro-slot-drag-chosen',
+    dragClass:   'metro-slot-dragging',
+    delay: 180,
+    delayOnTouchOnly: true,
+    touchStartThreshold: 4,
+    onEnd: function(evt) {
+      const oldIdx = evt.oldIndex;
+      const newIdx = evt.newIndex;
+      if (oldIdx === newIdx) return;
+
+      // 全データ配列を同じ順に並び替え
+      function moveArr(arr) {
+        const item = arr.splice(oldIdx, 1)[0];
+        arr.splice(newIdx, 0, item);
+      }
+      moveArr(metroSlots);
+      moveArr(metroNames);
+      moveArr(metroBeatsArr);
+      moveArr(metroGroovesArr);
+      moveArr(metroIs8thBaseArr);
+      moveArr(metroShuffleArr);
+      moveArr(metroSoundsArr);
+
+      // 選択中スロットのインデックスを追従
+      if (metroSelectedSlot === oldIdx) {
+        metroSelectedSlot = newIdx;
+      } else if (oldIdx < newIdx) {
+        if (metroSelectedSlot > oldIdx && metroSelectedSlot <= newIdx) metroSelectedSlot--;
+      } else {
+        if (metroSelectedSlot >= newIdx && metroSelectedSlot < oldIdx) metroSelectedSlot++;
+      }
+
+      saveMetroSetlist();
+      renderMetroSlots();
+    }
+  });
+}
 
 function saveMetroSetlist() {
   localStorage.setItem(METRO_LS_KEY, JSON.stringify({
     slots: metroSlots, names: metroNames, beats: metroBeatsArr,
     grooves: metroGroovesArr, is8thBaseArr: metroIs8thBaseArr,
     shuffleRatios: metroShuffleArr,
-    sounds: metroSoundsArr, selectedSlot: metroSelectedSlot,
-    slotCount: metroSlotCount
+    sounds: metroSoundsArr, allAccentArr: metroAllAccentArr,
+    showPickArr: metroShowPickArr,
+    selectedSlot: metroSelectedSlot, slotCount: metroSlotCount,
+    beatMuted: metroBeatMutedArr, subMuted: metroSubMutedArr
   }));
 }
 
@@ -2365,7 +2508,11 @@ function loadMetroSetlist() {
     if (Array.isArray(s.grooves))      s.grooves.forEach((v,i)=>{ if(i<24) metroGroovesArr[i]=v||'normal'; });
     if (Array.isArray(s.is8thBaseArr)) s.is8thBaseArr.forEach((v,i)=>{ if(i<24) metroIs8thBaseArr[i]=!!v; });
     if (Array.isArray(s.shuffleRatios))s.shuffleRatios.forEach((v,i)=>{ if(i<24) metroShuffleArr[i]=v||67; });
-    if (Array.isArray(s.sounds))       s.sounds.forEach((v,i)=>{ if(i<24) metroSoundsArr[i]=v||'beep'; });
+    if (Array.isArray(s.sounds))        s.sounds.forEach((v,i)=>{ if(i<24) metroSoundsArr[i]=v||'beep'; });
+    if (Array.isArray(s.allAccentArr))  s.allAccentArr.forEach((v,i)=>{ if(i<24) metroAllAccentArr[i]=!!v; });
+    if (Array.isArray(s.showPickArr))   s.showPickArr.forEach((v,i)=>{ if(i<24) metroShowPickArr[i]=!!v; });
+    if (Array.isArray(s.beatMuted))    s.beatMuted.forEach((v,i)=>{ if(i<24) metroBeatMutedArr[i]=Array.isArray(v)?v.slice():[]; });
+    if (Array.isArray(s.subMuted))     s.subMuted.forEach((v,i)=>{ if(i<24) metroSubMutedArr[i]=Array.isArray(v)?v.map(r=>Array.isArray(r)?r.slice():[]):[] });
     if (typeof s.selectedSlot==='number') metroSelectedSlot = s.selectedSlot;
     if (s.slotCount === 24) metroSlotCount = 24;
   } catch(e) {}
@@ -2454,6 +2601,7 @@ function renderMetroSlots() {
   const ni = document.getElementById('metro-slot-name');
   if (ni) ni.value = metroNames[metroSelectedSlot] || '';
   updateMetroExpandBtn();
+  initMetroSortable();
 }
 
 function toggleMetroSlotExpand() {
@@ -2540,7 +2688,21 @@ function applyMetroSlot(idx) {
     if (btn) btn.classList.toggle('selected', s===snd);
   });
   if (snd === 'voice' && !voiceLoaded) loadVoiceBuffers();
+  // All Accent / Pick
+  setAllAccent(!!metroAllAccentArr[idx]);
+  setShowPick(!!metroShowPickArr[idx]);
+  // ミュート状態を復元（保存済みがあればそれを使い、なければリセット）
   resetMuteState();
+  const savedBM = metroBeatMutedArr[idx];
+  const savedSM = metroSubMutedArr[idx];
+  if (Array.isArray(savedBM) && savedBM.length === beats) {
+    beatMuted = savedBM.slice();
+  }
+  if (Array.isArray(savedSM) && savedSM.length === beats) {
+    subMuted = savedSM.map((arr, i) =>
+      Array.isArray(arr) ? arr.slice() : (Array.isArray(subMuted[i]) ? subMuted[i].slice() : [])
+    );
+  }
   renderBeatDots();
   _applyingSlot = false;
 }
@@ -2553,6 +2715,10 @@ function autoSaveMetroSlot() {
   metroIs8thBaseArr[metroSelectedSlot]   = is8thBase;
   metroShuffleArr[metroSelectedSlot]     = Math.round(shuffleRatio * 100);
   metroSoundsArr[metroSelectedSlot]      = currentSound;
+  metroAllAccentArr[metroSelectedSlot]   = allAccent;
+  metroShowPickArr[metroSelectedSlot]    = showPick;
+  metroBeatMutedArr[metroSelectedSlot]   = beatMuted.slice();
+  metroSubMutedArr[metroSelectedSlot]    = subMuted.map(arr => Array.isArray(arr) ? arr.slice() : []);
   // スロットボタン表示を更新
   const bpmLbl = document.getElementById('mslot-bpm-' + metroSelectedSlot);
   if (bpmLbl) {
@@ -2581,6 +2747,10 @@ function resetMetroSetlist() {
   metroGroovesArr = Array(24).fill('normal');
   metroShuffleArr = Array(24).fill(67);
   metroSoundsArr = Array(24).fill('beep');
+  metroAllAccentArr = Array(24).fill(false);
+  metroShowPickArr  = Array(24).fill(false);
+  setAllAccent(false);
+  setShowPick(false);
   metroSelectedSlot = 0;
   metroSlotCount = 12;
   localStorage.removeItem(METRO_LS_KEY);
@@ -2735,6 +2905,34 @@ function toggleMute() {
     btn.textContent = isMuted ? 'UNMUTE' : 'MUTE';
     btn.classList.toggle('muted', isMuted);
   });
+}
+
+function setAllAccent(val) {
+  allAccent = !!val;
+  const btn = document.getElementById('all-accent-btn');
+  if (btn) btn.classList.toggle('all-accent-active', allAccent);
+  autoSaveMetroSlot();
+}
+
+// ピッキング記号SVG
+const PICK_SVG_DOWN = '<svg width="12" height="10" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><polyline points="1,10 1,1 11,1 11,10"/></svg>';
+const PICK_SVG_UP   = '<svg width="12" height="10" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><polyline points="1,1 6,9 11,1"/></svg>';
+
+// ピッキング方向を返す（isMainBeat=true→常にdown、sub側はgrooveに依存）
+function getPickDir(isMainBeat, subIdx) {
+  if (isMainBeat) return 'down';
+  if (groove === 'eighth' || groove === 'shuffle') return 'up';
+  // sixteenth / sixteenth-shuffle: e=up(0) and=down(1) a=up(2)
+  return subIdx % 2 === 0 ? 'up' : 'down';
+}
+
+function setShowPick(val) {
+  showPick = !!val;
+  const btn = document.getElementById('pick-btn');
+  if (btn) btn.classList.toggle('pick-active', showPick);
+  const cont = document.getElementById('beat-indicators');
+  if (cont) cont.classList.toggle('show-pick', showPick);
+  autoSaveMetroSlot();
 }
 
 function setMetroSound(val) {
@@ -2912,6 +3110,7 @@ function toggleBeatMute(i) {
   const d = document.getElementById('bdot-' + i);
   if (d) d.classList.toggle('muted', beatMuted[i]);
   dismissHint('beat-tap-hint', 'tsg-hint-tap-seen');
+  autoSaveMetroSlot();
 }
 
 function toggleSubMute(i, j) {
@@ -2919,11 +3118,13 @@ function toggleSubMute(i, j) {
   const s = document.getElementById('sdot-' + i + '-' + j);
   if (s) s.classList.toggle('muted', subMuted[i][j]);
   dismissHint('beat-tap-hint', 'tsg-hint-tap-seen');
+  autoSaveMetroSlot();
 }
 
 function renderBeatDots() {
   const cont = document.getElementById('beat-indicators');
   cont.innerHTML = '';
+  cont.classList.toggle('show-pick', showPick);
   const subs = getSubsPerBeat();
   for (let i = 0; i < beats; i++) {
     // メインドット
@@ -2931,6 +3132,11 @@ function renderBeatDots() {
     d.className = 'beat-dot' + (i === 0 ? ' accent' : '') + (beatMuted[i] ? ' muted' : '');
     d.id = 'bdot-' + i;
     d.onclick = () => toggleBeatMute(i);
+    // ピック記号（常にダウン）
+    const ps = document.createElement('span');
+    ps.className = 'pick-sym';
+    ps.innerHTML = PICK_SVG_DOWN;
+    d.appendChild(ps);
     const numSpan = document.createElement('span');
     numSpan.className = 'beat-num';
     numSpan.textContent = i + 1;
@@ -2943,6 +3149,11 @@ function renderBeatDots() {
       s.className = 'beat-sub-dot' + (subMuted[i] && subMuted[i][j] ? ' muted' : '');
       s.id = 'sdot-' + i + '-' + j;
       s.onclick = () => toggleSubMute(i, j);
+      // ピック記号（方向はgrooveによる）
+      const sp = document.createElement('span');
+      sp.className = 'pick-sym';
+      sp.innerHTML = getPickDir(false, j) === 'down' ? PICK_SVG_DOWN : PICK_SVG_UP;
+      s.appendChild(sp);
       cont.appendChild(s);
     }
   }
@@ -2959,6 +3170,7 @@ function makeNoise(ctx, duration) {
 }
 
 function scheduleNote(time, isAccent, beatIdx = 0) {
+  if (allAccent) isAccent = true;
   const ctx = getAudioCtx();
   const out = masterOut;
 
@@ -3018,6 +3230,7 @@ function scheduleNote(time, isAccent, beatIdx = 0) {
 }
 
 function scheduleSubNote(time, beatIdx = 0) {
+  if (allAccent) { scheduleNote(time, true, beatIdx); return; }
   const ctx = getAudioCtx();
   const out = masterOut;
   if (currentSound === 'beep') {
@@ -4263,5 +4476,6 @@ if (lastTab && ['metronome','tuner','live'].includes(lastTab)) {
   document.querySelector(`.tab-btn[onclick="switchTab('${lastTab}')"]`).classList.add('active');
 }
 </script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </body>
 </html>
