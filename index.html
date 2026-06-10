@@ -1615,6 +1615,112 @@
     .card { padding: 22px 16px; }
     .brand-main { font-size: 2rem; }
   }
+
+  /* ===== 2-COLUMN LAYOUT: iPad/PC (768px+) ===== */
+  @media (min-width: 768px) {
+    main {
+      max-width: 960px;
+      padding: 14px 24px 32px;
+    }
+
+    /* チューナーは約1.3倍に抑える・中央寄せ */
+    #panel-tuner {
+      max-width: 620px;
+      margin: 0 auto;
+    }
+
+    /* ===== メトロノーム 2カラム ===== */
+    #metro-card {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0 24px;
+    }
+    .metro-main-col {
+      flex: 0 0 420px;
+    }
+    #metro-setlist-panel {
+      flex: 1;
+      min-width: 200px;
+      display: block !important;
+      margin-top: 0 !important;
+      border-left: 1.5px solid #e8eaef;
+      padding-left: 24px;
+    }
+    #metro-setlist-toggle {
+      display: none !important;
+    }
+    .app-banner-section {
+      flex-basis: 100%;
+      border-top: 1.5px solid #e8eaef;
+      padding-top: 20px;
+      margin-top: 8px;
+    }
+
+    /* ===== セットリスト：リスト表示（曲名を大きく・見やすく） ===== */
+    #metro-setlist-panel .live-slots {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+    #metro-setlist-panel .metro-slot-btn {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      min-height: 56px;
+      border-radius: 12px;
+      text-align: left;
+    }
+    /* slot-top の子要素を直接 flex アイテムとして扱う */
+    #metro-setlist-panel .metro-slot-top {
+      display: contents;
+    }
+    #metro-setlist-panel .metro-slot-num {
+      order: 1;
+      font-size: 0.72rem;
+      min-width: 18px;
+      flex-shrink: 0;
+    }
+    #metro-setlist-panel .metro-slot-name {
+      order: 2;
+      flex: 1;
+      font-size: 0.85rem;
+      font-weight: 700;
+      min-height: auto;
+      display: block;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: #333;
+    }
+    #metro-setlist-panel .metro-slot-bpm {
+      order: 3;
+      font-size: 1.3rem;
+      text-align: right;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+    /* 選択中スロットの曲名は白文字を維持 */
+    #metro-setlist-panel .metro-slot-btn.selected .metro-slot-name { color: rgba(255,255,255,0.9); }
+
+    /* ===== バナーを横並び・コンパクトに ===== */
+    .app-banner-row {
+      flex-direction: row;
+    }
+    .img-banner-link {
+      width: auto;
+      flex: 1;
+      margin: 0;
+    }
+  }
+
+  @media (min-width: 1080px) {
+    .metro-main-col {
+      flex: 0 0 460px;
+    }
+  }
 </style>
 </head>
 <body>
@@ -1769,6 +1875,7 @@
   <div class="panel active" id="panel-metronome">
     <div class="card" id="metro-card">
 
+      <div class="metro-main-col">
       <div class="bpm-display">
         <div class="bpm-number" id="bpm-display">120</div>
         <div class="bpm-label">BPM</div>
@@ -1865,6 +1972,8 @@
         </div>
         <span class="setlist-toggle-arrow">▼</span>
       </button>
+      </div><!-- /.metro-main-col -->
+
       <div id="metro-setlist-panel" style="display:none; margin-top:12px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;gap:6px;">
           <div class="live-slots-label" style="flex-shrink:0;">SETLIST</div>
