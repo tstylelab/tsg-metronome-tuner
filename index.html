@@ -71,10 +71,11 @@
     line-height: 1.2;
   }
 
-  .brand-sub2-row {
+  .brand-sub1-row {
     display: flex;
     align-items: baseline;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 6px;
   }
 
   .brand-sub2 {
@@ -1657,50 +1658,43 @@
       margin-top: 8px;
     }
 
-    /* ===== セットリスト：リスト表示（曲名を大きく・見やすく） ===== */
+    /* ===== セットリスト：2列カード表示 ===== */
     #metro-setlist-panel .live-slots {
-      display: flex;
-      flex-direction: column;
-      gap: 5px;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 6px;
     }
     #metro-setlist-panel .metro-slot-btn {
-      display: flex;
-      flex-direction: row;
-      align-items: center;
-      gap: 10px;
-      padding: 10px 14px;
-      min-height: 56px;
-      border-radius: 12px;
+      display: block;
+      padding: 8px 10px 7px;
+      border-radius: 10px;
       text-align: left;
+      min-height: 0;
     }
-    /* slot-top の子要素を直接 flex アイテムとして扱う */
     #metro-setlist-panel .metro-slot-top {
-      display: contents;
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 4px;
+      margin-bottom: 3px;
     }
     #metro-setlist-panel .metro-slot-num {
-      order: 1;
-      font-size: 0.72rem;
-      min-width: 18px;
-      flex-shrink: 0;
+      font-size: 0.68rem;
+    }
+    #metro-setlist-panel .metro-slot-bpm {
+      font-size: 1.1rem;
+      text-align: right;
     }
     #metro-setlist-panel .metro-slot-name {
-      order: 2;
-      flex: 1;
-      font-size: 0.85rem;
+      font-size: 0.78rem;
       font-weight: 700;
-      min-height: auto;
       display: block;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      color: #333;
-    }
-    #metro-setlist-panel .metro-slot-bpm {
-      order: 3;
-      font-size: 1.3rem;
-      text-align: right;
-      flex-shrink: 0;
-      line-height: 1;
+      color: #444;
+      min-height: 0;
+      cursor: text;
     }
     /* 選択中スロットの曲名は白文字を維持 */
     #metro-setlist-panel .metro-slot-btn.selected .metro-slot-name { color: rgba(255,255,255,0.9); }
@@ -1768,11 +1762,11 @@
       TSG
     </div>
     <div class="brand-right">
-      <div class="brand-sub1">Guitar School</div>
-      <div class="brand-sub2-row">
-        <div class="brand-sub2">Metronome &amp; Tuner</div>
+      <div class="brand-sub1-row">
         <span class="brand-note">【プロギタリスト監修】</span>
+        <div class="brand-sub1">Guitar School</div>
       </div>
+      <div class="brand-sub2">Metronome &amp; Tuner</div>
     </div>
   </div>
   <div class="header-wrap">
@@ -2377,11 +2371,62 @@ function loadMetroSetlist() {
   } catch(e) {}
 }
 
+function startInlineEditSlot(idx, nameEl) {
+  if (window.innerWidth < 768) return;
+  nameEl.contentEditable = 'true';
+  nameEl.style.outline = '2px solid #2176ae';
+  nameEl.style.borderRadius = '3px';
+  nameEl.style.overflow = 'visible';
+  nameEl.style.whiteSpace = 'normal';
+  nameEl.focus();
+  // 全選択
+  const range = document.createRange();
+  range.selectNodeContents(nameEl);
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(range);
+
+  function finish() {
+    const val = nameEl.textContent.trim().slice(0, 20);
+    nameEl.textContent = val || '';
+    nameEl.contentEditable = 'false';
+    nameEl.style.outline = '';
+    nameEl.style.borderRadius = '';
+    nameEl.style.overflow = '';
+    nameEl.style.whiteSpace = '';
+    metroNames[idx] = val;
+    saveMetroSetlist();
+    nameEl.removeEventListener('blur', finish);
+    nameEl.removeEventListener('keydown', keyHandler);
+  }
+  function keyHandler(e) {
+    if (e.key === 'Enter') { e.preventDefault(); nameEl.blur(); }
+    if (e.key === 'Escape') {
+      nameEl.textContent = metroNames[idx] || '';
+      nameEl.contentEditable = 'false';
+      nameEl.style.outline = '';
+      nameEl.style.borderRadius = '';
+      nameEl.style.overflow = '';
+      nameEl.style.whiteSpace = '';
+      nameEl.removeEventListener('blur', finish);
+      nameEl.removeEventListener('keydown', keyHandler);
+    }
+  }
+  nameEl.addEventListener('blur', finish);
+  nameEl.addEventListener('keydown', keyHandler);
+}
+
 function makeMetroSlotBtn(i) {
   const btn = document.createElement('button');
   btn.className = 'metro-slot-btn' + (i === metroSelectedSlot ? ' selected' : '');
   btn.id = 'metro-slot-' + i;
   btn.onclick = () => selectMetroSlot(i);
+  btn.addEventListener('dblclick', function(e) {
+    if (window.innerWidth < 768) return;
+    e.stopPropagation();
+    const nameEl = this.querySelector('.metro-slot-name');
+    if (nameEl) startInlineEditSlot(i, nameEl);
+  });
   const name  = metroNames[i] || '';
   const bpmVal = metroSlots[i] !== null ? metroSlots[i] : '—';
   const beatsVal = metroBeatsArr[i] || 4;
