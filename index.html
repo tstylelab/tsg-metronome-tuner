@@ -120,7 +120,7 @@
     border-radius: 10px;
     cursor: pointer;
     background: transparent;
-    color: #777;
+    color: #333;
     transition: background 0.18s, color 0.18s, box-shadow 0.18s, transform 0.1s;
     letter-spacing: 0.04em;
   }
@@ -999,9 +999,10 @@
   #beat-indicators.show-pick .beat-dot.muted .pick-sym,
   #beat-indicators.show-pick .beat-sub-dot.muted .pick-sym { display: none; }
 
-  /* ===== ALL ACCENT BUTTON ===== */
+  /* ===== ALL ACCENT / PICK / BACKBEAT ACTIVE BUTTONS ===== */
   #all-accent-btn.all-accent-active,
-  #pick-btn.pick-active {
+  #pick-btn.pick-active,
+  #backbeat-btn.backbeat-active {
     background: linear-gradient(to bottom, #1a1a2e, #2d2d4e) !important;
     color: #fff !important;
     border-color: #1a1a2e !important;
@@ -1681,6 +1682,11 @@
       padding: 14px 24px 32px;
     }
 
+    /* タブボタン：PC/iPad では横幅を広げて目立たせる */
+    .tab-btn {
+      padding: 12px 56px;
+    }
+
     /* チューナーは約1.3倍に抑える・中央寄せ */
     #panel-tuner {
       max-width: 620px;
@@ -1783,7 +1789,7 @@
 <body>
 
 <header>
-  <div class="header-inner">
+  <a href="." class="header-inner" style="text-decoration:none; color:inherit; cursor:pointer;">
     <div class="brand-main">
       <svg viewBox="0 0 48 108" width="22" height="50" xmlns="http://www.w3.org/2000/svg">
         <!-- Headstock -->
@@ -1831,7 +1837,7 @@
       </div>
       <div class="brand-sub2">Metronome &amp; Tuner</div>
     </div>
-  </div>
+  </a>
   <div class="header-wrap">
     <button class="help-btn" onclick="document.getElementById('help-modal').classList.add('open')">使い方ガイド</button>
   </div>
@@ -1984,18 +1990,6 @@
           <option value="6.8">6 / 8</option>
           <option value="7.8">7 / 8</option>
         </select>
-        <button id="backbeat-btn" onclick="applyBackbeat()" style="
-          flex:0 0 auto; padding:7px 11px;
-          border:1.5px solid #c8ccd6; border-radius:8px;
-          background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
-          box-shadow:0 2px 0 #b8bcc8;
-          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.85rem; font-weight:600; color:#555; cursor:pointer;
-          letter-spacing:0.03em; white-space:nowrap;
-          transition:box-shadow 0.1s,transform 0.1s;
-        " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
-           onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
-           ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
-           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Backbeat</button>
         <button id="all-accent-btn" onclick="setAllAccent(!allAccent)" style="
           flex:0 0 auto; padding:7px 11px;
           border:1.5px solid #c8ccd6; border-radius:8px;
@@ -2020,6 +2014,18 @@
            onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Pick</button>
+        <button id="backbeat-btn" onclick="applyBackbeat()" style="
+          flex:0 0 auto; padding:7px 11px;
+          border:1.5px solid #c8ccd6; border-radius:8px;
+          background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
+          box-shadow:0 2px 0 #b8bcc8;
+          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.85rem; font-weight:600; color:#555; cursor:pointer;
+          letter-spacing:0.03em; white-space:nowrap;
+          transition:box-shadow 0.1s,transform 0.1s,background 0.15s,color 0.15s;
+        " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
+           onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
+           ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
+           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Backbeat</button>
       </div>
 
       <div class="section-label">Subdivision</div>
@@ -2393,6 +2399,7 @@ let currentSound = 'beep';
 let groove = 'normal';
 let allAccent = false;
 let showPick   = false;
+let backbeatActive = false;
 
 // ===== VOICE COUNT BUFFERS =====
 const voiceBuffers = {};
@@ -3074,11 +3081,26 @@ function resetMuteState() {
   const subs = getSubsPerBeat();
   subMuted = [];
   for (let i = 0; i < beats; i++) subMuted.push(new Array(subs).fill(false));
+  // バックビートのアクティブ状態もリセット
+  backbeatActive = false;
+  const bbBtn = document.getElementById('backbeat-btn');
+  if (bbBtn) bbBtn.classList.remove('backbeat-active');
 }
 
 function applyBackbeat() {
+  const btn = document.getElementById('backbeat-btn');
+  if (backbeatActive) {
+    // 2回目押下 → 全ビートを通常に戻す
+    backbeatActive = false;
+    resetMuteState();
+    renderBeatDots();
+    autoSaveMetroSlot();
+    if (btn) btn.classList.remove('backbeat-active');
+    return;
+  }
+  // 1回目押下 → バックビートパターンを適用
+  backbeatActive = true;
   const subs = getSubsPerBeat(); // 0=normal, 1=eighth/shuffle, 3=sixteenth/sixteenth-shuffle
-  // まず全リセット
   beatMuted = Array(beats).fill(false);
   subMuted  = Array.from({length: beats}, () => Array(subs).fill(false));
 
@@ -3101,12 +3123,8 @@ function applyBackbeat() {
     }
   }
   renderBeatDots();
-  // 一瞬光らせてフィードバック
-  const btn = document.getElementById('backbeat-btn');
-  if (btn) {
-    btn.classList.add('selected');
-    setTimeout(() => btn.classList.remove('selected'), 400);
-  }
+  autoSaveMetroSlot();
+  if (btn) btn.classList.add('backbeat-active');
 }
 
 function toggleBeatMute(i) {
