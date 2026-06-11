@@ -125,11 +125,35 @@
     letter-spacing: 0.04em;
   }
 
+  @keyframes tab-glint {
+    0%   { left: -80%; opacity: 0; }
+    2%   { opacity: 0.38; }
+    6%   { left: 130%; opacity: 0; }
+    7%, 100% { left: 130%; opacity: 0; }
+  }
+
   .tab-btn.active {
     background: #1a1a2e;
     color: #ffffff;
     box-shadow: 0 3px 10px rgba(26,26,46,0.28);
     transform: translateY(-1px);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .tab-btn.active::after {
+    content: '';
+    position: absolute;
+    top: 0; left: -80%;
+    width: 50%; height: 100%;
+    background: linear-gradient(
+      105deg,
+      transparent 20%,
+      rgba(255,255,255,0.62) 50%,
+      transparent 80%
+    );
+    animation: tab-glint 4s ease-in infinite;
+    pointer-events: none;
   }
 
   .tab-btn:not(.active):hover {
@@ -328,8 +352,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(circle at 35% 35%, #b8beca, #8a92a4);
-    box-shadow: 0 3px 8px rgba(0,0,0,0.18), inset 0 1px 2px rgba(255,255,255,0.5);
+    background: radial-gradient(circle at 35% 35%, #6e7a90, #424e62);
+    box-shadow: 0 3px 8px rgba(0,0,0,0.28), inset 0 1px 2px rgba(255,255,255,0.3);
     transition: background 0.06s, transform 0.06s, box-shadow 0.06s;
   }
 
@@ -383,7 +407,7 @@
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #b0b6c4;
+    background: #52596a;
     transition: background 0.06s, transform 0.06s;
     cursor: pointer;
     flex-shrink: 0;
@@ -999,15 +1023,24 @@
   #beat-indicators.show-pick .beat-dot.muted .pick-sym,
   #beat-indicators.show-pick .beat-sub-dot.muted .pick-sym { display: none; }
 
-  /* ===== ALL ACCENT / PICK / BACKBEAT ACTIVE BUTTONS ===== */
+  /* ===== ALL ACCENT / PICK / BACKBEAT / SCORE ACTIVE BUTTONS ===== */
   #all-accent-btn.all-accent-active,
   #pick-btn.pick-active,
-  #backbeat-btn.backbeat-active {
+  #score-btn.score-active {
     background: linear-gradient(to bottom, #1a1a2e, #2d2d4e) !important;
     color: #fff !important;
     border-color: #1a1a2e !important;
     box-shadow: 0 2px 0 #0a0a1a !important;
   }
+
+  /* ===== SCORE VIEW ===== */
+  #score-container {
+    display: none;
+    padding: 6px 4px 2px;
+  }
+  .score-slot { color: #1a1a2e; }
+  .score-slot.score-active { color: #2176ae; transition: color 0.06s; }
+  .score-slot.score-accent.score-active { color: #c0392b; }
 
   /* ===== DRAG & DROP ===== */
   .metro-slot-drag-ghost {
@@ -1869,10 +1902,6 @@
         <div class="tip-desc">画面のビートドット（○）をタップすると、その拍や細分割をON/OFFできます。「2拍目と4拍目だけ」「裏拍だけ」など自分でカスタムできます。</div>
       </div>
       <div class="tip-item">
-        <div class="tip-title">Backbeatボタンで裏拍パターンを一発設定</div>
-        <div class="tip-desc">Backbeatを押すと、現在のサブディビジョンに合わせた裏拍パターンを自動で設定します。4分音符なら2・4拍目のみ、8分音符なら1拍目頭＋全裏拍、16分音符なら1拍目頭＋各拍の4つ目だけが鳴ります。その後ドットを個別にタップして微調整もできます。</div>
-      </div>
-      <div class="tip-item">
         <div class="tip-title">8th / 16th / Shuffleで細分割を追加できます</div>
         <div class="tip-desc">8th（8分音符）、16th（16分音符）、8th Shuffle、16th Shuffleの4ボタンで切り替えます。Shuffleを選ぶと「Shuffle Feel」スライダーが表示され、ジャズのスイング感も細かく調整できます。</div>
       </div>
@@ -1945,6 +1974,7 @@
       </div>
 
       <div class="beat-indicators" id="beat-indicators"></div>
+      <div id="score-container"></div>
       <div id="beat-tap-hint" style="text-align:center; font-size:0.71rem; color:#c0c4cc;
            letter-spacing:0.04em; margin-top:5px; margin-bottom:2px;
            transition:opacity 1s ease; opacity:1;">👆 ドットタップでON/OFF &nbsp;·&nbsp; スライドでBPM変更</div>
@@ -1990,8 +2020,9 @@
           <option value="6.8">6 / 8</option>
           <option value="7.8">7 / 8</option>
         </select>
+        <div style="display:flex;gap:8px;flex:1;">
         <button id="all-accent-btn" onclick="setAllAccent(!allAccent)" style="
-          flex:0 0 auto; padding:7px 11px;
+          flex:1; padding:7px 6px;
           border:1.5px solid #c8ccd6; border-radius:8px;
           background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
           box-shadow:0 2px 0 #b8bcc8;
@@ -2003,7 +2034,7 @@
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">All Accent</button>
         <button id="pick-btn" onclick="setShowPick(!showPick)" style="
-          flex:0 0 auto; padding:7px 11px;
+          flex:1; padding:7px 6px;
           border:1.5px solid #c8ccd6; border-radius:8px;
           background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
           box-shadow:0 2px 0 #b8bcc8;
@@ -2014,8 +2045,8 @@
            onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Pick</button>
-        <button id="backbeat-btn" onclick="applyBackbeat()" style="
-          flex:0 0 auto; padding:7px 11px;
+        <button id="score-btn" onclick="setShowScore(!showScore)" style="
+          flex:1; padding:7px 6px;
           border:1.5px solid #c8ccd6; border-radius:8px;
           background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
           box-shadow:0 2px 0 #b8bcc8;
@@ -2025,7 +2056,8 @@
         " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
-           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Backbeat</button>
+           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Score</button>
+        </div>
       </div>
 
       <div class="section-label">Subdivision</div>
@@ -2399,7 +2431,7 @@ let currentSound = 'beep';
 let groove = 'normal';
 let allAccent = false;
 let showPick   = false;
-let backbeatActive = false;
+let showScore = false;
 
 // ===== VOICE COUNT BUFFERS =====
 const voiceBuffers = {};
@@ -2944,6 +2976,159 @@ function setShowPick(val) {
   const cont = document.getElementById('beat-indicators');
   if (cont) cont.classList.toggle('show-pick', showPick);
   autoSaveMetroSlot();
+  if (showScore) renderScoreView();
+}
+
+function setShowScore(val) {
+  showScore = !!val;
+  localStorage.setItem('tsg_showScore', showScore ? '1' : '0');
+  const btn = document.getElementById('score-btn');
+  if (btn) btn.classList.toggle('score-active', showScore);
+  const scoreEl = document.getElementById('score-container');
+  const dotsEl  = document.getElementById('beat-indicators');
+  if (scoreEl) scoreEl.style.display = showScore ? 'block' : 'none';
+  if (dotsEl)  dotsEl.style.display  = showScore ? 'none'  : '';
+  if (showScore) renderScoreView();
+}
+
+// ===== 休符記号 =====
+function restSymbolQuarter(cx, cy, col) {
+  // 4分休符：上右→左下、右に丸い反転（キック）、左下、底フック
+  return `<path d="M ${cx+5},${cy-14} L ${cx-3},${cy-8} C ${cx+1},${cy-9} ${cx+9},${cy-4} ${cx+5},${cy+0} L ${cx-5},${cy+7} Q ${cx-7},${cy+13} ${cx-1},${cy+14}"
+    stroke="${col}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>`;
+}
+function restSymbolEighth(cx, cy, col) {
+  // 8分休符：スラッシュ棒 ＋ 棒の上端から左下へ短い弓状の枝 ＋ 枝の先端に丸
+  return `<line x1="${cx-4}" y1="${cy+10}" x2="${cx+4}" y2="${cy-12}"
+    stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>` +
+         `<path d="M ${cx+4},${cy-12} Q ${cx+1},${cy-5} ${cx-2},${cy-7}"
+    stroke="${col}" stroke-width="2.2" fill="none" stroke-linecap="round"/>` +
+         `<circle cx="${cx-2}" cy="${cy-7}" r="4" fill="${col}"/>`;
+}
+function restSymbolSixteenth(cx, cy, col) {
+  // 16分休符：スラッシュ棒 ＋ 上下2か所から左下へ短い弓状の枝 ＋ 各先端に丸
+  return `<line x1="${cx-4}" y1="${cy+11}" x2="${cx+4}" y2="${cy-13}"
+    stroke="${col}" stroke-width="2.5" stroke-linecap="round"/>` +
+         // 上の枝（棒の上端から）
+         `<path d="M ${cx+4},${cy-13} Q ${cx+1},${cy-6} ${cx-1},${cy-8}"
+    stroke="${col}" stroke-width="2.2" fill="none" stroke-linecap="round"/>` +
+         `<circle cx="${cx-1}" cy="${cy-8}" r="3.8" fill="${col}"/>` +
+         // 下の枝（棒の中間から）
+         `<path d="M ${cx+0},${cy-1} Q ${cx-2},${cy+5} ${cx-5},${cy+4}"
+    stroke="${col}" stroke-width="2.2" fill="none" stroke-linecap="round"/>` +
+         `<circle cx="${cx-5}" cy="${cy+4}" r="3.5" fill="${col}"/>`;
+}
+
+function renderScoreView() {
+  const container = document.getElementById('score-container');
+  if (!container || !showScore) return;
+
+  const subs = getSubsPerBeat(); // 0=quarter, 1=eighth, 3=sixteenth
+
+  // 全スロットをフラット配列に
+  const slots = [];
+  for (let b = 0; b < beats; b++) {
+    slots.push({ isMuted: beatMuted[b], isAccent: (b === 0 || allAccent), beatIdx: b, subIdx: -1,
+                 clickFn: `toggleBeatMute(${b})` });
+    for (let s = 0; s < subs; s++) {
+      const m = Array.isArray(subMuted[b]) ? !!subMuted[b][s] : false;
+      slots.push({ isMuted: m, isAccent: false, beatIdx: b, subIdx: s,
+                   clickFn: `toggleSubMute(${b},${s})` });
+    }
+  }
+
+  const W = 400;
+  const pickPad = showPick ? 18 : 0;          // ピック記号用の上余白
+  const H       = 90 + pickPad;
+  const staffTop = 16 + pickPad, lineGap = 8; // 5線位置
+  const staffBot = staffTop + 4 * lineGap;
+  const noteY    = staffTop + 2 * lineGap;    // 中央線
+  const stemH    = Math.round(lineGap * 3.5);
+  const stemTop  = noteY - stemH;
+  const noteRx = 6, noteRy = 4;
+  const pickSymH = 11, pickSymHW = 6;         // ピック記号の高さ・半幅
+  const pickY    = stemTop - pickSymH - 3;    // ピック記号の上端
+  const mL = 52, mR = 20;
+  const step = (W - mL - mR) / slots.length;
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block;">`;
+
+  // 1本線（リズム譜スタイル）
+  svg += `<line x1="${mL-8}" y1="${noteY}" x2="${W-mR+8}" y2="${noteY}" stroke="#444" stroke-width="1.5"/>`;
+  // 縦線・終止線
+  svg += `<line x1="${mL-8}" y1="${noteY-14}" x2="${mL-8}" y2="${noteY+14}" stroke="#333" stroke-width="2.2"/>`;
+  svg += `<line x1="${W-mR+5}" y1="${noteY-14}" x2="${W-mR+5}" y2="${noteY+14}" stroke="#333" stroke-width="3"/>`;
+  svg += `<line x1="${W-mR+10}" y1="${noteY-14}" x2="${W-mR+10}" y2="${noteY+14}" stroke="#333" stroke-width="1.2"/>`;
+  // 拍子記号
+  const denom = is8thBase ? 8 : 4;
+  svg += `<text x="22" y="${noteY-2}" text-anchor="middle" font-family="Oswald,sans-serif" font-size="20" font-weight="700" fill="#222">${beats}</text>`;
+  svg += `<text x="22" y="${noteY+16}" text-anchor="middle" font-family="Oswald,sans-serif" font-size="20" font-weight="700" fill="#222">${denom}</text>`;
+
+  const xs = slots.map((_, i) => mL + (i + 0.5) * step);
+  const slashSX = 5;  // スラッシュ符頭の右端オフセット（符尾接続点）
+
+  // 連桁（ビーム）
+  if (subs >= 1) {
+    const beamW = 4.5, beamGap = 6;
+    for (let b = 0; b < beats; b++) {
+      const g0 = b * (1 + subs);
+      const g1 = g0 + subs;
+      const x0 = xs[g0] + slashSX;
+      const x1 = xs[g1] + slashSX;
+      const by = stemTop + 1;
+      svg += `<line x1="${x0}" y1="${by}" x2="${x1}" y2="${by}" stroke="#1a1a2e" stroke-width="${beamW}"/>`;
+      if (subs >= 3) {
+        svg += `<line x1="${x0}" y1="${by+beamGap}" x2="${x1}" y2="${by+beamGap}" stroke="#1a1a2e" stroke-width="${beamW}"/>`;
+      }
+    }
+  }
+
+  // 音符 / 休符 + ピック記号
+  slots.forEach((slot, i) => {
+    const x = xs[i];
+    const col = 'currentColor';
+    const accentCls = slot.isAccent ? ' score-accent' : '';
+    svg += `<g id="score-slot-${i}" class="score-slot${accentCls}">`;
+
+    if (slot.isMuted) {
+      // 連桁グループ内：薄い符尾でビームに接続
+      if (subs >= 1) {
+        svg += `<line x1="${x+slashSX}" y1="${noteY-10}" x2="${x+slashSX}" y2="${stemTop}" stroke="${col}" stroke-width="1.5" opacity="0.15"/>`;
+      }
+      if (subs === 0)      svg += restSymbolQuarter(x, noteY, col);
+      else if (subs === 1) svg += restSymbolEighth(x, noteY, col);
+      else                 svg += restSymbolSixteenth(x, noteY, col);
+    } else {
+      // スラッシュ符頭（平行四辺形・2.5倍サイズ）
+      svg += `<polygon points="${x-5},${noteY+10} ${x-1},${noteY+10} ${x+slashSX},${noteY-10} ${x+1},${noteY-10}" fill="${col}"/>`;
+      // 符尾（スラッシュ右上端から上へ）
+      svg += `<line x1="${x+slashSX}" y1="${noteY-10}" x2="${x+slashSX}" y2="${stemTop}" stroke="${col}" stroke-width="1.6"/>`;
+      // ピック記号
+      if (showPick) {
+        const dir = getPickDir(slot.subIdx === -1, slot.subIdx);
+        const py = pickY;
+        const hw = pickSymHW;
+        if (dir === 'down') {
+          svg += `<polyline points="${x-hw},${py+pickSymH} ${x-hw},${py} ${x+hw},${py} ${x+hw},${py+pickSymH}"
+            fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+        } else {
+          svg += `<polyline points="${x-hw},${py} ${x},${py+pickSymH} ${x+hw},${py}"
+            fill="none" stroke="${col}" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"/>`;
+        }
+      }
+    }
+    svg += '</g>';
+  });
+
+  // クリック判定エリア（透明rect・最前面）
+  slots.forEach((slot, i) => {
+    const x = xs[i];
+    svg += `<rect x="${x - step*0.46}" y="0" width="${step*0.92}" height="${H}"
+              fill="transparent" style="cursor:pointer" onclick="${slot.clickFn}"/>`;
+  });
+
+  svg += '</svg>';
+  container.innerHTML = svg;
 }
 
 function setMetroSound(val) {
@@ -3081,50 +3266,6 @@ function resetMuteState() {
   const subs = getSubsPerBeat();
   subMuted = [];
   for (let i = 0; i < beats; i++) subMuted.push(new Array(subs).fill(false));
-  // バックビートのアクティブ状態もリセット
-  backbeatActive = false;
-  const bbBtn = document.getElementById('backbeat-btn');
-  if (bbBtn) bbBtn.classList.remove('backbeat-active');
-}
-
-function applyBackbeat() {
-  const btn = document.getElementById('backbeat-btn');
-  if (backbeatActive) {
-    // 2回目押下 → 全ビートを通常に戻す
-    backbeatActive = false;
-    resetMuteState();
-    renderBeatDots();
-    autoSaveMetroSlot();
-    if (btn) btn.classList.remove('backbeat-active');
-    return;
-  }
-  // 1回目押下 → バックビートパターンを適用
-  backbeatActive = true;
-  const subs = getSubsPerBeat(); // 0=normal, 1=eighth/shuffle, 3=sixteenth/sixteenth-shuffle
-  beatMuted = Array(beats).fill(false);
-  subMuted  = Array.from({length: beats}, () => Array(subs).fill(false));
-
-  if (groove === 'normal') {
-    // 2・4拍目のみ（0-indexed: 奇数拍をON = 0,2をミュート）
-    for (let i = 0; i < beats; i++) beatMuted[i] = (i % 2 === 0);
-
-  } else if (groove === 'eighth' || groove === 'shuffle') {
-    // 1拍目の頭 + 全ての裏拍（sub）
-    for (let i = 0; i < beats; i++) beatMuted[i] = (i !== 0);
-    // subMuted は全false（裏拍すべて鳴らす）
-
-  } else if (groove === 'sixteenth' || groove === 'sixteenth-shuffle') {
-    // 1拍目の頭 + 各拍の4つ目の16分音符（sub[2]）
-    for (let i = 0; i < beats; i++) {
-      beatMuted[i] = (i !== 0);
-      subMuted[i][0] = true; // 2つ目の16分：ミュート
-      subMuted[i][1] = true; // 3つ目の16分：ミュート
-      // subMuted[i][2] は false のまま（4つ目：鳴らす）
-    }
-  }
-  renderBeatDots();
-  autoSaveMetroSlot();
-  if (btn) btn.classList.add('backbeat-active');
 }
 
 function toggleBeatMute(i) {
@@ -3133,6 +3274,7 @@ function toggleBeatMute(i) {
   if (d) d.classList.toggle('muted', beatMuted[i]);
   dismissHint('beat-tap-hint', 'tsg-hint-tap-seen');
   autoSaveMetroSlot();
+  if (showScore) renderScoreView();
 }
 
 function toggleSubMute(i, j) {
@@ -3141,6 +3283,7 @@ function toggleSubMute(i, j) {
   if (s) s.classList.toggle('muted', subMuted[i][j]);
   dismissHint('beat-tap-hint', 'tsg-hint-tap-seen');
   autoSaveMetroSlot();
+  if (showScore) renderScoreView();
 }
 
 function renderBeatDots() {
@@ -3179,6 +3322,8 @@ function renderBeatDots() {
       cont.appendChild(s);
     }
   }
+  // スコア表示が有効な場合は再描画
+  if (showScore) renderScoreView();
 }
 
 function makeNoise(ctx, duration) {
@@ -3370,6 +3515,14 @@ function flashBeat(beat) {
     if (d) d.classList.toggle('active', i === beat);
   }
 
+  // スコアビュー：該当スロットをハイライト
+  if (showScore) {
+    const subs = getSubsPerBeat();
+    const slotIdx = beat * (1 + subs);
+    document.querySelectorAll('.score-slot').forEach(g => g.classList.remove('score-active'));
+    const g = document.getElementById('score-slot-' + slotIdx);
+    if (g) g.classList.add('score-active');
+  }
 }
 
 function flashSubDot(beat, subIndex) {
@@ -3379,6 +3532,15 @@ function flashSubDot(beat, subIndex) {
   if (s) {
     s.classList.add('active');
     setTimeout(() => s.classList.remove('active'), 120);
+  }
+
+  // スコアビュー：該当サブスロットをハイライト
+  if (showScore) {
+    const subs = getSubsPerBeat();
+    const slotIdx = beat * (1 + subs) + 1 + subIndex;
+    document.querySelectorAll('.score-slot').forEach(g => g.classList.remove('score-active'));
+    const g = document.getElementById('score-slot-' + slotIdx);
+    if (g) g.classList.add('score-active');
   }
 }
 
@@ -3404,6 +3566,7 @@ function toggleMetronome() {
     btn.classList.remove('running');
     if (card) card.classList.remove('metro-running');
     document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
+    document.querySelectorAll('.score-slot').forEach(g => g.classList.remove('score-active'));
   }
 }
 
@@ -4488,6 +4651,11 @@ initLiveSlots();
 initCapoBtns();
 renderStringButtons();
 document.getElementById('ref-pitch-value').textContent = refA4 + ' Hz';
+
+// スコアビューの状態を復元
+if (localStorage.getItem('tsg_showScore') === '1') {
+  setShowScore(true);
+}
 
 // 最後に使ったタブを復元
 const lastTab = localStorage.getItem('tsg_lastTab');
