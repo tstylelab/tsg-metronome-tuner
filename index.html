@@ -950,6 +950,31 @@
     flex-direction: column;
     justify-content: flex-start;
     align-items: stretch;
+    position: relative;
+  }
+  .metro-slot-dup-btn {
+    position: absolute;
+    bottom: 3px;
+    right: 3px;
+    width: 18px;
+    height: 18px;
+    border: 1px solid rgba(0,0,0,0.15);
+    background: rgba(255,255,255,0.75);
+    border-radius: 3px;
+    cursor: pointer;
+    padding: 0;
+    color: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+  }
+  .metro-slot-btn:hover .metro-slot-dup-btn { opacity: 1; }
+  .metro-slot-btn.selected .metro-slot-dup-btn {
+    background: rgba(255,255,255,0.2);
+    border-color: rgba(255,255,255,0.4);
+    color: #fff;
   }
   .metro-slot-btn.selected {
     border-color: #2176ae;
@@ -2119,7 +2144,10 @@
             placeholder="曲名を入力（任意）" maxlength="20"
             oninput="updateMetroSlotName(this.value)"
             style="width:100%;box-sizing:border-box;margin-bottom:0;">
-          <p style="margin:4px 0 0; font-size:0.68rem; color:#777; letter-spacing:0.02em;">PC/iPad：ダブルクリックで曲名入力 ／ ドラッグで曲順を入れ替え</p>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+            <p style="margin:0; font-size:0.68rem; color:#777; letter-spacing:0.02em;">PC/iPad：ダブルクリックで曲名入力 ／ ドラッグで曲順を入れ替え</p>
+            <button onclick="clearSelectedMetroSlot()" style="flex-shrink:0;margin-left:8px;padding:3px 10px;font-size:0.72rem;color:#c0392b;background:#fff5f5;border:1px solid #e0a0a0;border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600;" title="選択中のスロットを初期状態に戻す">選択中スロットをリセット</button>
+          </div>
         </div>
         <!-- セットリスト 保存/読み込み -->
         <div style="margin-top:14px; border-top:1.5px solid #eee; padding-top:14px;">
@@ -2640,7 +2668,12 @@ function makeMetroSlotBtn(i) {
     + `<span class="metro-slot-num">${i+1}</span>`
     + `<span class="metro-slot-bpm" id="mslot-bpm-${i}">${bpmDisplay}</span>`
     + `</div>`
-    + `<div class="metro-slot-name" id="mslot-name-${i}">${name}</div>`;
+    + `<div class="metro-slot-name" id="mslot-name-${i}">${name}</div>`
+    + `<button class="metro-slot-dup-btn" title="複製" onclick="event.stopPropagation();duplicateMetroSlot(${i})">`
+    + `<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3">`
+    + `<rect x="3.5" y="3.5" width="5.5" height="5.5" rx="1"/>`
+    + `<path d="M6.5 3.5V1.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5H3.5"/>`
+    + `</svg></button>`;
   return btn;
 }
 
@@ -2781,6 +2814,61 @@ function autoSaveMetroSlot() {
       : String(bpm);
   }
   saveMetroSetlist();
+}
+
+function duplicateMetroSlot(i) {
+  if (metroSlots[23] !== null || metroNames[23] !== '') {
+    alert('スロットが満杯です（最大24）');
+    return;
+  }
+  for (let j = 23; j > i + 1; j--) {
+    metroSlots[j]        = metroSlots[j-1];
+    metroNames[j]        = metroNames[j-1];
+    metroBeatsArr[j]     = metroBeatsArr[j-1];
+    metroGroovesArr[j]   = metroGroovesArr[j-1];
+    metroIs8thBaseArr[j] = metroIs8thBaseArr[j-1];
+    metroShuffleArr[j]   = metroShuffleArr[j-1];
+    metroSoundsArr[j]    = metroSoundsArr[j-1];
+    metroAllAccentArr[j] = metroAllAccentArr[j-1];
+    metroShowPickArr[j]  = metroShowPickArr[j-1];
+    metroBeatMutedArr[j] = Array.isArray(metroBeatMutedArr[j-1]) ? metroBeatMutedArr[j-1].slice() : [];
+    metroSubMutedArr[j]  = Array.isArray(metroSubMutedArr[j-1]) ? metroSubMutedArr[j-1].map(r => Array.isArray(r) ? r.slice() : []) : [];
+  }
+  metroSlots[i+1]        = metroSlots[i];
+  metroNames[i+1]        = metroNames[i];
+  metroBeatsArr[i+1]     = metroBeatsArr[i];
+  metroGroovesArr[i+1]   = metroGroovesArr[i];
+  metroIs8thBaseArr[i+1] = metroIs8thBaseArr[i];
+  metroShuffleArr[i+1]   = metroShuffleArr[i];
+  metroSoundsArr[i+1]    = metroSoundsArr[i];
+  metroAllAccentArr[i+1] = metroAllAccentArr[i];
+  metroShowPickArr[i+1]  = metroShowPickArr[i];
+  metroBeatMutedArr[i+1] = Array.isArray(metroBeatMutedArr[i]) ? metroBeatMutedArr[i].slice() : [];
+  metroSubMutedArr[i+1]  = Array.isArray(metroSubMutedArr[i]) ? metroSubMutedArr[i].map(r => Array.isArray(r) ? r.slice() : []) : [];
+  if (metroSelectedSlot > i) metroSelectedSlot++;
+  saveMetroSetlist();
+  renderMetroSlots();
+  if (i + 1 < metroSlotCount) selectMetroSlot(i + 1);
+}
+
+function clearSelectedMetroSlot() {
+  const i = metroSelectedSlot;
+  metroSlots[i]        = null;
+  metroNames[i]        = '';
+  metroBeatsArr[i]     = 4;
+  metroGroovesArr[i]   = 'normal';
+  metroIs8thBaseArr[i] = false;
+  metroShuffleArr[i]   = 67;
+  metroSoundsArr[i]    = 'beep';
+  metroAllAccentArr[i] = false;
+  metroShowPickArr[i]  = false;
+  metroBeatMutedArr[i] = [];
+  metroSubMutedArr[i]  = [];
+  saveMetroSetlist();
+  renderMetroSlots();
+  applyMetroSlot(i);
+  const ni = document.getElementById('metro-slot-name');
+  if (ni) ni.value = '';
 }
 
 function updateMetroSlotName(val) {
