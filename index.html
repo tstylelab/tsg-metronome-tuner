@@ -1137,6 +1137,8 @@
     border-color: #1a1a2e;
     color: #fff;
   }
+  .subdiv-btn.selected img.shuffle-icon { filter: invert(1); }
+  img.shuffle-icon { vertical-align: middle; margin-right: 4px; }
 
   /* ===== GROOVE (Live panel only) ===== */
   .groove-toggle {
@@ -2064,8 +2066,8 @@
       <div class="subdiv-row">
         <button class="subdiv-btn" id="subdiv-8th"   onclick="setSubdivision('eighth')">8th</button>
         <button class="subdiv-btn" id="subdiv-16th"  onclick="setSubdivision('sixteenth')">16th</button>
-        <button class="subdiv-btn" id="subdiv-8sh"   onclick="setSubdivision('shuffle')">8th Shuffle</button>
-        <button class="subdiv-btn" id="subdiv-16sh"  onclick="setSubdivision('sixteenth-shuffle')">16th Shuffle</button>
+        <button class="subdiv-btn" id="subdiv-8sh"   onclick="setSubdivision('shuffle')"><img src="images/icon-8th-shuffle.png" class="shuffle-icon" height="33" alt="">8th</button>
+        <button class="subdiv-btn" id="subdiv-16sh"  onclick="setSubdivision('sixteenth-shuffle')"><img src="images/icon-16th-shuffle.png" class="shuffle-icon" height="29" alt="">16th</button>
       </div>
 
       <!-- Shuffle Feel slider (表示はshuffle選択時のみ) -->
@@ -2826,7 +2828,12 @@ function saveMetroSetlistFile() {
     grooves: metroGroovesArr,
     is8thBaseArr: metroIs8thBaseArr,
     shuffleRatios: metroShuffleArr,
-    sounds: metroSoundsArr
+    sounds: metroSoundsArr,
+    allAccentArr: metroAllAccentArr,
+    showPickArr: metroShowPickArr,
+    slotCount: metroSlotCount,
+    beatMuted: metroBeatMutedArr,
+    subMuted: metroSubMutedArr
   };
   const json = JSON.stringify(data, null, 2);
   const blob = new Blob([json], { type: 'application/json' });
@@ -2845,20 +2852,30 @@ function loadMetroSetlistFile(event) {
   reader.onload = e => {
     try {
       const data = JSON.parse(e.target.result);
-      metroSlots    = Array(12).fill(null);
-      metroNames    = Array(12).fill('');
-      metroBeatsArr = Array(12).fill(4);
-      metroGroovesArr   = Array(12).fill('normal');
-      metroIs8thBaseArr = Array(12).fill(false);
-      metroShuffleArr   = Array(12).fill(67);
-      metroSoundsArr    = Array(12).fill('beep');
-      if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<12) metroSlots[i]=v; });
-      if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<12) metroNames[i]=v||''; });
-      if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<12) metroBeatsArr[i]=v||4; });
-      if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<12) metroGroovesArr[i]=v||'normal'; });
-      if (Array.isArray(data.is8thBaseArr)) data.is8thBaseArr.forEach((v,i)=>{ if(i<12) metroIs8thBaseArr[i]=!!v; });
-      if (Array.isArray(data.shuffleRatios))data.shuffleRatios.forEach((v,i)=>{ if(i<12) metroShuffleArr[i]=v||67; });
-      if (Array.isArray(data.sounds))       data.sounds.forEach((v,i)=>{ if(i<12) metroSoundsArr[i]=v||'beep'; });
+      const n = data.slotCount === 24 ? 24 : 12;
+      metroSlotCount    = n;
+      metroSlots        = Array(n).fill(null);
+      metroNames        = Array(n).fill('');
+      metroBeatsArr     = Array(n).fill(4);
+      metroGroovesArr   = Array(n).fill('normal');
+      metroIs8thBaseArr = Array(n).fill(false);
+      metroShuffleArr   = Array(n).fill(67);
+      metroSoundsArr    = Array(n).fill('beep');
+      metroAllAccentArr = Array(n).fill(false);
+      metroShowPickArr  = Array(n).fill(false);
+      metroBeatMutedArr = Array(n).fill(null).map(()=>[]);
+      metroSubMutedArr  = Array(n).fill(null).map(()=>[]);
+      if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<n) metroSlots[i]=v; });
+      if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<n) metroNames[i]=v||''; });
+      if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<n) metroBeatsArr[i]=v||4; });
+      if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<n) metroGroovesArr[i]=v||'normal'; });
+      if (Array.isArray(data.is8thBaseArr)) data.is8thBaseArr.forEach((v,i)=>{ if(i<n) metroIs8thBaseArr[i]=!!v; });
+      if (Array.isArray(data.shuffleRatios))data.shuffleRatios.forEach((v,i)=>{ if(i<n) metroShuffleArr[i]=v||67; });
+      if (Array.isArray(data.sounds))       data.sounds.forEach((v,i)=>{ if(i<n) metroSoundsArr[i]=v||'beep'; });
+      if (Array.isArray(data.allAccentArr)) data.allAccentArr.forEach((v,i)=>{ if(i<n) metroAllAccentArr[i]=!!v; });
+      if (Array.isArray(data.showPickArr))  data.showPickArr.forEach((v,i)=>{ if(i<n) metroShowPickArr[i]=!!v; });
+      if (Array.isArray(data.beatMuted))    data.beatMuted.forEach((v,i)=>{ if(i<n) metroBeatMutedArr[i]=Array.isArray(v)?v.slice():[]; });
+      if (Array.isArray(data.subMuted))     data.subMuted.forEach((v,i)=>{ if(i<n) metroSubMutedArr[i]=Array.isArray(v)?v.map(r=>Array.isArray(r)?r.slice():[]):[]; });
       if (data.name) { const ni = document.getElementById('metro-setlist-name'); if(ni) ni.value=data.name; }
       metroSelectedSlot = 0;
       saveMetroSetlist();
