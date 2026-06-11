@@ -2044,7 +2044,7 @@
         " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
-           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Pick</button>
+           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"><svg width="11" height="9" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="vertical-align:middle;margin-right:4px"><polyline points="1,10 1,1 11,1 11,10"/></svg><svg width="11" height="9" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="vertical-align:middle;margin-right:4px"><polyline points="1,1 6,9 11,1"/></svg>Pick</button>
         <button id="score-btn" onclick="setShowScore(!showScore)" style="
           flex:1; padding:7px 6px;
           border:1.5px solid #c8ccd6; border-radius:8px;
@@ -2056,7 +2056,7 @@
         " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            onmouseup="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
-           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">Score</button>
+           ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">♫ Score</button>
         </div>
       </div>
 
@@ -3068,6 +3068,8 @@ function renderScoreView() {
   const slashSX = 5;  // スラッシュ符頭の右端オフセット（符尾接続点）
 
   // 連桁（ビーム）
+  // is8thBase時: subs=0→8分音符なので旗で表現、subs=1→16分音符なので2本ビーム
+  const needDoubleBeam = subs >= 3 || (is8thBase && subs >= 1);
   if (subs >= 1) {
     const beamW = 4.5, beamGap = 6;
     for (let b = 0; b < beats; b++) {
@@ -3077,7 +3079,7 @@ function renderScoreView() {
       const x1 = xs[g1] + slashSX;
       const by = stemTop + 1;
       svg += `<line x1="${x0}" y1="${by}" x2="${x1}" y2="${by}" stroke="#1a1a2e" stroke-width="${beamW}"/>`;
-      if (subs >= 3) {
+      if (needDoubleBeam) {
         svg += `<line x1="${x0}" y1="${by+beamGap}" x2="${x1}" y2="${by+beamGap}" stroke="#1a1a2e" stroke-width="${beamW}"/>`;
       }
     }
@@ -3090,19 +3092,27 @@ function renderScoreView() {
     const accentCls = slot.isAccent ? ' score-accent' : '';
     svg += `<g id="score-slot-${i}" class="score-slot${accentCls}">`;
 
+    // is8thBase時は音符レベルを1段上げる（8分→8分休符、16分→16分休符）
+    const restLevel = is8thBase ? subs + 1 : subs;
     if (slot.isMuted) {
       // 連桁グループ内：薄い符尾でビームに接続
       if (subs >= 1) {
         svg += `<line x1="${x+slashSX}" y1="${noteY-10}" x2="${x+slashSX}" y2="${stemTop}" stroke="${col}" stroke-width="1.5" opacity="0.15"/>`;
       }
-      if (subs === 0)      svg += restSymbolQuarter(x, noteY, col);
-      else if (subs === 1) svg += restSymbolEighth(x, noteY, col);
-      else                 svg += restSymbolSixteenth(x, noteY, col);
+      if (restLevel === 0)      svg += restSymbolQuarter(x, noteY, col);
+      else if (restLevel === 1) svg += restSymbolEighth(x, noteY, col);
+      else                      svg += restSymbolSixteenth(x, noteY, col);
     } else {
       // スラッシュ符頭（平行四辺形・2.5倍サイズ）
       svg += `<polygon points="${x-5},${noteY+10} ${x-1},${noteY+10} ${x+slashSX},${noteY-10} ${x+1},${noteY-10}" fill="${col}"/>`;
       // 符尾（スラッシュ右上端から上へ）
       svg += `<line x1="${x+slashSX}" y1="${noteY-10}" x2="${x+slashSX}" y2="${stemTop}" stroke="${col}" stroke-width="1.6"/>`;
+      // 8分音符フラグ（is8thBaseでsubs=0の時：各音符に旗を付ける）
+      if (is8thBase && subs === 0) {
+        const fx = x + slashSX;
+        svg += `<path d="M ${fx},${stemTop} C ${fx+9},${stemTop+5} ${fx+7},${stemTop+12} ${fx+1},${stemTop+14}"
+          stroke="${col}" stroke-width="1.6" fill="none" stroke-linecap="round"/>`;
+      }
       // ピック記号
       if (showPick) {
         const dir = getPickDir(slot.subIdx === -1, slot.subIdx);
