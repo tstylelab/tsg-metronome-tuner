@@ -983,10 +983,11 @@
   }
   .metro-slot-top {
     display: flex;
-    align-items: baseline;
-    justify-content: space-between;
+    align-items: center;
+    justify-content: flex-start;
     gap: 2px;
-    margin-bottom: 3px;
+    margin-bottom: 4px;
+    position: relative;
   }
   .metro-slot-num {
     font-family: 'Oswald', sans-serif;
@@ -1003,7 +1004,8 @@
     font-weight: 700;
     color: #1a1a2e;
     line-height: 1;
-    text-align: right;
+    flex: 1;
+    text-align: center;
     white-space: nowrap;
   }
   .metro-slot-btn.selected .metro-slot-bpm { color: #fff; }
@@ -1806,7 +1808,6 @@
     }
     #metro-setlist-panel .metro-slot-bpm {
       font-size: 1.1rem;
-      text-align: right;
     }
     #metro-setlist-panel .metro-slot-name {
       font-family: 'Barlow Semi Condensed', sans-serif;
