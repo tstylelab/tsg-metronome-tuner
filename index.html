@@ -321,7 +321,7 @@
 
   .beat-select {
     flex: 0 0 auto;
-    width: 90px;
+    width: 62px;
     padding: 8px 6px;
     border: 1.5px solid #dde0e8;
     border-radius: 7px;
@@ -1250,20 +1250,43 @@
     top: 50%;
     right: 0;
     transform: translateY(-50%);
-    background: #c0392b;
+    background: linear-gradient(to bottom, #d44235, #a82b1e);
     color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 6px 13px;
-    font-size: 0.78rem;
+    border: 1px solid #8e1a13;
+    border-radius: 7px;
+    padding: 4px 8px;
+    font-size: 0.7rem;
     font-weight: 700;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.05em;
     cursor: pointer;
-    transition: background 0.15s;
+    box-shadow: 0 3px 0 #6e1410, 0 1px 4px rgba(0,0,0,0.25);
+    transition: box-shadow 0.1s, transform 0.1s, filter 0.1s;
     white-space: nowrap;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
 
-  .help-btn:hover { background: #a93226; }
+  .help-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.75);
+    font-size: 0.62rem;
+    font-weight: 800;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .help-btn:hover { filter: brightness(1.1); }
+
+  .help-btn:active {
+    box-shadow: 0 0px 0 #6e1410;
+    transform: translateY(calc(-50% + 3px));
+  }
 
   header { position: relative; }
 
@@ -1731,6 +1754,7 @@
     .tab-btn { padding: 9px 20px; font-size: 0.85rem; }
     .card { padding: 22px 16px; }
     .brand-main { font-size: 2rem; }
+    .help-btn { padding: 4px 7px; transform: translateY(-30%); }
   }
 
   /* ===== 2-COLUMN LAYOUT: iPad/PC (768px+) ===== */
@@ -1896,7 +1920,7 @@
     </div>
   </a>
   <div class="header-wrap">
-    <button class="help-btn" onclick="document.getElementById('help-modal').classList.add('open')">使い方ガイド</button>
+    <button class="help-btn" onclick="document.getElementById('help-modal').classList.add('open')"><span class="help-icon">?</span>使い方ガイド</button>
   </div>
 </header>
 
@@ -2032,7 +2056,7 @@
       </div>
 
       <div class="section-label">Time Sig</div>
-      <div class="beat-row">
+      <div class="beat-row" style="gap:6px;">
         <select class="beat-select" id="beat-select" onchange="onBeatSelectChange(this.value)">
           <option value="1">1 / 4</option>
           <option value="2">2 / 4</option>
@@ -2044,13 +2068,13 @@
           <option value="6.8">6 / 8</option>
           <option value="7.8">7 / 8</option>
         </select>
-        <div style="display:flex;gap:8px;flex:1;">
+        <div style="display:flex;gap:4px;flex:1;">
         <button id="all-accent-btn" onclick="setAllAccent(!allAccent)" style="
-          flex:1; padding:7px 6px;
+          flex:1; padding:6px 4px;
           border:1.5px solid #c8ccd6; border-radius:8px;
           background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
           box-shadow:0 2px 0 #b8bcc8;
-          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.85rem; font-weight:600; color:#555; cursor:pointer;
+          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.75rem; font-weight:600; color:#555; cursor:pointer;
           letter-spacing:0.03em; white-space:nowrap;
           transition:box-shadow 0.1s,transform 0.1s,background 0.15s,color 0.15s;
         " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
@@ -2058,11 +2082,11 @@
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'">All Accent</button>
         <button id="pick-btn" onclick="setShowPick(!showPick)" style="
-          flex:1; padding:7px 6px;
+          flex:1; padding:6px 4px;
           border:1.5px solid #c8ccd6; border-radius:8px;
           background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
           box-shadow:0 2px 0 #b8bcc8;
-          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.85rem; font-weight:600; color:#555; cursor:pointer;
+          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.75rem; font-weight:600; color:#555; cursor:pointer;
           letter-spacing:0.03em; white-space:nowrap;
           transition:box-shadow 0.1s,transform 0.1s,background 0.15s,color 0.15s;
         " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
@@ -2070,11 +2094,11 @@
            ontouchstart="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
            ontouchend="this.style.transform='';this.style.boxShadow='0 2px 0 #b8bcc8'"><svg width="11" height="9" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="vertical-align:middle;margin-right:4px"><polyline points="1,10 1,1 11,1 11,10"/></svg><svg width="11" height="9" viewBox="0 0 12 10" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round" style="vertical-align:middle;margin-right:4px"><polyline points="1,1 6,9 11,1"/></svg>Pick</button>
         <button id="score-btn" onclick="setShowScore(!showScore)" style="
-          flex:1; padding:7px 6px;
+          flex:1; padding:6px 4px;
           border:1.5px solid #c8ccd6; border-radius:8px;
           background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
           box-shadow:0 2px 0 #b8bcc8;
-          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.85rem; font-weight:600; color:#555; cursor:pointer;
+          font-family:'Barlow Semi Condensed',sans-serif; font-size:0.75rem; font-weight:600; color:#555; cursor:pointer;
           letter-spacing:0.03em; white-space:nowrap;
           transition:box-shadow 0.1s,transform 0.1s,background 0.15s,color 0.15s;
         " onmousedown="this.style.transform='translateY(2px)';this.style.boxShadow='0 0px 0 #b8bcc8'"
