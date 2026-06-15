@@ -201,7 +201,44 @@
     letter-spacing: 0.02em;
     text-shadow: 0 0 30px rgba(150,170,255,0.15);
     transition: color 0.5s ease, text-shadow 0.5s ease;
+    touch-action: manipulation;
+    cursor: pointer;
   }
+
+  #bpm-direct-input {
+    font-family: 'Oswald', sans-serif;
+    font-size: 5rem;
+    font-weight: 700;
+    color: #eef0ff;
+    background: transparent;
+    border: none;
+    border-bottom: 2px solid rgba(255,255,255,0.4);
+    text-align: center;
+    width: 220px;
+    outline: none;
+    line-height: 1;
+    padding: 0;
+    -moz-appearance: textfield;
+  }
+  #bpm-direct-input::-webkit-inner-spin-button,
+  #bpm-direct-input::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .slot-bpm-input {
+    font-family: 'Oswald', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: inherit;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid currentColor;
+    width: 44px;
+    text-align: center;
+    outline: none;
+    padding: 0;
+    -moz-appearance: textfield;
+  }
+  .slot-bpm-input::-webkit-inner-spin-button,
+  .slot-bpm-input::-webkit-outer-spin-button { -webkit-appearance: none; }
 
   .bpm-label {
     font-size: 0.75rem;
@@ -998,6 +1035,8 @@
     font-family: 'Oswald', sans-serif;
     font-size: 1.05rem;
     font-weight: 700;
+    touch-action: manipulation;
+    cursor: pointer;
     color: #1a1a2e;
     line-height: 1;
     flex: 1;
@@ -1750,6 +1789,7 @@
   /* ===== RESPONSIVE ===== */
   @media (max-width: 400px) {
     .bpm-number { font-size: 4.5rem; }
+    #bpm-direct-input { font-size: 4.5rem; width: 180px; }
     .tuner-note { font-size: 4rem; }
     .tab-btn { padding: 9px 20px; font-size: 0.85rem; }
     .card { padding: 22px 16px; }
@@ -1783,7 +1823,7 @@
       gap: 0 24px;
     }
     .metro-main-col {
-      flex: 0 0 420px;
+      flex: 0 0 350px;
     }
     #metro-setlist-panel {
       flex: 1;
@@ -1976,11 +2016,19 @@
       </div>
       <div class="tip-item">
         <div class="tip-title">設定は自動保存されます</div>
-        <div class="tip-desc">操作するたびに自動でブラウザに保存されます。リロードしても最後の状態が復元されます。スロットは「＋24曲」ボタンで最大24個まで増やせます。</div>
+        <div class="tip-desc">操作するたびに自動でブラウザに保存されます。リロードしても最後の状態が復元されます。右上のプルダウンでスロット数を12 / 24 / 36 / 48曲から選べます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title red">🖱️ BPMをダブルクリック（ダブルタップ）で直接入力</div>
+        <div class="tip-desc">大きなBPM数字、またはセットリストのスロット内のBPM数字をダブルクリック（スマホ・タブレットはダブルタップ）すると数字を直接キーボード入力できます。Enterで確定、Escでキャンセル。目標BPMが決まっている時に便利です。</div>
       </div>
       <div class="tip-item">
         <div class="tip-title">💾 セットリストをファイルに書き出せます</div>
-        <div class="tip-desc">「保存」ボタンでJSONファイルに書き出せます。「今月のライブ」「基礎練習メニュー」など用途別に複数のリストを作って使い分けられます。「読み込み」で即座に復元できます。</div>
+        <div class="tip-desc">「保存」ボタンを押すとJSON形式またはCSV形式を選べます。「今月のライブ」「基礎練習メニュー」など用途別に複数のリストを作って使い分けられます。「読み込み」では.jsonと.csvの両方を読み込めます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">📊 CSVはExcelで編集できます</div>
+        <div class="tip-desc">CSV形式で保存するとExcelやGoogleスプレッドシートで曲名・BPM・拍子などをまとめて編集できます。編集後に「読み込み」ボタンで反映できます。ただしCSVはビートのON/OFFなどの細かい設定には対応していません。それらを含むデータはJSON形式で保存してください。</div>
       </div>
     </div>
 
@@ -2023,6 +2071,7 @@
       <div class="metro-main-col">
       <div class="bpm-display">
         <div class="bpm-number" id="bpm-display">120</div>
+        <input type="number" id="bpm-direct-input" min="30" max="240" style="display:none;">
         <div class="bpm-label">BPM</div>
       </div>
 
@@ -2187,10 +2236,22 @@
                      font-size:0.88rem; color:#222; background:#f7f8fa; outline:none;">
           </div>
           <div style="display:flex; gap:8px;">
-            <button class="btn btn-secondary" onclick="saveMetroSetlistFile()" style="flex:1; padding:11px;">💾 保存</button>
+            <div style="position:relative; flex:1;">
+              <button class="btn btn-secondary" id="metro-save-btn" onclick="toggleSaveMenu(event)" style="width:100%; padding:11px;">💾 保存</button>
+              <div id="metro-save-menu" style="display:none; position:absolute; bottom:calc(100% + 4px); left:0; right:0;
+                   background:#fff; border:1.5px solid #dde3ed; border-radius:8px;
+                   box-shadow:0 4px 12px rgba(0,0,0,0.15); overflow:hidden; z-index:200;">
+                <button onclick="saveMetroSetlistFileJson(); closeSaveMenu();"
+                  style="display:block;width:100%;padding:10px 14px;text-align:left;border:none;background:none;cursor:pointer;font-size:0.85rem;"
+                  onmouseover="this.style.background='#f0f4fa'" onmouseout="this.style.background='none'">📄 JSON形式で保存</button>
+                <button onclick="saveMetroSetlistFileCsv(); closeSaveMenu();"
+                  style="display:block;width:100%;padding:10px 14px;text-align:left;border:none;background:none;cursor:pointer;font-size:0.85rem;border-top:1px solid #eee;"
+                  onmouseover="this.style.background='#f0f4fa'" onmouseout="this.style.background='none'">📊 CSV形式で保存</button>
+              </div>
+            </div>
             <label class="btn btn-secondary" style="flex:1; padding:11px; cursor:pointer; text-align:center;">
               📂 読み込み
-              <input type="file" id="metro-setlist-file" accept=".json" onchange="loadMetroSetlistFile(event)" style="display:none;">
+              <input type="file" id="metro-setlist-file" accept=".json,.csv" onchange="loadMetroSetlistFile(event)" style="display:none;">
             </label>
           </div>
         </div>
@@ -2546,7 +2607,7 @@ function makeMetroSlotBtn(i) {
     : (slot8thBase && beatsVal === 7) ? '7/8'
     : (beatsVal !== 4 ? `${beatsVal}/4` : '');
   const bpmDisplay = metroSlots[i] !== null
-    ? (timeSigLabel ? `${bpmVal}<span style="font-size:0.6rem;opacity:0.7"> ${timeSigLabel}</span>` : bpmVal)
+    ? (timeSigLabel ? `${bpmVal}<span style="font-size:0.6rem;opacity:0.7;margin-left:8px"> ${timeSigLabel}</span>` : bpmVal)
     : '—';
   btn.innerHTML =
     `<div class="metro-slot-top">`
@@ -2559,6 +2620,51 @@ function makeMetroSlotBtn(i) {
     + `<rect x="3.5" y="3.5" width="5.5" height="5.5" rx="1"/>`
     + `<path d="M6.5 3.5V1.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5H3.5"/>`
     + `</svg></button>`;
+
+  // スロットBPM ダブルクリック/ダブルタップで直接編集
+  const bpmSpan = btn.querySelector('.metro-slot-bpm');
+  let _slotBpmTap = 0;
+  function openSlotBpmEdit(e) {
+    e.stopPropagation();
+    if (metroSlots[i] === null) return;
+    if (bpmSpan.querySelector('input')) return;
+    selectMetroSlot(i);
+    const origBpm = metroSlots[i];
+    const inp = document.createElement('input');
+    inp.type = 'number';
+    inp.className = 'slot-bpm-input';
+    inp.value = origBpm;
+    bpmSpan.textContent = '';
+    bpmSpan.appendChild(inp);
+    setTimeout(() => { inp.focus(); inp.select(); }, 0);
+    function restoreBpmSpan(val) {
+      const bv = metroBeatsArr[i] || 4;
+      const is8 = !!metroIs8thBaseArr[i];
+      const tsl = (is8 && bv === 6) ? '6/8' : (is8 && bv === 7) ? '7/8' : (bv !== 4 ? `${bv}/4` : '');
+      bpmSpan.innerHTML = tsl
+        ? `${val}<span style="font-size:0.6rem;opacity:0.7;margin-left:8px"> ${tsl}</span>`
+        : String(val);
+    }
+    function commit() {
+      const v = parseInt(inp.value);
+      const newBpm = (!isNaN(v) && v >= 30 && v <= 240) ? v : origBpm;
+      metroSlots[i] = newBpm;
+      restoreBpmSpan(newBpm);
+      autoSaveMetroSlot();
+    }
+    inp.addEventListener('keydown', e2 => {
+      if (e2.key === 'Enter')  { e2.preventDefault(); inp.blur(); }
+      if (e2.key === 'Escape') { e2.stopPropagation(); restoreBpmSpan(origBpm); inp.removeEventListener('blur', commit); }
+    });
+    inp.addEventListener('blur', commit);
+  }
+  bpmSpan.addEventListener('dblclick', openSlotBpmEdit);
+  bpmSpan.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - _slotBpmTap < 300) openSlotBpmEdit(e);
+    _slotBpmTap = now;
+  });
+
   return btn;
 }
 
@@ -2688,7 +2794,7 @@ function autoSaveMetroSlot() {
       : (is8thBase && beats === 7) ? '7/8'
       : (beats !== 4 ? `${beats}/4` : '');
     bpmLbl.innerHTML = tsl
-      ? `${bpm}<span style="font-size:0.6rem;opacity:0.7"> ${tsl}</span>`
+      ? `${bpm}<span style="font-size:0.6rem;opacity:0.7;margin-left:8px"> ${tsl}</span>`
       : String(bpm);
   }
   saveMetroSetlist();
@@ -2786,27 +2892,37 @@ function toggleMetroSetlist() {
   btn.classList.toggle('open', metroSetlistOpen);
 }
 
-function saveMetroSetlistFile() {
+function toggleSaveMenu(e) {
+  e.stopPropagation();
+  const menu = document.getElementById('metro-save-menu');
+  if (!menu) return;
+  const opening = menu.style.display === 'none';
+  menu.style.display = opening ? 'block' : 'none';
+  if (opening) {
+    setTimeout(() => document.addEventListener('click', function handler() {
+      menu.style.display = 'none';
+      document.removeEventListener('click', handler);
+    }), 0);
+  }
+}
+function closeSaveMenu() {
+  const menu = document.getElementById('metro-save-menu');
+  if (menu) menu.style.display = 'none';
+}
+
+function saveMetroSetlistFileJson() {
   const name = document.getElementById('metro-setlist-name')?.value || '';
-  const dateStr = new Date().toLocaleDateString('ja-JP');
   const data = {
     name: name || 'Metro Setlist',
-    date: dateStr,
-    slots: metroSlots,
-    names: metroNames,
-    beats: metroBeatsArr,
-    grooves: metroGroovesArr,
-    is8thBaseArr: metroIs8thBaseArr,
-    shuffleRatios: metroShuffleArr,
-    sounds: metroSoundsArr,
-    allAccentArr: metroAllAccentArr,
-    showPickArr: metroShowPickArr,
+    date: new Date().toLocaleDateString('ja-JP'),
+    slots: metroSlots, names: metroNames, beats: metroBeatsArr,
+    grooves: metroGroovesArr, is8thBaseArr: metroIs8thBaseArr,
+    shuffleRatios: metroShuffleArr, sounds: metroSoundsArr,
+    allAccentArr: metroAllAccentArr, showPickArr: metroShowPickArr,
     slotCount: metroSlotCount,
-    beatMuted: metroBeatMutedArr,
-    subMuted: metroSubMutedArr
+    beatMuted: metroBeatMutedArr, subMuted: metroSubMutedArr
   };
-  const json = JSON.stringify(data, null, 2);
-  const blob = new Blob([json], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -2815,45 +2931,123 @@ function saveMetroSetlistFile() {
   URL.revokeObjectURL(url);
 }
 
+function saveMetroSetlistFileCsv() {
+  const name = document.getElementById('metro-setlist-name')?.value || '';
+  const rows = ['スロット,曲名,BPM,拍子,グルーブ,サウンド'];
+  for (let i = 0; i < metroSlotCount; i++) {
+    const bpmVal  = metroSlots[i] !== null ? metroSlots[i] : '';
+    const slotName = '"' + (metroNames[i] || '').replace(/"/g, '""') + '"';
+    const beats   = metroBeatsArr[i] || 4;
+    const is8     = !!metroIs8thBaseArr[i];
+    const timeSig = (is8 && beats === 6) ? '6/8' : (is8 && beats === 7) ? '7/8' : beats + '/4';
+    const groove  = metroGroovesArr[i] || 'normal';
+    const sound   = metroSoundsArr[i]  || 'beep';
+    rows.push(`${i+1},${slotName},${bpmVal},${timeSig},${groove},${sound}`);
+  }
+  const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (name || 'metro-setlist') + '.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function _parseCsvLine(line) {
+  const cols = []; let cur = ''; let inQ = false;
+  for (const ch of line) {
+    if (ch === '"') { inQ = !inQ; }
+    else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
+    else { cur += ch; }
+  }
+  cols.push(cur);
+  return cols;
+}
+
+function loadMetroSetlistFileCsv(text) {
+  const lines = text.replace(/^﻿/, '').split(/\r?\n/).filter(l => l.trim());
+  if (lines.length < 2) { alert('CSVの形式が正しくありません'); return; }
+  metroSlots        = Array(48).fill(null);
+  metroNames        = Array(48).fill('');
+  metroBeatsArr     = Array(48).fill(4);
+  metroGroovesArr   = Array(48).fill('normal');
+  metroIs8thBaseArr = Array(48).fill(false);
+  metroShuffleArr   = Array(48).fill(67);
+  metroSoundsArr    = Array(48).fill('beep');
+  metroAllAccentArr = Array(48).fill(false);
+  metroShowPickArr  = Array(48).fill(false);
+  metroBeatMutedArr = Array(48).fill(null).map(()=>[]);
+  metroSubMutedArr  = Array(48).fill(null).map(()=>[]);
+  let maxSlot = 0;
+  for (let li = 1; li < lines.length; li++) {
+    const c = _parseCsvLine(lines[li]);
+    const idx = parseInt(c[0]) - 1;
+    if (isNaN(idx) || idx < 0 || idx >= 48) continue;
+    const bpmVal = parseInt(c[2]);
+    if (!isNaN(bpmVal) && bpmVal >= 30 && bpmVal <= 240) metroSlots[idx] = bpmVal;
+    metroNames[idx] = c[1] || '';
+    const ts = (c[3] || '4/4').trim();
+    if (ts === '6/8') { metroBeatsArr[idx] = 6; metroIs8thBaseArr[idx] = true; }
+    else if (ts === '7/8') { metroBeatsArr[idx] = 7; metroIs8thBaseArr[idx] = true; }
+    else { const b = parseInt(ts); metroBeatsArr[idx] = (!isNaN(b) && b >= 1 && b <= 16) ? b : 4; }
+    const gr = (c[4] || '').trim();
+    metroGroovesArr[idx] = ['normal','shuffle'].includes(gr) ? gr : 'normal';
+    const snd = (c[5] || '').trim();
+    metroSoundsArr[idx]  = ['beep','wood','hihat','voice'].includes(snd) ? snd : 'beep';
+    if (idx + 1 > maxSlot) maxSlot = idx + 1;
+  }
+  metroSlotCount = maxSlot <= 12 ? 12 : maxSlot <= 24 ? 24 : maxSlot <= 36 ? 36 : 48;
+  metroSelectedSlot = 0;
+  saveMetroSetlist();
+  renderMetroSlots();
+  applyMetroSlot(0);
+}
+
 function loadMetroSetlistFile(event) {
   const file = event.target.files[0];
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    try {
-      const data = JSON.parse(e.target.result);
-      const n = [12,24,36,48].includes(data.slotCount) ? data.slotCount : 12;
-      metroSlotCount    = n;
-      metroSlots        = Array(48).fill(null);
-      metroNames        = Array(48).fill('');
-      metroBeatsArr     = Array(48).fill(4);
-      metroGroovesArr   = Array(48).fill('normal');
-      metroIs8thBaseArr = Array(48).fill(false);
-      metroShuffleArr   = Array(48).fill(67);
-      metroSoundsArr    = Array(48).fill('beep');
-      metroAllAccentArr = Array(48).fill(false);
-      metroShowPickArr  = Array(48).fill(false);
-      metroBeatMutedArr = Array(48).fill(null).map(()=>[]);
-      metroSubMutedArr  = Array(48).fill(null).map(()=>[]);
-      if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<n) metroSlots[i]=v; });
-      if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<n) metroNames[i]=v||''; });
-      if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<n) metroBeatsArr[i]=v||4; });
-      if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<n) metroGroovesArr[i]=v||'normal'; });
-      if (Array.isArray(data.is8thBaseArr)) data.is8thBaseArr.forEach((v,i)=>{ if(i<n) metroIs8thBaseArr[i]=!!v; });
-      if (Array.isArray(data.shuffleRatios))data.shuffleRatios.forEach((v,i)=>{ if(i<n) metroShuffleArr[i]=v||67; });
-      if (Array.isArray(data.sounds))       data.sounds.forEach((v,i)=>{ if(i<n) metroSoundsArr[i]=v||'beep'; });
-      if (Array.isArray(data.allAccentArr)) data.allAccentArr.forEach((v,i)=>{ if(i<n) metroAllAccentArr[i]=!!v; });
-      if (Array.isArray(data.showPickArr))  data.showPickArr.forEach((v,i)=>{ if(i<n) metroShowPickArr[i]=!!v; });
-      if (Array.isArray(data.beatMuted))    data.beatMuted.forEach((v,i)=>{ if(i<n) metroBeatMutedArr[i]=Array.isArray(v)?v.slice():[]; });
-      if (Array.isArray(data.subMuted))     data.subMuted.forEach((v,i)=>{ if(i<n) metroSubMutedArr[i]=Array.isArray(v)?v.map(r=>Array.isArray(r)?r.slice():[]):[]; });
-      if (data.name) { const ni = document.getElementById('metro-setlist-name'); if(ni) ni.value=data.name; }
-      metroSelectedSlot = 0;
-      saveMetroSetlist();
-      renderMetroSlots();
-      applyMetroSlot(0);
-    } catch(err) { alert('読み込みに失敗しました'); }
+    const text = e.target.result;
+    if (file.name.toLowerCase().endsWith('.csv')) {
+      try { loadMetroSetlistFileCsv(text); }
+      catch(err) { alert('CSVの読み込みに失敗しました'); }
+    } else {
+      try {
+        const data = JSON.parse(text);
+        const n = [12,24,36,48].includes(data.slotCount) ? data.slotCount : 12;
+        metroSlotCount    = n;
+        metroSlots        = Array(48).fill(null);
+        metroNames        = Array(48).fill('');
+        metroBeatsArr     = Array(48).fill(4);
+        metroGroovesArr   = Array(48).fill('normal');
+        metroIs8thBaseArr = Array(48).fill(false);
+        metroShuffleArr   = Array(48).fill(67);
+        metroSoundsArr    = Array(48).fill('beep');
+        metroAllAccentArr = Array(48).fill(false);
+        metroShowPickArr  = Array(48).fill(false);
+        metroBeatMutedArr = Array(48).fill(null).map(()=>[]);
+        metroSubMutedArr  = Array(48).fill(null).map(()=>[]);
+        if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<n) metroSlots[i]=v; });
+        if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<n) metroNames[i]=v||''; });
+        if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<n) metroBeatsArr[i]=v||4; });
+        if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<n) metroGroovesArr[i]=v||'normal'; });
+        if (Array.isArray(data.is8thBaseArr)) data.is8thBaseArr.forEach((v,i)=>{ if(i<n) metroIs8thBaseArr[i]=!!v; });
+        if (Array.isArray(data.shuffleRatios))data.shuffleRatios.forEach((v,i)=>{ if(i<n) metroShuffleArr[i]=v||67; });
+        if (Array.isArray(data.sounds))       data.sounds.forEach((v,i)=>{ if(i<n) metroSoundsArr[i]=v||'beep'; });
+        if (Array.isArray(data.allAccentArr)) data.allAccentArr.forEach((v,i)=>{ if(i<n) metroAllAccentArr[i]=!!v; });
+        if (Array.isArray(data.showPickArr))  data.showPickArr.forEach((v,i)=>{ if(i<n) metroShowPickArr[i]=!!v; });
+        if (Array.isArray(data.beatMuted))    data.beatMuted.forEach((v,i)=>{ if(i<n) metroBeatMutedArr[i]=Array.isArray(v)?v.slice():[]; });
+        if (Array.isArray(data.subMuted))     data.subMuted.forEach((v,i)=>{ if(i<n) metroSubMutedArr[i]=Array.isArray(v)?v.map(r=>Array.isArray(r)?r.slice():[]):[]; });
+        if (data.name) { const ni = document.getElementById('metro-setlist-name'); if(ni) ni.value=data.name; }
+        metroSelectedSlot = 0;
+        saveMetroSetlist();
+        renderMetroSlots();
+        applyMetroSlot(0);
+      } catch(err) { alert('読み込みに失敗しました'); }
+    }
   };
-  reader.readAsText(file);
+  reader.readAsText(file, 'UTF-8');
   event.target.value = '';
 }
 
@@ -4185,6 +4379,38 @@ document.getElementById('ref-pitch-value').textContent = refA4 + ' Hz';
 if (localStorage.getItem('tsg_showScore') === '1') {
   setShowScore(true);
 }
+
+// ===== BPM直接入力（ダブルクリック/ダブルタップ） =====
+(function() {
+  const display = document.getElementById('bpm-display');
+  const inp     = document.getElementById('bpm-direct-input');
+  function openEdit() {
+    inp.value = bpm;
+    display.style.display = 'none';
+    inp.style.display = 'block';
+    setTimeout(() => { inp.focus(); inp.select(); }, 0);
+  }
+  function closeEdit(save) {
+    if (save) {
+      const v = parseInt(inp.value);
+      if (!isNaN(v)) setBpm(v);
+    }
+    inp.style.display = 'none';
+    display.style.display = '';
+  }
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Enter')  { e.preventDefault(); closeEdit(true); }
+    if (e.key === 'Escape') { e.preventDefault(); closeEdit(false); }
+  });
+  inp.addEventListener('blur', () => closeEdit(true));
+  display.addEventListener('dblclick', e => { e.preventDefault(); openEdit(); });
+  let _t = 0;
+  display.addEventListener('touchend', e => {
+    const now = Date.now();
+    if (now - _t < 300) { e.preventDefault(); openEdit(); }
+    _t = now;
+  });
+})();
 
 // ===== キーボードショートカット =====
 document.addEventListener('keydown', function(e) {
