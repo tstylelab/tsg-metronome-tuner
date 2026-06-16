@@ -2009,6 +2009,18 @@
     </div>
 
     <div class="modal-section">
+      <div class="modal-section-title">⏸ Gap Click</div>
+      <div class="tip-item">
+        <div class="tip-title red">🔇 N小節鳴らして→N小節ミュート→繰り返し</div>
+        <div class="tip-desc">「Gap Click」のONボタンを押すと、指定した小節数だけクリックが鳴り、その後ミュートになるサイクルを繰り返します。無音の間も自分でテンポをキープする練習に最適です。ビートドットは無音中も光るので、今どこにいるかは目で確認できます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">小節数は1〜8で設定できます</div>
+        <div class="tip-desc">「鳴らす」と「ミュート」の小節数をそれぞれ±ボタンで変更できます。例）鳴らす2小節→ミュート2小節。慣れてきたらミュート小節を増やして難易度を上げていきましょう。</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
       <div class="modal-section-title">📋 Setlist</div>
       <div class="tip-item">
         <div class="tip-title red">📝 曲ごとのBPM・拍子・グルーブをまとめて登録</div>
@@ -2207,6 +2219,38 @@
           <span>67% 標準</span>
           <span>80% ディープ</span>
         </div>
+      </div>
+
+      <!-- Gap Click -->
+      <div style="margin-bottom:14px; padding:12px 14px; background:#f7f8fa; border-radius:10px; border:1.5px solid #e4e7ef;">
+        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
+          <span style="font-size:0.72rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#666;">Gap Click</span>
+          <button id="gap-toggle-btn" onclick="toggleGap()" style="
+            padding:4px 16px; border-radius:20px; border:1.5px solid #c8ccd6;
+            font-size:0.78rem; font-weight:700; cursor:pointer; letter-spacing:0.06em;
+            background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
+            color:#777; box-shadow:0 2px 0 #b8bcc8; line-height:1.4;">OFF</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="font-size:0.76rem; color:#555; font-weight:600; white-space:nowrap;">鳴らす</span>
+            <button class="live-fine-btn" onclick="setGapPlay(gapPlayBars-1)" style="width:26px;height:26px;font-size:0.9rem;">−</button>
+            <span id="gap-play-val" style="font-family:'Oswald',sans-serif; font-size:1.15rem; font-weight:700; min-width:18px; text-align:center; color:#1a1a2e;">2</span>
+            <button class="live-fine-btn" onclick="setGapPlay(gapPlayBars+1)" style="width:26px;height:26px;font-size:0.9rem;">+</button>
+            <span style="font-size:0.76rem; color:#777;">小節</span>
+          </div>
+          <span style="color:#bbb; font-size:1rem; font-weight:300;">→</span>
+          <div style="display:flex; align-items:center; gap:5px;">
+            <span style="font-size:0.76rem; color:#555; font-weight:600; white-space:nowrap;">ミュート</span>
+            <button class="live-fine-btn" onclick="setGapMute(gapMuteBars-1)" style="width:26px;height:26px;font-size:0.9rem;">−</button>
+            <span id="gap-mute-val" style="font-family:'Oswald',sans-serif; font-size:1.15rem; font-weight:700; min-width:18px; text-align:center; color:#1a1a2e;">2</span>
+            <button class="live-fine-btn" onclick="setGapMute(gapMuteBars+1)" style="width:26px;height:26px;font-size:0.9rem;">+</button>
+            <span style="font-size:0.76rem; color:#777;">小節</span>
+          </div>
+        </div>
+        <div id="gap-status-badge" style="display:none; margin-top:9px; padding:4px 0;
+             border-radius:20px; font-size:0.78rem; font-weight:700; text-align:center;
+             border:1.5px solid; transition:all 0.2s;"></div>
       </div>
 
       <!-- Metro Setlist (折りたたみ) -->
@@ -2432,6 +2476,10 @@ let groove = 'normal';
 let allAccent = false;
 let showPick   = false;
 let showScore = false;
+let gapEnabled    = false;
+let gapPlayBars   = 2;
+let gapMuteBars   = 2;
+let _gapBeatTotal = 0;
 
 // ===== VOICE COUNT BUFFERS =====
 const voiceBuffers = {};
@@ -3218,6 +3266,68 @@ function copyShareUrl() {
   }
 }
 
+// ===== GAP CLICK =====
+function updateGapBadge(barIdx) {
+  const badge = document.getElementById('gap-status-badge');
+  if (!badge) return;
+  if (!gapEnabled || !metronomeRunning) { badge.style.display = 'none'; return; }
+  const cycleLen = gapPlayBars + gapMuteBars;
+  const barInCycle = barIdx % cycleLen;
+  const isSilent = barInCycle >= gapPlayBars;
+  badge.style.display = 'block';
+  if (isSilent) {
+    const n = barInCycle - gapPlayBars + 1;
+    badge.textContent = `🔇 ミュート中 ${n} / ${gapMuteBars}小節`;
+    badge.style.cssText = badge.style.cssText.replace(/color:[^;]+;/g,'').replace(/background:[^;]+;/g,'').replace(/border:[^;]+;/g,'');
+    badge.style.color = '#c0392b';
+    badge.style.background = '#fff5f5';
+    badge.style.border = '1.5px solid #e0a0a0';
+  } else {
+    const n = barInCycle + 1;
+    badge.textContent = `▶ 鳴らす中 ${n} / ${gapPlayBars}小節`;
+    badge.style.color = '#1e8449';
+    badge.style.background = '#f0fff4';
+    badge.style.border = '1.5px solid #a0e0b0';
+  }
+}
+
+function toggleGap() {
+  gapEnabled = !gapEnabled;
+  const btn = document.getElementById('gap-toggle-btn');
+  if (btn) {
+    if (gapEnabled) {
+      btn.textContent = 'ON';
+      btn.style.background = 'linear-gradient(to bottom,#27ae60,#1e8449)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#1e8449';
+      btn.style.boxShadow = '0 2px 0 #145a32';
+    } else {
+      btn.textContent = 'OFF';
+      btn.style.background = 'linear-gradient(to bottom,#f7f8fa,#e0e3ea)';
+      btn.style.color = '#777';
+      btn.style.borderColor = '#c8ccd6';
+      btn.style.boxShadow = '0 2px 0 #b8bcc8';
+      const badge = document.getElementById('gap-status-badge');
+      if (badge) badge.style.display = 'none';
+    }
+  }
+  if (metronomeRunning) _gapBeatTotal = 0;
+}
+
+function setGapPlay(val) {
+  gapPlayBars = Math.max(1, Math.min(8, val));
+  const el = document.getElementById('gap-play-val');
+  if (el) el.textContent = gapPlayBars;
+  if (metronomeRunning && gapEnabled) _gapBeatTotal = 0;
+}
+
+function setGapMute(val) {
+  gapMuteBars = Math.max(1, Math.min(8, val));
+  const el = document.getElementById('gap-mute-val');
+  if (el) el.textContent = gapMuteBars;
+  if (metronomeRunning && gapEnabled) _gapBeatTotal = 0;
+}
+
 function setShuffleRatio(val) {
   shuffleRatio = val / 100;
   let label = '';
@@ -3800,30 +3910,44 @@ function scheduler() {
     const t = nextNoteTime;
     const isAccent = beat === 0;
 
+    // Gap click: count beats, determine if this bar is silenced
+    let gapSilent = false;
+    if (gapEnabled) {
+      const _barIdx = Math.floor(_gapBeatTotal / beats);
+      gapSilent = (_barIdx % (gapPlayBars + gapMuteBars)) >= gapPlayBars;
+      if (beat === 0) {
+        const _bIdx = _barIdx;
+        setTimeout(() => updateGapBadge(_bIdx), Math.max(0, (t - ctx.currentTime) * 1000));
+      }
+      _gapBeatTotal++;
+    }
+
     // メインビートを鳴らすか
-    if (!beatMuted[beat]) scheduleNote(t, isAccent, beat);
+    if (!gapSilent && !beatMuted[beat]) scheduleNote(t, isAccent, beat);
 
     // 細分割音（サブミュートチェック付き）
-    const sm = subMuted[beat] || [];
-    if (is8thBase) {
-      // 6/8・7/8: 各拍（8分音符）の中間に16分音符サブ 1つ
-      if (groove === 'sixteenth') {
+    if (!gapSilent) {
+      const sm = subMuted[beat] || [];
+      if (is8thBase) {
+        // 6/8・7/8: 各拍（8分音符）の中間に16分音符サブ 1つ
+        if (groove === 'sixteenth') {
+          if (!sm[0]) scheduleSubNote(t + interval / 2, beat);
+        } else if (groove === 'sixteenth-shuffle') {
+          if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio, beat);
+        }
+      } else if (groove === 'eighth') {
         if (!sm[0]) scheduleSubNote(t + interval / 2, beat);
-      } else if (groove === 'sixteenth-shuffle') {
+      } else if (groove === 'shuffle') {
         if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio, beat);
+      } else if (groove === 'sixteenth') {
+        if (!sm[0]) scheduleSubNote(t + interval / 4, beat);
+        if (!sm[1]) scheduleSubNote(t + interval / 2, beat);
+        if (!sm[2]) scheduleSubNote(t + interval * 3 / 4, beat);
+      } else if (groove === 'sixteenth-shuffle') {
+        if (!sm[0]) scheduleSubNote(t + interval / 2 * shuffleRatio, beat);
+        if (!sm[1]) scheduleSubNote(t + interval / 2, beat);
+        if (!sm[2]) scheduleSubNote(t + interval / 2 + interval / 2 * shuffleRatio, beat);
       }
-    } else if (groove === 'eighth') {
-      if (!sm[0]) scheduleSubNote(t + interval / 2, beat);
-    } else if (groove === 'shuffle') {
-      if (!sm[0]) scheduleSubNote(t + interval * shuffleRatio, beat);
-    } else if (groove === 'sixteenth') {
-      if (!sm[0]) scheduleSubNote(t + interval / 4, beat);
-      if (!sm[1]) scheduleSubNote(t + interval / 2, beat);
-      if (!sm[2]) scheduleSubNote(t + interval * 3 / 4, beat);
-    } else if (groove === 'sixteenth-shuffle') {
-      if (!sm[0]) scheduleSubNote(t + interval / 2 * shuffleRatio, beat);
-      if (!sm[1]) scheduleSubNote(t + interval / 2, beat);
-      if (!sm[2]) scheduleSubNote(t + interval / 2 + interval / 2 * shuffleRatio, beat);
     }
 
     const delay = (t - ctx.currentTime) * 1000;
@@ -3903,6 +4027,7 @@ function toggleMetronome() {
     if (currentSound === 'voice' && !voiceLoaded) loadVoiceBuffers();
     nextNoteTime = ctx.currentTime + 0.05;
     currentBeat = 0;
+    _gapBeatTotal = 0;
     scheduler();
     metronomeRunning = true;
     btn.textContent = 'STOP';
@@ -3916,6 +4041,8 @@ function toggleMetronome() {
     if (card) card.classList.remove('metro-running');
     document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
     document.querySelectorAll('.score-slot').forEach(g => g.classList.remove('score-active'));
+    const gapBadge = document.getElementById('gap-status-badge');
+    if (gapBadge) gapBadge.style.display = 'none';
   }
 }
 
