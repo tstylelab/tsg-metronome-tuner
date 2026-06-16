@@ -3139,7 +3139,15 @@ function loadMetroSetlistFile(event) {
   if (!file) return;
   const reader = new FileReader();
   reader.onload = e => {
-    const text = e.target.result;
+    const buf = e.target.result;
+    const bytes = new Uint8Array(buf);
+    let text;
+    if (bytes[0] === 0xEF && bytes[1] === 0xBB && bytes[2] === 0xBF) {
+      text = new TextDecoder('UTF-8').decode(buf);
+    } else {
+      try { text = new TextDecoder('shift-jis').decode(buf); }
+      catch(_) { text = new TextDecoder('UTF-8').decode(buf); }
+    }
     if (file.name.toLowerCase().endsWith('.csv')) {
       try { loadMetroSetlistFileCsv(text); }
       catch(err) { alert('CSVの読み込みに失敗しました'); }
@@ -3178,7 +3186,7 @@ function loadMetroSetlistFile(event) {
       } catch(err) { alert('読み込みに失敗しました'); }
     }
   };
-  reader.readAsText(file, 'UTF-8');
+  reader.readAsArrayBuffer(file);
   event.target.value = '';
 }
 
