@@ -2747,9 +2747,9 @@ function makeMetroSlotBtn(i) {
   let _slotBpmTap = 0;
   function openSlotBpmEdit(e) {
     e.stopPropagation();
-    if (metroSlots[i] === null) return;
     if (bpmSpan.querySelector('input')) return;
-    const origBpm = metroSlots[i];
+    const wasNull = metroSlots[i] === null;
+    const origBpm = wasNull ? bpm : metroSlots[i];
     const inp = document.createElement('input');
     inp.type = 'number';
     inp.className = 'slot-bpm-input';
@@ -2758,6 +2758,7 @@ function makeMetroSlotBtn(i) {
     bpmSpan.appendChild(inp);
     setTimeout(() => { inp.focus(); inp.select(); }, 0);
     function restoreBpmSpan(val) {
+      if (val === null) { bpmSpan.textContent = '—'; return; }
       const bv = metroBeatsArr[i] || 4;
       const is8 = !!metroIs8thBaseArr[i];
       const tsl = (is8 && bv === 6) ? '6/8' : (is8 && bv === 7) ? '7/8' : (bv !== 4 ? `${bv}/4` : '');
@@ -2767,10 +2768,9 @@ function makeMetroSlotBtn(i) {
     }
     function commit() {
       const v = parseInt(inp.value);
-      const newBpm = (!isNaN(v) && v >= 30 && v <= 240) ? v : origBpm;
+      const newBpm = (!isNaN(v) && v >= 30 && v <= 240) ? v : (wasNull ? null : origBpm);
       metroSlots[i] = newBpm;
-      if (i === metroSelectedSlot) {
-        // 選択中スロットならメインBPMも連動（setBpm内のautoSaveでmetroSlots[i]もラベルも更新される）
+      if (newBpm !== null && i === metroSelectedSlot) {
         setBpm(newBpm);
       } else {
         saveMetroSetlist();
@@ -2779,7 +2779,7 @@ function makeMetroSlotBtn(i) {
     }
     inp.addEventListener('keydown', e2 => {
       if (e2.key === 'Enter')  { e2.preventDefault(); inp.blur(); }
-      if (e2.key === 'Escape') { e2.stopPropagation(); restoreBpmSpan(origBpm); inp.removeEventListener('blur', commit); }
+      if (e2.key === 'Escape') { e2.stopPropagation(); restoreBpmSpan(wasNull ? null : origBpm); inp.removeEventListener('blur', commit); }
     });
     inp.addEventListener('blur', commit);
   }
