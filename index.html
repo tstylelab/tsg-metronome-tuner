@@ -2030,6 +2030,10 @@
         <div class="tip-title">📊 CSVはExcelで編集できます</div>
         <div class="tip-desc">CSV形式で保存するとExcelやGoogleスプレッドシートで曲名・BPM・拍子などをまとめて編集できます。編集後に「読み込み」ボタンで反映できます。ただしCSVはビートのON/OFFなどの細かい設定には対応していません。それらを含むデータはJSON形式で保存してください。</div>
       </div>
+      <div class="tip-item">
+        <div class="tip-title red">🔗 URLやQRコードでセットリストを共有</div>
+        <div class="tip-desc">「URLで共有」ボタンを押すと、現在のセットリストをURLに変換したリンクとQRコードが表示されます。LINEやメールでリンクを送るだけで、受け取った人も同じセットリストをすぐ開けます。生徒さんへのレッスン課題の共有などに便利です。</div>
+      </div>
     </div>
 
     <div class="modal-section">
@@ -2052,6 +2056,27 @@
       </div>
     </div>
 
+  </div>
+</div>
+
+<!-- ===== SHARE MODAL ===== -->
+<div class="modal-overlay" id="share-modal" onclick="if(event.target===this)closeShareModal()">
+  <div class="modal-box" style="max-width:360px; text-align:center;">
+    <button class="modal-close" onclick="closeShareModal()">×</button>
+    <div class="modal-title" style="justify-content:center;">🔗 セットリストを共有</div>
+    <p style="font-size:0.82rem; color:#555; margin-bottom:16px;">このURLを送ると、同じセットリストをすぐ開けます</p>
+    <div id="share-qr-wrap" style="margin:0 auto 16px; width:160px; height:160px;
+         display:flex; align-items:center; justify-content:center;"></div>
+    <div style="display:flex; gap:6px; align-items:center; margin-bottom:8px;">
+      <input type="text" id="share-url-input" readonly
+        style="flex:1; padding:8px 10px; border:1.5px solid #dde0e8; border-radius:7px;
+               font-size:0.72rem; color:#555; background:#f7f8fa; outline:none;
+               overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+      <button onclick="copyShareUrl()"
+        style="padding:8px 12px; background:#1a1a2e; color:#fff; border:none; border-radius:7px;
+               font-size:0.8rem; cursor:pointer; white-space:nowrap; flex-shrink:0;">📋 コピー</button>
+    </div>
+    <p id="share-copied-msg" style="font-size:0.78rem; color:#27ae60; margin:0; display:none;">✅ コピーしました！</p>
   </div>
 </div>
 
@@ -2254,6 +2279,7 @@
               <input type="file" id="metro-setlist-file" accept=".json,.csv" onchange="loadMetroSetlistFile(event)" style="display:none;">
             </label>
           </div>
+          <button class="btn btn-secondary" onclick="openShareModal()" style="width:100%; margin-top:8px; padding:11px;">🔗 URLで共有</button>
         </div>
       </div>
 
@@ -3061,10 +3087,134 @@ function loadMetroSetlistFile(event) {
 
 function initMetroSetlist() {
   loadMetroSetlist();
+  decodeSetlistFromHash();
   renderMetroSlots();
   updateMetroExpandBtn();
   if (metroSlots[metroSelectedSlot] !== null) {
     applyMetroSlot(metroSelectedSlot);
+  }
+}
+
+// ===== セットリスト URL共有 =====
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.textContent = msg;
+  t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#1a1a2e;color:#fff;padding:10px 22px;border-radius:8px;font-size:0.85rem;z-index:2000;box-shadow:0 4px 12px rgba(0,0,0,0.25);white-space:nowrap;pointer-events:none;';
+  document.body.appendChild(t);
+  setTimeout(() => {
+    t.style.transition = 'opacity 0.5s';
+    t.style.opacity = '0';
+    setTimeout(() => t.remove(), 500);
+  }, 2500);
+}
+
+function encodeSetlistForUrl() {
+  const nameEl = document.getElementById('metro-setlist-name');
+  const data = { v: 1, n: nameEl ? nameEl.value : '', c: metroSlotCount, s: [] };
+  for (let i = 0; i < metroSlotCount; i++) {
+    if (metroSlots[i] === null && !metroNames[i]) continue;
+    const slot = { i };
+    if (metroSlots[i] !== null) slot.b = metroSlots[i];
+    if (metroNames[i]) slot.n = metroNames[i];
+    if (metroBeatsArr[i] !== 4) slot.bt = metroBeatsArr[i];
+    if (metroIs8thBaseArr[i]) slot['8'] = 1;
+    if (metroGroovesArr[i] && metroGroovesArr[i] !== 'normal') slot.g = metroGroovesArr[i];
+    if (metroSoundsArr[i] && metroSoundsArr[i] !== 'beep') slot.sn = metroSoundsArr[i];
+    data.s.push(slot);
+  }
+  const json = JSON.stringify(data);
+  const bytes = new TextEncoder().encode(json);
+  const b64 = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  return location.origin + location.pathname + '#s=' + b64;
+}
+
+function decodeSetlistFromHash() {
+  const hash = location.hash;
+  if (!hash.startsWith('#s=')) return false;
+  try {
+    const b64 = hash.slice(3).replace(/-/g, '+').replace(/_/g, '/');
+    const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+    const data = JSON.parse(new TextDecoder().decode(bytes));
+    if (!data || data.v !== 1) return false;
+
+    metroSlots         = Array(48).fill(null);
+    metroNames         = Array(48).fill('');
+    metroBeatsArr      = Array(48).fill(4);
+    metroGroovesArr    = Array(48).fill('normal');
+    metroIs8thBaseArr  = Array(48).fill(false);
+    metroSoundsArr     = Array(48).fill('beep');
+    metroShuffleArr    = Array(48).fill(67);
+    metroBeatMutedArr  = Array(48).fill(null).map(() => []);
+    metroSubMutedArr   = Array(48).fill(null).map(() => []);
+    metroAllAccentArr  = Array(48).fill(false);
+    metroShowPickArr   = Array(48).fill(false);
+    metroSlotCount     = [12,24,36,48].includes(data.c) ? data.c : 12;
+    metroSelectedSlot  = 0;
+
+    (data.s || []).forEach(slot => {
+      const idx = slot.i;
+      if (typeof idx !== 'number' || idx < 0 || idx >= 48) return;
+      if (slot.b !== undefined) metroSlots[idx] = slot.b;
+      metroNames[idx]        = slot.n   || '';
+      metroBeatsArr[idx]     = slot.bt  || 4;
+      metroIs8thBaseArr[idx] = !!slot['8'];
+      metroGroovesArr[idx]   = slot.g   || 'normal';
+      metroSoundsArr[idx]    = slot.sn  || 'beep';
+    });
+
+    const nameEl = document.getElementById('metro-setlist-name');
+    if (nameEl && data.n) nameEl.value = data.n;
+    saveMetroSetlist();
+    history.replaceState(null, '', location.pathname + location.search);
+    setTimeout(() => showToast('🔗 共有URLからセットリストを読み込みました'), 600);
+    return true;
+  } catch(e) {
+    console.error('Share URL decode error:', e);
+    return false;
+  }
+}
+
+let _shareQrInst = null;
+function openShareModal() {
+  const url = encodeSetlistForUrl();
+  document.getElementById('share-url-input').value = url;
+  document.getElementById('share-copied-msg').style.display = 'none';
+  const qrWrap = document.getElementById('share-qr-wrap');
+  qrWrap.innerHTML = '';
+  if (typeof QRCode !== 'undefined') {
+    _shareQrInst = new QRCode(qrWrap, {
+      text: url, width: 160, height: 160,
+      colorDark: '#1a1a2e', colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
+    });
+  } else {
+    qrWrap.style.cssText += 'font-size:0.8rem;color:#999;';
+    qrWrap.textContent = 'QRコードを読み込み中...';
+  }
+  document.getElementById('share-modal').classList.add('open');
+}
+
+function closeShareModal() {
+  document.getElementById('share-modal').classList.remove('open');
+}
+
+function copyShareUrl() {
+  const url = document.getElementById('share-url-input').value;
+  const showCopied = () => {
+    const msg = document.getElementById('share-copied-msg');
+    msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 2000);
+  };
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(url).then(showCopied).catch(() => {
+      document.getElementById('share-url-input').select();
+      document.execCommand('copy');
+      showCopied();
+    });
+  } else {
+    document.getElementById('share-url-input').select();
+    document.execCommand('copy');
+    showCopied();
   }
 }
 
@@ -4462,6 +4612,7 @@ if (lastTab && ['metronome','tuner','live'].includes(lastTab)) {
   document.querySelector(`.tab-btn[onclick="switchTab('${lastTab}')"]`).classList.add('active');
 }
 </script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
 </body>
 </html>
