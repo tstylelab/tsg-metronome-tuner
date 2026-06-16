@@ -2628,7 +2628,6 @@ function makeMetroSlotBtn(i) {
     e.stopPropagation();
     if (metroSlots[i] === null) return;
     if (bpmSpan.querySelector('input')) return;
-    selectMetroSlot(i);
     const origBpm = metroSlots[i];
     const inp = document.createElement('input');
     inp.type = 'number';
@@ -2649,8 +2648,13 @@ function makeMetroSlotBtn(i) {
       const v = parseInt(inp.value);
       const newBpm = (!isNaN(v) && v >= 30 && v <= 240) ? v : origBpm;
       metroSlots[i] = newBpm;
+      if (i === metroSelectedSlot) {
+        // 選択中スロットならメインBPMも連動（setBpm内のautoSaveでmetroSlots[i]もラベルも更新される）
+        setBpm(newBpm);
+      } else {
+        saveMetroSetlist();
+      }
       restoreBpmSpan(newBpm);
-      autoSaveMetroSlot();
     }
     inp.addEventListener('keydown', e2 => {
       if (e2.key === 'Enter')  { e2.preventDefault(); inp.blur(); }
@@ -2955,8 +2959,12 @@ function saveMetroSetlistFileCsv() {
 
 function _parseCsvLine(line) {
   const cols = []; let cur = ''; let inQ = false;
-  for (const ch of line) {
-    if (ch === '"') { inQ = !inQ; }
+  for (let k = 0; k < line.length; k++) {
+    const ch = line[k];
+    if (ch === '"') {
+      if (inQ && line[k+1] === '"') { cur += '"'; k++; }  // "" はリテラルの " に復元
+      else { inQ = !inQ; }
+    }
     else if (ch === ',' && !inQ) { cols.push(cur); cur = ''; }
     else { cur += ch; }
   }
@@ -2991,7 +2999,7 @@ function loadMetroSetlistFileCsv(text) {
     else if (ts === '7/8') { metroBeatsArr[idx] = 7; metroIs8thBaseArr[idx] = true; }
     else { const b = parseInt(ts); metroBeatsArr[idx] = (!isNaN(b) && b >= 1 && b <= 16) ? b : 4; }
     const gr = (c[4] || '').trim();
-    metroGroovesArr[idx] = ['normal','shuffle'].includes(gr) ? gr : 'normal';
+    metroGroovesArr[idx] = ['normal','eighth','sixteenth','shuffle','sixteenth-shuffle'].includes(gr) ? gr : 'normal';
     const snd = (c[5] || '').trim();
     metroSoundsArr[idx]  = ['beep','wood','hihat','voice'].includes(snd) ? snd : 'beep';
     if (idx + 1 > maxSlot) maxSlot = idx + 1;
