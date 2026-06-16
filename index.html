@@ -2009,14 +2009,14 @@
     </div>
 
     <div class="modal-section">
-      <div class="modal-section-title">⏸ Gap Click</div>
+      <div class="modal-section-title">⏸ Gap Click（自動クリックオフ）</div>
       <div class="tip-item">
-        <div class="tip-title red">🔇 N小節鳴らして→N小節ミュート→繰り返し</div>
-        <div class="tip-desc">「Gap Click」のONボタンを押すと、指定した小節数だけクリックが鳴り、その後ミュートになるサイクルを繰り返します。無音の間も自分でテンポをキープする練習に最適です。ビートドットは無音中も光るので、今どこにいるかは目で確認できます。</div>
+        <div class="tip-title red">🔇 クリックが自動的に消えて、また戻ってくる練習モード</div>
+        <div class="tip-desc">「Gap Click」セクションの「OFF」ボタンを押してONにすると、指定した小節数だけクリックが鳴り、その後指定した小節数だけ無音になるサイクルを繰り返します。無音の間も自分でテンポをキープする「タイム感」の練習に最適です。ビートドットは無音中も光り続けるので、目で拍の位置を確認できます。</div>
       </div>
       <div class="tip-item">
-        <div class="tip-title">小節数は1〜8で設定できます</div>
-        <div class="tip-desc">「鳴らす」と「ミュート」の小節数をそれぞれ±ボタンで変更できます。例）鳴らす2小節→ミュート2小節。慣れてきたらミュート小節を増やして難易度を上げていきましょう。</div>
+        <div class="tip-title">小節数は±ボタンで1〜8に変更できます</div>
+        <div class="tip-desc">「鳴らす」と「ミュート」の小節数をそれぞれ変更できます。デフォルトは両方1小節。慣れてきたらミュート小節を増やして難易度を上げましょう。例）鳴らす1小節→ミュート4小節など。</div>
       </div>
     </div>
 
@@ -2222,36 +2222,30 @@
       </div>
 
       <!-- Gap Click -->
-      <div style="margin-bottom:14px; padding:12px 14px; background:#f7f8fa; border-radius:10px; border:1.5px solid #e4e7ef;">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:10px;">
-          <span style="font-size:0.72rem; font-weight:700; letter-spacing:0.12em; text-transform:uppercase; color:#666;">Gap Click</span>
-          <button id="gap-toggle-btn" onclick="toggleGap()" style="
-            padding:4px 16px; border-radius:20px; border:1.5px solid #c8ccd6;
-            font-size:0.78rem; font-weight:700; cursor:pointer; letter-spacing:0.06em;
-            background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
-            color:#777; box-shadow:0 2px 0 #b8bcc8; line-height:1.4;">OFF</button>
+      <div class="section-label">Gap Click <span style="font-size:0.6rem;color:#b8bcc8;font-weight:400;letter-spacing:0.04em;text-transform:none;">（自動クリックオフ）</span></div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+          <span style="font-size:0.7rem;color:#555;font-weight:600;">鳴らす</span>
+          <button class="live-fine-btn" onclick="setGapPlay(gapPlayBars-1)" style="width:22px;height:22px;font-size:0.85rem;">−</button>
+          <span id="gap-play-val" style="font-family:'Oswald',sans-serif;font-size:0.95rem;font-weight:700;min-width:14px;text-align:center;color:#1a1a2e;">1</span>
+          <button class="live-fine-btn" onclick="setGapPlay(gapPlayBars+1)" style="width:22px;height:22px;font-size:0.85rem;">+</button>
         </div>
-        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-          <div style="display:flex; align-items:center; gap:5px;">
-            <span style="font-size:0.76rem; color:#555; font-weight:600; white-space:nowrap;">鳴らす</span>
-            <button class="live-fine-btn" onclick="setGapPlay(gapPlayBars-1)" style="width:26px;height:26px;font-size:0.9rem;">−</button>
-            <span id="gap-play-val" style="font-family:'Oswald',sans-serif; font-size:1.15rem; font-weight:700; min-width:18px; text-align:center; color:#1a1a2e;">2</span>
-            <button class="live-fine-btn" onclick="setGapPlay(gapPlayBars+1)" style="width:26px;height:26px;font-size:0.9rem;">+</button>
-            <span style="font-size:0.76rem; color:#777;">小節</span>
-          </div>
-          <span style="color:#bbb; font-size:1rem; font-weight:300;">→</span>
-          <div style="display:flex; align-items:center; gap:5px;">
-            <span style="font-size:0.76rem; color:#555; font-weight:600; white-space:nowrap;">ミュート</span>
-            <button class="live-fine-btn" onclick="setGapMute(gapMuteBars-1)" style="width:26px;height:26px;font-size:0.9rem;">−</button>
-            <span id="gap-mute-val" style="font-family:'Oswald',sans-serif; font-size:1.15rem; font-weight:700; min-width:18px; text-align:center; color:#1a1a2e;">2</span>
-            <button class="live-fine-btn" onclick="setGapMute(gapMuteBars+1)" style="width:26px;height:26px;font-size:0.9rem;">+</button>
-            <span style="font-size:0.76rem; color:#777;">小節</span>
-          </div>
+        <span style="color:#ccc;font-size:0.85rem; flex-shrink:0;">→</span>
+        <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+          <span style="font-size:0.7rem;color:#555;font-weight:600;">ミュート</span>
+          <button class="live-fine-btn" onclick="setGapMute(gapMuteBars-1)" style="width:22px;height:22px;font-size:0.85rem;">−</button>
+          <span id="gap-mute-val" style="font-family:'Oswald',sans-serif;font-size:0.95rem;font-weight:700;min-width:14px;text-align:center;color:#1a1a2e;">1</span>
+          <button class="live-fine-btn" onclick="setGapMute(gapMuteBars+1)" style="width:22px;height:22px;font-size:0.85rem;">+</button>
         </div>
-        <div id="gap-status-badge" style="display:none; margin-top:9px; padding:4px 0;
-             border-radius:20px; font-size:0.78rem; font-weight:700; text-align:center;
-             border:1.5px solid; transition:all 0.2s;"></div>
+        <div style="flex:1;"></div>
+        <button id="gap-toggle-btn" onclick="toggleGap()" style="
+          padding:3px 12px; border-radius:20px; border:1.5px solid #c8ccd6;
+          font-size:0.72rem; font-weight:700; cursor:pointer; flex-shrink:0;
+          background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
+          color:#777; box-shadow:0 2px 0 #b8bcc8;">OFF</button>
       </div>
+      <div id="gap-status-badge" style="display:none; margin-top:-6px; margin-bottom:10px; padding:2px 0;
+           border-radius:20px; font-size:0.72rem; font-weight:700; text-align:center; border:1.5px solid;"></div>
 
       <!-- Metro Setlist (折りたたみ) -->
       <button class="setlist-toggle" id="metro-setlist-toggle" onclick="toggleMetroSetlist()">
@@ -2477,8 +2471,8 @@ let allAccent = false;
 let showPick   = false;
 let showScore = false;
 let gapEnabled    = false;
-let gapPlayBars   = 2;
-let gapMuteBars   = 2;
+let gapPlayBars   = 1;
+let gapMuteBars   = 1;
 let _gapBeatTotal = 0;
 
 // ===== VOICE COUNT BUFFERS =====
