@@ -2021,6 +2021,18 @@
     </div>
 
     <div class="modal-section">
+      <div class="modal-section-title">📈 プログレッシブテンポ（段階的BPM上昇）</div>
+      <div class="tip-item">
+        <div class="tip-title red">⬆️ BPMが自動で少しずつ上がる練習モード</div>
+        <div class="tip-desc">「プログレッシブテンポ」セクションの「OFF」ボタンを押してONにすると、指定した小節数ごとに自動でBPMが上昇します。目標BPMに達すると1小節演奏してから自動停止します。スローテンポから始めてだんだん速くしていく「段階的テンポアップ」練習に最適です。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">3つの設定項目</div>
+        <div class="tip-desc">「間隔」：何小節ごとにBPMを上げるか（1〜8小節）。「上昇」：1回あたりの上昇幅（+1〜+10 BPM）。「目標」：最終目標BPM（40〜300）。現在のBPMが起点になります。目標BPMに達すると自動停止します。</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
       <div class="modal-section-title">📋 Setlist</div>
       <div class="tip-item">
         <div class="tip-title red">📝 曲ごとのBPM・拍子・グルーブをまとめて登録</div>
@@ -2245,6 +2257,40 @@
           color:#777; box-shadow:0 2px 0 #b8bcc8;">OFF</button>
       </div>
       <div id="gap-status-badge" style="display:none; margin-top:-6px; margin-bottom:10px; padding:2px 0;
+           border-radius:20px; font-size:0.72rem; font-weight:700; text-align:center; border:1.5px solid;"></div>
+
+      <!-- Progressive Tempo -->
+      <div class="section-label">プログレッシブテンポ <span style="font-size:0.6rem;color:#b8bcc8;font-weight:400;letter-spacing:0.04em;text-transform:none;">（段階的BPM上昇）</span></div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+          <span style="font-size:0.7rem;color:#555;font-weight:600;">間隔</span>
+          <button class="live-fine-btn" onclick="setProgInterval(progIntervalBars-1)" style="width:22px;height:22px;font-size:0.85rem;">−</button>
+          <span id="prog-interval-val" style="font-family:'Oswald',sans-serif;font-size:0.95rem;font-weight:700;min-width:14px;text-align:center;color:#1a1a2e;">2</span>
+          <button class="live-fine-btn" onclick="setProgInterval(progIntervalBars+1)" style="width:22px;height:22px;font-size:0.85rem;">+</button>
+          <span style="font-size:0.65rem;color:#888;">小節</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+          <span style="font-size:0.7rem;color:#555;font-weight:600;">上昇</span>
+          <button class="live-fine-btn" onclick="setProgStep(progStepBpm-1)" style="width:22px;height:22px;font-size:0.85rem;">−</button>
+          <span id="prog-step-val" style="font-family:'Oswald',sans-serif;font-size:0.95rem;font-weight:700;min-width:14px;text-align:center;color:#1a1a2e;">4</span>
+          <button class="live-fine-btn" onclick="setProgStep(progStepBpm+1)" style="width:22px;height:22px;font-size:0.85rem;">+</button>
+          <span style="font-size:0.65rem;color:#888;">BPM</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+          <span style="font-size:0.7rem;color:#555;font-weight:600;">目標</span>
+          <button class="live-fine-btn" onclick="setProgTarget(progTargetBpm-1)" style="width:22px;height:22px;font-size:0.85rem;">−</button>
+          <span id="prog-target-val" style="font-family:'Oswald',sans-serif;font-size:0.95rem;font-weight:700;min-width:20px;text-align:center;color:#1a1a2e;">120</span>
+          <button class="live-fine-btn" onclick="setProgTarget(progTargetBpm+1)" style="width:22px;height:22px;font-size:0.85rem;">+</button>
+          <span style="font-size:0.65rem;color:#888;">BPM</span>
+        </div>
+        <div style="flex:1;"></div>
+        <button id="prog-toggle-btn" onclick="toggleProg()" style="
+          padding:3px 12px; border-radius:20px; border:1.5px solid #c8ccd6;
+          font-size:0.72rem; font-weight:700; cursor:pointer; flex-shrink:0;
+          background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
+          color:#777; box-shadow:0 2px 0 #b8bcc8;">OFF</button>
+      </div>
+      <div id="prog-status-badge" style="display:none; margin-top:-6px; margin-bottom:10px; padding:2px 0;
            border-radius:20px; font-size:0.72rem; font-weight:700; text-align:center; border:1.5px solid;"></div>
 
       <!-- Metro Setlist (折りたたみ) -->
@@ -2474,6 +2520,13 @@ let gapEnabled    = false;
 let gapPlayBars   = 1;
 let gapMuteBars   = 1;
 let _gapBeatTotal = 0;
+let _gapPending   = false;
+
+let progEnabled      = false;
+let progStepBpm      = 4;
+let progIntervalBars = 2;
+let progTargetBpm    = 120;
+let _progBarCount    = 0;
 
 // ===== VOICE COUNT BUFFERS =====
 const voiceBuffers = {};
@@ -3285,27 +3338,60 @@ function updateGapBadge(barIdx) {
   }
 }
 
-function toggleGap() {
-  gapEnabled = !gapEnabled;
+function _setGapBtnOn() {
   const btn = document.getElementById('gap-toggle-btn');
-  if (btn) {
-    if (gapEnabled) {
-      btn.textContent = 'ON';
-      btn.style.background = 'linear-gradient(to bottom,#27ae60,#1e8449)';
-      btn.style.color = '#fff';
-      btn.style.borderColor = '#1e8449';
-      btn.style.boxShadow = '0 2px 0 #145a32';
+  if (!btn) return;
+  btn.textContent = 'ON';
+  btn.style.background = 'linear-gradient(to bottom,#27ae60,#1e8449)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = '#1e8449';
+  btn.style.boxShadow = '0 2px 0 #145a32';
+}
+function _setGapBtnOff() {
+  const btn = document.getElementById('gap-toggle-btn');
+  if (!btn) return;
+  btn.textContent = 'OFF';
+  btn.style.background = 'linear-gradient(to bottom,#f7f8fa,#e0e3ea)';
+  btn.style.color = '#777';
+  btn.style.borderColor = '#c8ccd6';
+  btn.style.boxShadow = '0 2px 0 #b8bcc8';
+}
+function _setGapBtnWait() {
+  const btn = document.getElementById('gap-toggle-btn');
+  if (!btn) return;
+  btn.textContent = '待機中';
+  btn.style.background = 'linear-gradient(to bottom,#a9dfbf,#7dbb99)';
+  btn.style.color = '#fff';
+  btn.style.borderColor = '#5da87a';
+  btn.style.boxShadow = '0 2px 0 #3d8a5a';
+}
+
+function toggleGap() {
+  const btn = document.getElementById('gap-toggle-btn');
+  if (gapEnabled) {
+    // ON → OFF
+    gapEnabled = false;
+    _gapPending = false;
+    _setGapBtnOff();
+    const badge = document.getElementById('gap-status-badge');
+    if (badge) badge.style.display = 'none';
+  } else if (_gapPending) {
+    // 待機中 → キャンセル（OFF）
+    _gapPending = false;
+    _setGapBtnOff();
+  } else {
+    // OFF → ON
+    if (metronomeRunning) {
+      // 再生中は次の小節頭まで待機
+      _gapPending = true;
+      _gapBeatTotal = 0;
+      _setGapBtnWait();
     } else {
-      btn.textContent = 'OFF';
-      btn.style.background = 'linear-gradient(to bottom,#f7f8fa,#e0e3ea)';
-      btn.style.color = '#777';
-      btn.style.borderColor = '#c8ccd6';
-      btn.style.boxShadow = '0 2px 0 #b8bcc8';
-      const badge = document.getElementById('gap-status-badge');
-      if (badge) badge.style.display = 'none';
+      gapEnabled = true;
+      _gapBeatTotal = 0;
+      _setGapBtnOn();
     }
   }
-  if (metronomeRunning) _gapBeatTotal = 0;
 }
 
 function setGapPlay(val) {
@@ -3320,6 +3406,70 @@ function setGapMute(val) {
   const el = document.getElementById('gap-mute-val');
   if (el) el.textContent = gapMuteBars;
   if (metronomeRunning && gapEnabled) _gapBeatTotal = 0;
+}
+
+// ===== PROGRESSIVE TEMPO =====
+function _setProgBpm(val) {
+  bpm = Math.min(240, Math.max(30, val));
+  document.getElementById('bpm-display').textContent = bpm;
+  document.getElementById('bpm-slider').value = bpm;
+}
+
+function updateProgBadge(currentBpm) {
+  const badge = document.getElementById('prog-status-badge');
+  if (!badge) return;
+  if (!progEnabled || !metronomeRunning) { badge.style.display = 'none'; return; }
+  badge.style.display = 'block';
+  badge.textContent = `▲ 現在 ${currentBpm} BPM → 目標 ${progTargetBpm} BPM`;
+  badge.style.color = '#1a5276';
+  badge.style.background = '#eaf4ff';
+  badge.style.border = '1.5px solid #a0c8e8';
+}
+
+function toggleProg() {
+  progEnabled = !progEnabled;
+  const btn = document.getElementById('prog-toggle-btn');
+  if (btn) {
+    if (progEnabled) {
+      btn.textContent = 'ON';
+      btn.style.background = 'linear-gradient(to bottom,#2176ae,#1a5276)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#1a5276';
+      btn.style.boxShadow = '0 2px 0 #0d3b5e';
+    } else {
+      btn.textContent = 'OFF';
+      btn.style.background = 'linear-gradient(to bottom,#f7f8fa,#e0e3ea)';
+      btn.style.color = '#777';
+      btn.style.borderColor = '#c8ccd6';
+      btn.style.boxShadow = '0 2px 0 #b8bcc8';
+      const badge = document.getElementById('prog-status-badge');
+      if (badge) badge.style.display = 'none';
+    }
+  }
+  if (metronomeRunning) {
+    _progBarCount = 0;
+    if (progEnabled) updateProgBadge(bpm);
+  }
+}
+
+function setProgInterval(val) {
+  progIntervalBars = Math.max(1, Math.min(8, val));
+  const el = document.getElementById('prog-interval-val');
+  if (el) el.textContent = progIntervalBars;
+  if (metronomeRunning && progEnabled) _progBarCount = 0;
+}
+
+function setProgStep(val) {
+  progStepBpm = Math.max(1, Math.min(10, val));
+  const el = document.getElementById('prog-step-val');
+  if (el) el.textContent = progStepBpm;
+}
+
+function setProgTarget(val) {
+  progTargetBpm = Math.max(40, Math.min(300, val));
+  const el = document.getElementById('prog-target-val');
+  if (el) el.textContent = progTargetBpm;
+  if (progEnabled && metronomeRunning) updateProgBadge(bpm);
 }
 
 function setShuffleRatio(val) {
@@ -3904,6 +4054,14 @@ function scheduler() {
     const t = nextNoteTime;
     const isAccent = beat === 0;
 
+    // Gap pending: 次の小節頭から正式にON
+    if (_gapPending && beat === 0) {
+      _gapPending = false;
+      gapEnabled = true;
+      _gapBeatTotal = 0;
+      setTimeout(_setGapBtnOn, Math.max(0, (t - ctx.currentTime) * 1000));
+    }
+
     // Gap click: count beats, determine if this bar is silenced
     let gapSilent = false;
     if (gapEnabled) {
@@ -3914,6 +4072,25 @@ function scheduler() {
         setTimeout(() => updateGapBadge(_bIdx), Math.max(0, (t - ctx.currentTime) * 1000));
       }
       _gapBeatTotal++;
+    }
+
+    // Progressive Tempo: N小節ごとにBPMを上昇
+    if (progEnabled && beat === 0) {
+      _progBarCount++;
+      if (_progBarCount % progIntervalBars === 0) {
+        const _pNewBpm = Math.min(bpm + progStepBpm, progTargetBpm);
+        const _pIsTarget = _pNewBpm >= progTargetBpm;
+        setTimeout(() => {
+          if (!progEnabled || !metronomeRunning) return;
+          if (bpm >= progTargetBpm) return;
+          _setProgBpm(_pNewBpm);
+          updateProgBadge(_pNewBpm);
+          if (_pIsTarget) {
+            setTimeout(() => { if (metronomeRunning) toggleMetronome(); },
+              (60000 / _pNewBpm) * beats);
+          }
+        }, Math.max(0, (t - ctx.currentTime) * 1000));
+      }
     }
 
     // メインビートを鳴らすか
@@ -4022,6 +4199,8 @@ function toggleMetronome() {
     nextNoteTime = ctx.currentTime + 0.05;
     currentBeat = 0;
     _gapBeatTotal = 0;
+    _progBarCount = 0;
+    if (progEnabled) updateProgBadge(bpm);
     scheduler();
     metronomeRunning = true;
     btn.textContent = 'STOP';
@@ -4035,8 +4214,11 @@ function toggleMetronome() {
     if (card) card.classList.remove('metro-running');
     document.querySelectorAll('.beat-dot').forEach(d => d.classList.remove('active'));
     document.querySelectorAll('.score-slot').forEach(g => g.classList.remove('score-active'));
+    if (_gapPending) { _gapPending = false; _setGapBtnOff(); }
     const gapBadge = document.getElementById('gap-status-badge');
     if (gapBadge) gapBadge.style.display = 'none';
+    const progBadge = document.getElementById('prog-status-badge');
+    if (progBadge) progBadge.style.display = 'none';
   }
 }
 
