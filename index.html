@@ -3225,6 +3225,12 @@ function encodeSetlistForUrl() {
     if (metroIs8thBaseArr[i]) slot['8'] = 1;
     if (metroGroovesArr[i] && metroGroovesArr[i] !== 'normal') slot.g = metroGroovesArr[i];
     if (metroSoundsArr[i] && metroSoundsArr[i] !== 'beep') slot.sn = metroSoundsArr[i];
+    if (metroAllAccentArr[i]) slot.aa = 1;
+    if (metroShowPickArr[i]) slot.sp = 1;
+    const bm = metroBeatMutedArr[i];
+    if (Array.isArray(bm) && bm.some(v => v)) slot.bm = bm;
+    const sm = metroSubMutedArr[i];
+    if (Array.isArray(sm) && sm.some(arr => Array.isArray(arr) && arr.some(v => v))) slot.sm = sm;
     data.s.push(slot);
   }
   const json = JSON.stringify(data);
@@ -3265,6 +3271,10 @@ function decodeSetlistFromHash() {
       metroIs8thBaseArr[idx] = !!slot['8'];
       metroGroovesArr[idx]   = slot.g   || 'normal';
       metroSoundsArr[idx]    = slot.sn  || 'beep';
+      metroAllAccentArr[idx] = !!slot.aa;
+      metroShowPickArr[idx]  = !!slot.sp;
+      if (Array.isArray(slot.bm)) metroBeatMutedArr[idx] = slot.bm;
+      if (Array.isArray(slot.sm)) metroSubMutedArr[idx]  = slot.sm.map(r => Array.isArray(r) ? r : []);
     });
 
     const nameEl = document.getElementById('metro-setlist-name');
