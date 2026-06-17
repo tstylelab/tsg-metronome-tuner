@@ -3227,6 +3227,7 @@ function encodeSetlistForUrl() {
     if (metroSoundsArr[i] && metroSoundsArr[i] !== 'beep') slot.sn = metroSoundsArr[i];
     if (metroAllAccentArr[i]) slot.aa = 1;
     if (metroShowPickArr[i]) slot.sp = 1;
+    if ((metroShuffleArr[i] || 67) !== 67) slot.sr = metroShuffleArr[i];
     const bm = metroBeatMutedArr[i];
     if (Array.isArray(bm) && bm.some(v => v)) slot.bm = bm;
     const sm = metroSubMutedArr[i];
@@ -3235,7 +3236,8 @@ function encodeSetlistForUrl() {
   }
   const json = JSON.stringify(data);
   const bytes = new TextEncoder().encode(json);
-  const b64 = btoa(String.fromCharCode(...bytes)).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+  let _bStr = ''; bytes.forEach(b => { _bStr += String.fromCharCode(b); });
+  const b64 = btoa(_bStr).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   return location.origin + location.pathname + '#s=' + b64;
 }
 
@@ -3273,6 +3275,7 @@ function decodeSetlistFromHash() {
       metroSoundsArr[idx]    = slot.sn  || 'beep';
       metroAllAccentArr[idx] = !!slot.aa;
       metroShowPickArr[idx]  = !!slot.sp;
+      metroShuffleArr[idx]   = slot.sr || 67;
       if (Array.isArray(slot.bm)) metroBeatMutedArr[idx] = slot.bm;
       if (Array.isArray(slot.sm)) metroSubMutedArr[idx]  = slot.sm.map(r => Array.isArray(r) ? r : []);
     });
@@ -4214,18 +4217,24 @@ function toggleMetronome() {
   const card = document.getElementById('metro-card');
   if (!metronomeRunning) {
     const ctx = getAudioCtx();
-    if (ctx.state === 'suspended') ctx.resume();
-    if (currentSound === 'voice' && !voiceLoaded) loadVoiceBuffers();
-    nextNoteTime = ctx.currentTime + 0.05;
-    currentBeat = 0;
-    _gapBeatTotal = 0;
-    _progBarCount = 0;
-    if (progEnabled) updateProgBadge(bpm);
-    scheduler();
-    metronomeRunning = true;
-    btn.textContent = 'STOP';
-    btn.classList.add('running');
-    if (card) card.classList.add('metro-running');
+    const _startMetro = () => {
+      if (currentSound === 'voice' && !voiceLoaded) loadVoiceBuffers();
+      nextNoteTime = ctx.currentTime + 0.05;
+      currentBeat = 0;
+      _gapBeatTotal = 0;
+      _progBarCount = 0;
+      if (progEnabled) updateProgBadge(bpm);
+      scheduler();
+      metronomeRunning = true;
+      btn.textContent = 'STOP';
+      btn.classList.add('running');
+      if (card) card.classList.add('metro-running');
+    };
+    if (ctx.state === 'suspended') {
+      ctx.resume().then(_startMetro);
+    } else {
+      _startMetro();
+    }
   } else {
     clearTimeout(timerID);
     metronomeRunning = false;
