@@ -2888,13 +2888,14 @@ function applyMetroSlot(idx) {
   resetMuteState();
   const savedBM = metroBeatMutedArr[idx];
   const savedSM = metroSubMutedArr[idx];
-  if (Array.isArray(savedBM) && savedBM.length === beats) {
-    beatMuted = savedBM.slice();
+  if (Array.isArray(savedBM) && savedBM.length > 0) {
+    beatMuted = Array.from({length: beats}, (_, i) => i < savedBM.length ? !!savedBM[i] : false);
   }
-  if (Array.isArray(savedSM) && savedSM.length === beats) {
-    subMuted = savedSM.map((arr, i) =>
-      Array.isArray(arr) ? arr.slice() : (Array.isArray(subMuted[i]) ? subMuted[i].slice() : [])
-    );
+  if (Array.isArray(savedSM) && savedSM.length > 0) {
+    subMuted = Array.from({length: beats}, (_, i) => {
+      const row = savedSM[i];
+      return Array.isArray(row) ? row.slice() : (Array.isArray(subMuted[i]) ? subMuted[i].slice() : []);
+    });
   }
   renderBeatDots();
   _applyingSlot = false;
@@ -3059,7 +3060,7 @@ function saveMetroSetlistFileJson() {
 
 function saveMetroSetlistFileCsv() {
   const name = document.getElementById('metro-setlist-name')?.value || '';
-  const rows = ['スロット,曲名,BPM,拍子,グルーブ,サウンド'];
+  const rows = ['スロット,曲名,BPM,拍子,グルーブ,サウンド,全アクセント,ピック表示,ビートミュート,サブミュート'];
   for (let i = 0; i < metroSlotCount; i++) {
     const bpmVal  = metroSlots[i] !== null ? metroSlots[i] : '';
     const slotName = '"' + (metroNames[i] || '').replace(/"/g, '""') + '"';
@@ -3068,7 +3069,13 @@ function saveMetroSetlistFileCsv() {
     const timeSig = (is8 && beats === 6) ? '6/8' : (is8 && beats === 7) ? '7/8' : beats + '/4';
     const groove  = metroGroovesArr[i] || 'normal';
     const sound   = metroSoundsArr[i]  || 'beep';
-    rows.push(`${i+1},${slotName},${bpmVal},${timeSig},${groove},${sound}`);
+    const aa = metroAllAccentArr[i] ? 1 : '';
+    const sp = metroShowPickArr[i] ? 1 : '';
+    const bm = metroBeatMutedArr[i];
+    const bmStr = (Array.isArray(bm) && bm.some(v => v)) ? '"' + JSON.stringify(bm).replace(/"/g, '""') + '"' : '';
+    const sm = metroSubMutedArr[i];
+    const smStr = (Array.isArray(sm) && sm.some(arr => Array.isArray(arr) && arr.some(v => v))) ? '"' + JSON.stringify(sm).replace(/"/g, '""') + '"' : '';
+    rows.push(`${i+1},${slotName},${bpmVal},${timeSig},${groove},${sound},${aa},${sp},${bmStr},${smStr}`);
   }
   const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -3125,6 +3132,14 @@ function loadMetroSetlistFileCsv(text) {
     metroGroovesArr[idx] = ['normal','eighth','sixteenth','shuffle','sixteenth-shuffle'].includes(gr) ? gr : 'normal';
     const snd = (c[5] || '').trim();
     metroSoundsArr[idx]  = ['beep','wood','hihat','voice'].includes(snd) ? snd : 'beep';
+    if (c.length > 6) metroAllAccentArr[idx] = (c[6] || '').trim() === '1';
+    if (c.length > 7) metroShowPickArr[idx]  = (c[7] || '').trim() === '1';
+    if (c.length > 8 && (c[8] || '').trim()) {
+      try { const bm = JSON.parse(c[8].trim()); if (Array.isArray(bm)) metroBeatMutedArr[idx] = bm; } catch(e) {}
+    }
+    if (c.length > 9 && (c[9] || '').trim()) {
+      try { const sm = JSON.parse(c[9].trim()); if (Array.isArray(sm)) metroSubMutedArr[idx] = sm.map(r => Array.isArray(r) ? r : []); } catch(e) {}
+    }
     if (idx + 1 > maxSlot) maxSlot = idx + 1;
   }
   metroSlotCount = maxSlot <= 12 ? 12 : maxSlot <= 24 ? 24 : maxSlot <= 36 ? 36 : 48;
