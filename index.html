@@ -2516,7 +2516,7 @@ let nextNoteTime = 0;
 let timerID = null;
 let currentSound = 'beep';
 let groove = 'normal';
-let allAccent = false;
+let allAccent = true;
 let showPick   = false;
 let showScore = false;
 let gapEnabled    = false;
@@ -2975,7 +2975,7 @@ function clearSelectedMetroSlot() {
   metroIs8thBaseArr[i] = false;
   metroShuffleArr[i]   = 67;
   metroSoundsArr[i]    = 'beep';
-  metroAllAccentArr[i] = false;
+  metroAllAccentArr[i] = true;
   metroShowPickArr[i]  = false;
   metroBeatMutedArr[i] = [];
   metroSubMutedArr[i]  = [];
@@ -3010,7 +3010,7 @@ function deleteSelectedMetroSlot() {
   metroIs8thBaseArr[last] = false;
   metroShuffleArr[last]   = 67;
   metroSoundsArr[last]    = 'beep';
-  metroAllAccentArr[last] = false;
+  metroAllAccentArr[last] = true;
   metroShowPickArr[last]  = false;
   metroBeatMutedArr[last] = [];
   metroSubMutedArr[last]  = [];
@@ -3036,7 +3036,7 @@ function resetMetroSetlist() {
   metroIs8thBaseArr = Array(48).fill(false);
   metroShuffleArr = Array(48).fill(67);
   metroSoundsArr = Array(48).fill('beep');
-  metroAllAccentArr = Array(48).fill(false);
+  metroAllAccentArr = Array(48).fill(true);
   metroShowPickArr  = Array(48).fill(false);
   metroBeatMutedArr = Array(48).fill(null).map(() => []);
   metroSubMutedArr  = Array(48).fill(null).map(() => []);
@@ -3150,7 +3150,7 @@ function loadMetroSetlistFileCsv(text) {
   metroIs8thBaseArr = Array(48).fill(false);
   metroShuffleArr   = Array(48).fill(67);
   metroSoundsArr    = Array(48).fill('beep');
-  metroAllAccentArr = Array(48).fill(false);
+  metroAllAccentArr = Array(48).fill(true);
   metroShowPickArr  = Array(48).fill(false);
   metroBeatMutedArr = Array(48).fill(null).map(()=>[]);
   metroSubMutedArr  = Array(48).fill(null).map(()=>[]);
@@ -3216,7 +3216,7 @@ function loadMetroSetlistFile(event) {
         metroIs8thBaseArr = Array(48).fill(false);
         metroShuffleArr   = Array(48).fill(67);
         metroSoundsArr    = Array(48).fill('beep');
-        metroAllAccentArr = Array(48).fill(false);
+        metroAllAccentArr = Array(48).fill(true);
         metroShowPickArr  = Array(48).fill(false);
         metroBeatMutedArr = Array(48).fill(null).map(()=>[]);
         metroSubMutedArr  = Array(48).fill(null).map(()=>[]);
@@ -4966,6 +4966,14 @@ document.addEventListener('keydown', function(e) {
     e.preventDefault();
     if (document.getElementById('panel-metronome')?.classList.contains('active')) {
       toggleMetronome();
+    }
+    return;
+  }
+
+  if (e.key === 't' || e.key === 'T') {
+    if (document.getElementById('panel-metronome')?.classList.contains('active')) {
+      e.preventDefault();
+      tapTempo();
     }
     return;
   }
