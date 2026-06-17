@@ -2333,7 +2333,10 @@
             style="width:100%;box-sizing:border-box;margin-bottom:0;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
             <p style="margin:0; font-size:0.68rem; color:#777; letter-spacing:0.02em;">PC/iPad：ダブルクリックで曲名入力 ／ ドラッグで曲順を入れ替え</p>
-            <button onclick="clearSelectedMetroSlot()" style="flex-shrink:0;margin-left:8px;padding:3px 10px;font-size:0.72rem;color:#c0392b;background:#fff5f5;border:1px solid #e0a0a0;border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600;" title="選択中のスロットを初期状態に戻す">選択中スロットをリセット</button>
+            <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
+              <button onclick="clearSelectedMetroSlot()" style="padding:3px 10px;font-size:0.72rem;color:#c0392b;background:#fff5f5;border:1px solid #e0a0a0;border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600;" title="選択中のスロットを初期状態に戻す（位置はそのまま）">スロットをリセット</button>
+              <button onclick="deleteSelectedMetroSlot()" style="padding:3px 10px;font-size:0.72rem;color:#fff;background:#c0392b;border:1px solid #a93226;border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600;" title="選択中のスロットを消去して後ろを前に詰める">消去</button>
+            </div>
           </div>
         </div>
         <!-- セットリスト 保存/読み込み -->
@@ -2963,6 +2966,7 @@ function duplicateMetroSlot(i) {
 }
 
 function clearSelectedMetroSlot() {
+  if (!confirm('選択中のスロットをリセットしますか？')) return;
   const i = metroSelectedSlot;
   metroSlots[i]        = null;
   metroNames[i]        = '';
@@ -2980,6 +2984,40 @@ function clearSelectedMetroSlot() {
   applyMetroSlot(i);
   const ni = document.getElementById('metro-slot-name');
   if (ni) ni.value = '';
+}
+
+function deleteSelectedMetroSlot() {
+  if (!confirm('選択中のスロットを消去して後ろを前に詰めますか？')) return;
+  const i = metroSelectedSlot;
+  const last = metroSlotCount - 1;
+  for (let j = i; j < last; j++) {
+    metroSlots[j]        = metroSlots[j+1];
+    metroNames[j]        = metroNames[j+1];
+    metroBeatsArr[j]     = metroBeatsArr[j+1];
+    metroGroovesArr[j]   = metroGroovesArr[j+1];
+    metroIs8thBaseArr[j] = metroIs8thBaseArr[j+1];
+    metroShuffleArr[j]   = metroShuffleArr[j+1];
+    metroSoundsArr[j]    = metroSoundsArr[j+1];
+    metroAllAccentArr[j] = metroAllAccentArr[j+1];
+    metroShowPickArr[j]  = metroShowPickArr[j+1];
+    metroBeatMutedArr[j] = Array.isArray(metroBeatMutedArr[j+1]) ? metroBeatMutedArr[j+1].slice() : [];
+    metroSubMutedArr[j]  = Array.isArray(metroSubMutedArr[j+1]) ? metroSubMutedArr[j+1].map(r => Array.isArray(r) ? r.slice() : []) : [];
+  }
+  metroSlots[last]        = null;
+  metroNames[last]        = '';
+  metroBeatsArr[last]     = 4;
+  metroGroovesArr[last]   = 'normal';
+  metroIs8thBaseArr[last] = false;
+  metroShuffleArr[last]   = 67;
+  metroSoundsArr[last]    = 'beep';
+  metroAllAccentArr[last] = false;
+  metroShowPickArr[last]  = false;
+  metroBeatMutedArr[last] = [];
+  metroSubMutedArr[last]  = [];
+  if (metroSelectedSlot >= metroSlotCount - 1) metroSelectedSlot = Math.max(0, metroSlotCount - 2);
+  saveMetroSetlist();
+  renderMetroSlots();
+  selectMetroSlot(metroSelectedSlot);
 }
 
 function updateMetroSlotName(val) {
