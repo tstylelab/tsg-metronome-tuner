@@ -4509,6 +4509,7 @@ async function toggleMic() {
       const inputGain = tunerAudioCtx.createGain();
       inputGain.gain.value = 5.0;
       source.connect(hp); hp.connect(lp); lp.connect(inputGain); inputGain.connect(analyser);
+      if (tunerAudioCtx.state === 'suspended') await tunerAudioCtx.resume();
       tunerActive = true;
       btn.classList.add('listening');
       btnText.textContent = 'マイクをオフにする';
