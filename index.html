@@ -4478,6 +4478,12 @@ async function toggleMic() {
   const btnText = document.getElementById('mic-btn-text');
   if (!tunerActive) {
     try {
+      // AudioContextはユーザー操作の同期処理内で作成・resumeする
+      // （getUserMediaのawaitを挟んだ後だとiOSがジェスチャー起因と認識せず
+      //   resume()が効かないことがあるため、awaitの前に行う）
+      tunerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (tunerAudioCtx.state === 'suspended') tunerAudioCtx.resume();
+
       // チューナー用のマイク取得設定。
       // ブラウザは既定で noiseSuppression / autoGainControl / echoCancellation を
       // ONにするが、これらは持続音を削ったり音量を勝手に変えたりして
@@ -4490,7 +4496,6 @@ async function toggleMic() {
         },
         video: false,
       });
-      tunerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       const source = tunerAudioCtx.createMediaStreamSource(micStream);
       analyser = tunerAudioCtx.createAnalyser();
       analyser.fftSize = 8192;
