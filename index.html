@@ -4473,6 +4473,14 @@ let tunerAudioCtx = null;
 let analyser = null;
 let tunerAnimId = null;
 
+// iOS（iPhone/iPad）はマイクのハードウェア処理（ノイズ抑制等）が強く、
+// 標準閾値だと検出しにくいため、検出ゲートを緩める
+const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const TUNER_RMS_FLOOR  = isIOSDevice ? 0.006 : 0.010;
+const TUNER_YIN_THRESH = isIOSDevice ? 0.15  : 0.10;
+const TUNER_CONFIDENCE_MIN = isIOSDevice ? 0.75 : 0.90;
+
 async function toggleMic() {
   const btn = document.getElementById('mic-btn');
   const btnText = document.getElementById('mic-btn-text');
@@ -4638,7 +4646,7 @@ function detectPitch() {
   const result = autoCorrelate(buf, tunerAudioCtx.sampleRate, floorHz);
 
   // 確信度ゲート：confidence が高いフレームだけ表示に反映する。
-  if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= 0.90) {
+  if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= TUNER_CONFIDENCE_MIN) {
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     updateTunerUI(result.freq);
   } else {
@@ -4669,7 +4677,7 @@ function autoCorrelate(buf, sampleRate, floorHz) {
   rms = Math.sqrt(rms / SIZE);
   // 足切りライン：これより小さい音は無視する。
   // ゲイン5倍と組み合わせてエレキ生音など微弱な信号にも対応する。
-  if (rms < 0.010) return null;
+  if (rms < TUNER_RMS_FLOOR) return null;
 
   // ===== YIN アルゴリズム =====
   // 解析窓 WIN：低い音ほど1周期が長いので、floorHz に応じて窓を広げる。
@@ -4697,7 +4705,7 @@ function autoCorrelate(buf, sampleRate, floorHz) {
 
   // 音域内で「最初に閾値を下回る谷」を探す（= 基音）
   // 自己相関と違い、倍音の谷より基音の谷が必ず先に来るため誤検出が減る
-  const threshold = 0.10;
+  const threshold = TUNER_YIN_THRESH;
   let bestTau = -1;
   for (let tau = minLag; tau < maxLag; tau++) {
     if (yin[tau] < threshold) {
