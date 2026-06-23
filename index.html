@@ -4593,7 +4593,9 @@ function resetTunerUI() {
   if (centsEl) { centsEl.textContent = ''; centsEl.className = 'tuner-cents'; }
   const dividerEl = document.getElementById('tuner-freq-divider');
   if (dividerEl) dividerEl.style.display = 'none';
-  document.getElementById('tuner-status').textContent = 'マイクをオンにして弦を弾いてください';
+  document.getElementById('tuner-status').textContent = tunerActive
+    ? '楽器を近づけて大きな音で弾いて下さい'
+    : 'マイクをオンにして弦を弾いてください';
   document.getElementById('tuner-status').className = 'tuner-status';
   document.getElementById('gauge-fill').style.cssText = 'left:50%;width:0;background:#e0e3ea;';
   const displayEl = document.getElementById('tuner-note-display');
