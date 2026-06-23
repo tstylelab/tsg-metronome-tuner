@@ -4522,7 +4522,7 @@ async function toggleMic() {
       const inputGain = tunerAudioCtx.createGain();
       // iOSはハードウェア側で音量が圧縮されやすいため、追加で底上げする
       // Androidも低音検出の改善のため少し上げる（iOSほどではない）
-      inputGain.gain.value = isIOSDevice ? 16.0 : 8.0;
+      inputGain.gain.value = isIOSDevice ? 20.0 : 10.0;
       source.connect(hp); hp.connect(lp); lp.connect(inputGain); inputGain.connect(analyser);
       if (tunerAudioCtx.state === 'suspended') await tunerAudioCtx.resume();
       tunerActive = true;
@@ -4594,7 +4594,7 @@ function resetTunerUI() {
   const dividerEl = document.getElementById('tuner-freq-divider');
   if (dividerEl) dividerEl.style.display = 'none';
   document.getElementById('tuner-status').textContent = tunerActive
-    ? '楽器を近づけて大きな音で弾いて下さい'
+    ? '楽器を近づけて音を出し続けてください'
     : 'マイクをオンにして弦を弾いてください';
   document.getElementById('tuner-status').className = 'tuner-status';
   document.getElementById('gauge-fill').style.cssText = 'left:50%;width:0;background:#e0e3ea;';
