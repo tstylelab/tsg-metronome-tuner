@@ -4522,7 +4522,7 @@ async function toggleMic() {
       const inputGain = tunerAudioCtx.createGain();
       // iOSはハードウェア側で音量が圧縮されやすいため、追加で底上げする
       // Androidも低音検出の改善のため少し上げる（iOSほどではない）
-      inputGain.gain.value = isIOSDevice ? 12.0 : 6.5;
+      inputGain.gain.value = isIOSDevice ? 16.0 : 8.0;
       source.connect(hp); hp.connect(lp); lp.connect(inputGain); inputGain.connect(analyser);
       if (tunerAudioCtx.state === 'suspended') await tunerAudioCtx.resume();
       tunerActive = true;
