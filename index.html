@@ -4520,7 +4520,8 @@ async function toggleMic() {
       // 波形の「形」を変えずに増幅するのでピッチ精度は落ちない。
       // 無音時も同率で増幅されるが、RMS足切りが守るので誤反応しにくい。
       const inputGain = tunerAudioCtx.createGain();
-      inputGain.gain.value = 5.0;
+      // iOSはハードウェア側で音量が圧縮されやすいため、追加で底上げする
+      inputGain.gain.value = isIOSDevice ? 9.0 : 5.0;
       source.connect(hp); hp.connect(lp); lp.connect(inputGain); inputGain.connect(analyser);
       if (tunerAudioCtx.state === 'suspended') await tunerAudioCtx.resume();
       tunerActive = true;
