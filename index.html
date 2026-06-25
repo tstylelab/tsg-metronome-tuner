@@ -2155,6 +2155,7 @@
           <button class="groove-btn"          id="metro-sound-wood"  onclick="setMetroSound('wood')">Wood</button>
           <button class="groove-btn"          id="metro-sound-hihat" onclick="setMetroSound('hihat')">Hi-hat</button>
           <button class="groove-btn"          id="metro-sound-voice" onclick="setMetroSound('voice')">Voice</button>
+          <button class="groove-btn"          id="metro-sound-snare" onclick="setMetroSound('snare')">Snare</button>
         </div>
       </div>
 
@@ -2879,7 +2880,7 @@ function applyMetroSlot(idx) {
   // Sound
   const snd = metroSoundsArr[idx] || 'beep';
   currentSound = snd;
-  ['beep','wood','hihat','voice'].forEach(s=>{
+  ['beep','wood','hihat','voice','snare'].forEach(s=>{
     const btn = document.getElementById('metro-sound-'+s);
     if (btn) btn.classList.toggle('selected', s===snd);
   });
@@ -3169,7 +3170,7 @@ function loadMetroSetlistFileCsv(text) {
     const gr = (c[4] || '').trim();
     metroGroovesArr[idx] = ['normal','eighth','sixteenth','shuffle','sixteenth-shuffle'].includes(gr) ? gr : 'normal';
     const snd = (c[5] || '').trim();
-    metroSoundsArr[idx]  = ['beep','wood','hihat','voice'].includes(snd) ? snd : 'beep';
+    metroSoundsArr[idx]  = ['beep','wood','hihat','voice','snare'].includes(snd) ? snd : 'beep';
     if (c.length > 6) metroAllAccentArr[idx] = (c[6] || '').trim() === '1';
     if (c.length > 7) metroShowPickArr[idx]  = (c[7] || '').trim() === '1';
     if (c.length > 8 && (c[8] || '').trim()) {
@@ -3812,7 +3813,7 @@ function renderScoreView() {
 
 function setMetroSound(val) {
   currentSound = val;
-  ['beep','wood','hihat','voice'].forEach(s => {
+  ['beep','wood','hihat','voice','snare'].forEach(s => {
     const b = document.getElementById('metro-sound-' + s);
     if (b) b.classList.toggle('selected', s === val);
   });
@@ -4072,6 +4073,29 @@ function scheduleNote(time, isAccent, beatIdx = 0) {
       src.connect(g); g.connect(out);
       src.start(time);
     }
+
+  } else if (currentSound === 'snare') {
+    // ボディ：ピッチを下げながら鳴らして「ドスッ」という太さを出す
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(isAccent ? 220 : 190, time);
+    osc.frequency.exponentialRampToValueAtTime(isAccent ? 110 : 95, time + 0.08);
+    oscGain.gain.setValueAtTime(isAccent ? 0.6 : 0.45, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+    osc.connect(oscGain); oscGain.connect(out);
+    osc.start(time); osc.stop(time + 0.11);
+    // スナッピー：中域寄りのバンドパス＋ローパスで金属的な高域を抑える
+    const noise = makeNoise(ctx, 0.18);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 2500; bp.Q.value = 0.7;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 6000;
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+    noise.connect(bp); bp.connect(lp); lp.connect(noiseGain); noiseGain.connect(out);
+    noise.start(time); noise.stop(time + 0.16);
   }
 }
 
@@ -4119,6 +4143,27 @@ function scheduleSubNote(time, beatIdx = 0) {
       src.start(time);
       src.stop(time + 0.22);
     }
+
+  } else if (currentSound === 'snare') {
+    const osc = ctx.createOscillator();
+    const oscGain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(190, time);
+    osc.frequency.exponentialRampToValueAtTime(95, time + 0.05);
+    oscGain.gain.setValueAtTime(0.3, time);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
+    osc.connect(oscGain); oscGain.connect(out);
+    osc.start(time); osc.stop(time + 0.07);
+    const noise = makeNoise(ctx, 0.10);
+    const bp = ctx.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 2500; bp.Q.value = 0.7;
+    const lp = ctx.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 6000;
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.5, time);
+    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
+    noise.connect(bp); bp.connect(lp); lp.connect(gain); gain.connect(out);
+    noise.start(time); noise.stop(time + 0.09);
   }
 }
 
