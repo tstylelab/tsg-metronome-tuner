@@ -2558,6 +2558,28 @@ async function loadVoiceBuffers() {
   })));
   voiceLoaded = true;
 }
+
+let snareBuffer = null;
+let snareLoaded = false;
+
+async function loadSnareBuffer() {
+  if (snareLoaded) return;
+  const ctx = getAudioCtx();
+  await new Promise(resolve => {
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', 'sounds/snare/Snare01.mp3', true);
+    xhr.responseType = 'arraybuffer';
+    xhr.onload = async () => {
+      try {
+        snareBuffer = await ctx.decodeAudioData(xhr.response.slice(0));
+      } catch(e) { console.warn('snare decode failed:', e); }
+      resolve();
+    };
+    xhr.onerror = () => { console.warn('snare load failed'); resolve(); };
+    xhr.send();
+  });
+  snareLoaded = true;
+}
 let is8thBase = false; // 6/8 or 7/8 selected: 8th note IS the beat
 let beatMuted = [];
 let subMuted = [];
@@ -2885,6 +2907,7 @@ function applyMetroSlot(idx) {
     if (btn) btn.classList.toggle('selected', s===snd);
   });
   if (snd === 'voice' && !voiceLoaded) loadVoiceBuffers();
+  if (snd === 'snare' && !snareLoaded) loadSnareBuffer();
   // All Accent / Pick
   setAllAccent(!!metroAllAccentArr[idx]);
   setShowPick(!!metroShowPickArr[idx]);
@@ -3818,6 +3841,7 @@ function setMetroSound(val) {
     if (b) b.classList.toggle('selected', s === val);
   });
   if (val === 'voice' && !voiceLoaded) loadVoiceBuffers();
+  if (val === 'snare' && !snareLoaded) loadSnareBuffer();
   autoSaveMetroSlot();
 }
 
@@ -4075,27 +4099,14 @@ function scheduleNote(time, isAccent, beatIdx = 0) {
     }
 
   } else if (currentSound === 'snare') {
-    // ボディ：ピッチを下げながら鳴らして「ドスッ」という太さを出す
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(isAccent ? 220 : 190, time);
-    osc.frequency.exponentialRampToValueAtTime(isAccent ? 110 : 95, time + 0.08);
-    oscGain.gain.setValueAtTime(isAccent ? 0.6 : 0.45, time);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
-    osc.connect(oscGain); oscGain.connect(out);
-    osc.start(time); osc.stop(time + 0.11);
-    // スナッピー：中域寄りのバンドパス＋ローパスで金属的な高域を抑える
-    const noise = makeNoise(ctx, 0.18);
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass'; bp.frequency.value = 2500; bp.Q.value = 0.7;
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 6000;
-    const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(isAccent ? 1.0 : 0.8, time);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
-    noise.connect(bp); bp.connect(lp); lp.connect(noiseGain); noiseGain.connect(out);
-    noise.start(time); noise.stop(time + 0.16);
+    if (snareBuffer) {
+      const src = ctx.createBufferSource();
+      src.buffer = snareBuffer;
+      const g = ctx.createGain();
+      g.gain.value = isAccent ? 0.9 : 0.7;
+      src.connect(g); g.connect(out);
+      src.start(time);
+    }
   }
 }
 
@@ -4145,25 +4156,14 @@ function scheduleSubNote(time, beatIdx = 0) {
     }
 
   } else if (currentSound === 'snare') {
-    const osc = ctx.createOscillator();
-    const oscGain = ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(190, time);
-    osc.frequency.exponentialRampToValueAtTime(95, time + 0.05);
-    oscGain.gain.setValueAtTime(0.3, time);
-    oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.06);
-    osc.connect(oscGain); oscGain.connect(out);
-    osc.start(time); osc.stop(time + 0.07);
-    const noise = makeNoise(ctx, 0.10);
-    const bp = ctx.createBiquadFilter();
-    bp.type = 'bandpass'; bp.frequency.value = 2500; bp.Q.value = 0.7;
-    const lp = ctx.createBiquadFilter();
-    lp.type = 'lowpass'; lp.frequency.value = 6000;
-    const gain = ctx.createGain();
-    gain.gain.setValueAtTime(0.5, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.08);
-    noise.connect(bp); bp.connect(lp); lp.connect(gain); gain.connect(out);
-    noise.start(time); noise.stop(time + 0.09);
+    if (snareBuffer) {
+      const src = ctx.createBufferSource();
+      src.buffer = snareBuffer;
+      const g = ctx.createGain();
+      g.gain.value = 0.45;
+      src.connect(g); g.connect(out);
+      src.start(time);
+    }
   }
 }
 
@@ -4317,6 +4317,7 @@ function toggleMetronome() {
     const ctx = getAudioCtx();
     const _startMetro = () => {
       if (currentSound === 'voice' && !voiceLoaded) loadVoiceBuffers();
+      if (currentSound === 'snare' && !snareLoaded) loadSnareBuffer();
       nextNoteTime = ctx.currentTime + 0.05;
       currentBeat = 0;
       _gapBeatTotal = 0;
