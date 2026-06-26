@@ -4103,9 +4103,14 @@ function scheduleNote(time, isAccent, beatIdx = 0) {
       const src = ctx.createBufferSource();
       src.buffer = snareBuffer;
       const g = ctx.createGain();
-      g.gain.value = isAccent ? 0.9 : 0.7;
+      const vol = isAccent ? 0.9 : 0.7;
+      // 残響が長いサンプルなので早めにフェードアウトして尾を切る
+      g.gain.setValueAtTime(vol, time);
+      g.gain.setValueAtTime(vol, time + 0.10);
+      g.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
       src.connect(g); g.connect(out);
       src.start(time);
+      src.stop(time + 0.17);
     }
   }
 }
@@ -4160,9 +4165,12 @@ function scheduleSubNote(time, beatIdx = 0) {
       const src = ctx.createBufferSource();
       src.buffer = snareBuffer;
       const g = ctx.createGain();
-      g.gain.value = 0.45;
+      g.gain.setValueAtTime(0.45, time);
+      g.gain.setValueAtTime(0.45, time + 0.10);
+      g.gain.exponentialRampToValueAtTime(0.001, time + 0.16);
       src.connect(g); g.connect(out);
       src.start(time);
+      src.stop(time + 0.17);
     }
   }
 }
