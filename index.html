@@ -4107,10 +4107,10 @@ function scheduleNote(time, isAccent, beatIdx = 0) {
       // 残響が長いサンプルなので早めにフェードアウトして尾を切る
       g.gain.setValueAtTime(vol, time);
       g.gain.setValueAtTime(vol, time + 0.30);
-      g.gain.exponentialRampToValueAtTime(0.001, time + 0.38);
+      g.gain.exponentialRampToValueAtTime(0.001, time + 0.55);
       src.connect(g); g.connect(out);
       src.start(time);
-      src.stop(time + 0.39);
+      src.stop(time + 0.56);
     }
   }
 }
@@ -4167,10 +4167,10 @@ function scheduleSubNote(time, beatIdx = 0) {
       const g = ctx.createGain();
       g.gain.setValueAtTime(0.45, time);
       g.gain.setValueAtTime(0.45, time + 0.30);
-      g.gain.exponentialRampToValueAtTime(0.001, time + 0.38);
+      g.gain.exponentialRampToValueAtTime(0.001, time + 0.55);
       src.connect(g); g.connect(out);
       src.start(time);
-      src.stop(time + 0.39);
+      src.stop(time + 0.56);
     }
   }
 }
