@@ -2266,7 +2266,7 @@
         <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
           <span style="font-size:0.7rem;color:#555;font-weight:600;">間隔</span>
           <button class="live-fine-btn" onclick="setProgInterval(progIntervalBars-1)" style="width:22px;height:22px;font-size:0.85rem;">−</button>
-          <span id="prog-interval-val" style="font-family:'Oswald',sans-serif;font-size:0.95rem;font-weight:700;min-width:14px;text-align:center;color:#1a1a2e;">2</span>
+          <span id="prog-interval-val" style="font-family:'Oswald',sans-serif;font-size:0.95rem;font-weight:700;min-width:22px;text-align:center;color:#1a1a2e;">2</span>
           <button class="live-fine-btn" onclick="setProgInterval(progIntervalBars+1)" style="width:22px;height:22px;font-size:0.85rem;">+</button>
           <span style="font-size:0.65rem;color:#888;">小節</span>
         </div>
@@ -3553,7 +3553,7 @@ function toggleProg() {
 }
 
 function setProgInterval(val) {
-  progIntervalBars = Math.max(1, Math.min(8, val));
+  progIntervalBars = Math.max(1, Math.min(99, val));
   const el = document.getElementById('prog-interval-val');
   if (el) el.textContent = progIntervalBars;
   if (metronomeRunning && progEnabled) _progBarCount = 0;
