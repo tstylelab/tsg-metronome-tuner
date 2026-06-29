@@ -2534,10 +2534,27 @@ let _progBarCount    = 0;
 
 // ===== VOICE COUNT BUFFERS =====
 const voiceBuffers = {};
+const voiceOnsets = {}; // 各サンプルの「声が立ち上がる位置」（秒）。再生時にこの分早めに開始して頭出しを揃える
 let voiceLoaded = false;
 const VOICE_BEAT_NAMES = ['v1','v2','v3','v4','v5','v6','v7'];
 // 各拍(0-6)に対応する裏拍母音: 1→ア 2→ウ 3→イ 4→オ 5→ア 6→ウ 7→ウ
 const VOICE_SUB_NAMES  = ['va','vu','vi','vo','va','vu','vu'];
+
+// バッファ内で最初に音量が立ち上がる位置（秒）を検出する
+function detectVoiceOnset(buffer) {
+  const data = buffer.getChannelData(0);
+  let peak = 0;
+  for (let i = 0; i < data.length; i++) {
+    const a = Math.abs(data[i]);
+    if (a > peak) peak = a;
+  }
+  if (peak === 0) return 0;
+  const threshold = peak * 0.15;
+  for (let i = 0; i < data.length; i++) {
+    if (Math.abs(data[i]) > threshold) return i / buffer.sampleRate;
+  }
+  return 0;
+}
 
 async function loadVoiceBuffers() {
   if (voiceLoaded) return;
@@ -2550,6 +2567,7 @@ async function loadVoiceBuffers() {
     xhr.onload = async () => {
       try {
         voiceBuffers[name] = await ctx.decodeAudioData(xhr.response.slice(0));
+        voiceOnsets[name] = detectVoiceOnset(voiceBuffers[name]);
       } catch(e) { console.warn('voice decode failed:', name, e); }
       resolve();
     };
@@ -4097,7 +4115,8 @@ function scheduleNote(time, isAccent, beatIdx = 0) {
       const g = ctx.createGain();
       g.gain.value = isAccent ? 0.9 : 0.75;
       src.connect(g); g.connect(out);
-      src.start(time);
+      const onset = voiceOnsets[name] || 0;
+      src.start(Math.max(ctx.currentTime, time - onset));
     }
 
   } else if (currentSound === 'snare') {
@@ -4159,7 +4178,8 @@ function scheduleSubNote(time, beatIdx = 0) {
       g.gain.setValueAtTime(0.55, time);
       g.gain.exponentialRampToValueAtTime(0.001, time + 0.20);
       src.connect(g); g.connect(out);
-      src.start(time);
+      const onset = voiceOnsets[name] || 0;
+      src.start(Math.max(ctx.currentTime, time - onset));
       src.stop(time + 0.22);
     }
 
