@@ -3609,6 +3609,7 @@ function setSubdivision(val) {
 }
 
 let masterOut = null;
+let uncompressedOut = null; // コンプレッサーを通さない経路（スネア等、音量差を保ちたい音用）
 let muteGain = null;
 let isMuted = false;
 
@@ -3629,6 +3630,7 @@ function getAudioCtx() {
     masterGain.connect(muteGain);
     muteGain.connect(audioCtx.destination);
     masterOut = comp;
+    uncompressedOut = masterGain;
   }
   return audioCtx;
 }
@@ -4108,7 +4110,8 @@ function scheduleNote(time, isAccent, beatIdx = 0) {
       g.gain.setValueAtTime(vol, time);
       g.gain.setValueAtTime(vol, time + 0.30);
       g.gain.exponentialRampToValueAtTime(0.001, time + 0.55);
-      src.connect(g); g.connect(out);
+      // コンプレッサーを経由すると音量差が圧縮されて消えるため直接マスターゲインへ
+      src.connect(g); g.connect(uncompressedOut);
       src.start(time);
       src.stop(time + 0.56);
     }
@@ -4168,7 +4171,7 @@ function scheduleSubNote(time, beatIdx = 0) {
       g.gain.setValueAtTime(0.45, time);
       g.gain.setValueAtTime(0.45, time + 0.30);
       g.gain.exponentialRampToValueAtTime(0.001, time + 0.55);
-      src.connect(g); g.connect(out);
+      src.connect(g); g.connect(uncompressedOut);
       src.start(time);
       src.stop(time + 0.56);
     }
