@@ -4168,8 +4168,8 @@ function scheduleSubNote(time, beatIdx = 0) {
       const src = ctx.createBufferSource();
       src.buffer = snareBuffer;
       const g = ctx.createGain();
-      g.gain.setValueAtTime(0.45, time);
-      g.gain.setValueAtTime(0.45, time + 0.30);
+      g.gain.setValueAtTime(0.3, time);
+      g.gain.setValueAtTime(0.3, time + 0.30);
       g.gain.exponentialRampToValueAtTime(0.001, time + 0.55);
       src.connect(g); g.connect(uncompressedOut);
       src.start(time);
