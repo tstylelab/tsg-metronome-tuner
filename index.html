@@ -4561,8 +4561,9 @@ const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
 // RMS足切りの基準値。実際の足切りラインは環境ノイズの自動計測（tunerNoiseRms）により
 // この値の0.5〜4倍の範囲で自動調整される（静かな部屋では敏感に、騒がしい場所では鈍感に）
 const TUNER_RMS_BASE   = isIOSDevice ? 0.006 : 0.010;
-const TUNER_YIN_THRESH = isIOSDevice ? 0.15  : 0.10;
-const TUNER_CONFIDENCE_MIN = isIOSDevice ? 0.75 : 0.90;
+// 確信度ゲート：NSDFのclarity（周期の明瞭さ、0〜1）がこれ未満の検出は捨てる。
+// 表示側の多数決（updateTunerUI）が外れ値を吸収するため、緩めにして反応速度を優先する
+const TUNER_CONFIDENCE_MIN = isIOSDevice ? 0.75 : 0.80;
 // 環境ノイズ（無音時のRMS）の推定値。小さい方へは即追従、大きい方へはゆっくり追従する
 let tunerNoiseRms = null;
 
@@ -4629,8 +4630,8 @@ async function toggleMic() {
     tunerActive = false;
     if (tunerAnimId) cancelAnimationFrame(tunerAnimId);
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-    smoothFreq = null; smoothCents = null; lockedSemitone = null;
-    outsideSince = 0; freqBuffer.length = 0; tunerNoiseRms = null;
+    smoothFreq = null; smoothCents = null; displaySemi = null;
+    detHistory.length = 0; tunerNoiseRms = null;
     if (micStream) micStream.getTracks().forEach(t => t.stop());
     if (tunerAudioCtx) tunerAudioCtx.close();
     btn.classList.remove('listening');
@@ -4656,8 +4657,8 @@ async function reconnectMic() {
   if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
   if (micStream) micStream.getTracks().forEach(t => t.stop());
   if (tunerAudioCtx) tunerAudioCtx.close();
-  smoothFreq = null; smoothCents = null; lockedSemitone = null;
-  outsideSince = 0; freqBuffer.length = 0; tunerNoiseRms = null;
+  smoothFreq = null; smoothCents = null; displaySemi = null;
+  detHistory.length = 0; tunerNoiseRms = null;
   resetTunerUI();
   // 少し待ってからマイクを再取得（OSがマイクを解放する時間を確保）
   await new Promise(r => setTimeout(r, 400));
@@ -4672,9 +4673,8 @@ async function reconnectMic() {
 }
 
 function resetTunerUI() {
-  smoothFreq = null; smoothCents = null; lockedSemitone = null;
-  outsideSince = 0; freqBuffer.length = 0;
-  pendingNote = null; pendingSince = 0;
+  smoothFreq = null; smoothCents = null; displaySemi = null;
+  detHistory.length = 0;
   inTuneSince = 0; bellFired = false;
   holdUntil = 0;
   prevRms = null; attackSkipUntil = 0;
@@ -4754,7 +4754,7 @@ function detectPitch() {
   // 確信度ゲート：confidence が高いフレームだけ表示に反映する。
   if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= TUNER_CONFIDENCE_MIN) {
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
-    updateTunerUI(result.freq);
+    updateTunerUI(result.freq, result.confidence);
   } else {
     if (!silenceTimer) {
       silenceTimer = setTimeout(() => {
@@ -4768,88 +4768,76 @@ function detectPitch() {
   tunerAnimId = requestAnimationFrame(detectPitch);
 }
 
-// 音程検出（YINアルゴリズム）
+// 音程検出（MPM / McLeod Pitch Method）
+// 市販チューナーにも使われる方式。NSDF（正規化自己相関）のピークから基音を求める。
+// YIN（谷探し）より倍音に強く、オクターブ誤検出が構造的に起きにくい。
 // 引数 floorHz … 検出する最低周波数（ギター65 / ベース28 など）
 // 引数 rms / rmsFloor … 呼び出し元(detectPitch)で計算済みの音量と、自動調整済みの足切りライン
 // 戻り値 … { freq, confidence } か null（検出できないときは null）
-//   confidence … 0〜1。1に近いほど「確実にこの音」。打音やノイズだと低くなる。
-//   ※以前は周波数の数値を返していたが、確信度ゲート(detectPitch)のため
-//     オブジェクトを返す形に変更した。呼び出し側の参照に注意。
+//   confidence … NSDFピークの明瞭さ(clarity)。0〜1で、1に近いほど確実な検出。
 function autoCorrelate(buf, sampleRate, floorHz, rms, rmsFloor) {
   const SIZE = buf.length;
 
   // RMS（音量）足切り：小さすぎる音は無視（ラインは環境ノイズに応じて自動調整済み）
   if (rms < rmsFloor) return null;
 
-  // ===== YIN アルゴリズム =====
-  // 解析窓 WIN：低い音ほど1周期が長いので、floorHz に応じて窓を広げる。
-  //   （基音の約4周期ぶんを確保できれば低音も安定して取れる。最低でも4096）
+  // 解析窓 WIN：低い音ほど1周期が長いので、floorHz に応じて窓を広げる
   const WIN    = Math.min(SIZE, Math.max(4096, Math.ceil(4 * sampleRate / floorHz)));
   const minLag = Math.max(2, Math.floor(sampleRate / 1400));         // 最高検出 ~1400Hz
   const maxLag = Math.min(WIN - 1, Math.ceil(sampleRate / floorHz)); // 最低検出 floorHz
 
-  // 累積平均正規化差分関数（CMND）を計算
-  // ゼロに近い谷 = 波形がピタリ合う周期 = 基音
-  const yin = new Float32Array(maxLag + 1);
-  yin[0] = 1.0;
-  let runningSum = 0;
+  // ===== NSDF（正規化二乗差関数）=====
+  // nsdf[τ] = 2×(自己相関) ÷ (パワー和)。その周期で波形がピタリ重なるほど1に近づく。
+  // パワー和は累積和(sq)でO(1)計算できるため、計算量は旧YIN実装と同等以下。
+  const sq = new Float64Array(WIN + 1);
+  for (let i = 0; i < WIN; i++) sq[i + 1] = sq[i] + buf[i] * buf[i];
 
-  for (let tau = 1; tau <= maxLag; tau++) {
-    let diff = 0;
+  const nsdf = new Float32Array(maxLag + 1);
+  for (let tau = minLag; tau <= maxLag; tau++) {
+    let ac = 0;
     const n = WIN - tau;
-    for (let j = 0; j < n; j++) {
-      const d = buf[j] - buf[j + tau];
-      diff += d * d;
-    }
-    runningSum += diff;
-    yin[tau] = runningSum > 0 ? (diff * tau / runningSum) : 1.0;
+    for (let j = 0; j < n; j++) ac += buf[j] * buf[j + tau];
+    const m = sq[n] + (sq[tau + n] - sq[tau]);
+    nsdf[tau] = m > 0 ? (2 * ac / m) : 0;
   }
 
-  // 音域内で「最初に閾値を下回る谷」を探す（= 基音）
-  // 自己相関と違い、倍音の谷より基音の谷が必ず先に来るため誤検出が減る
-  const threshold = TUNER_YIN_THRESH;
-  let bestTau = -1;
-  for (let tau = minLag; tau < maxLag; tau++) {
-    if (yin[tau] < threshold) {
-      // 谷の底まで進む
-      while (tau + 1 < maxLag && yin[tau + 1] < yin[tau]) tau++;
-      bestTau = tau;
-      break;
+  // ===== ピーク抽出 =====
+  // 正の区間（ゼロクロスからゼロクロスまで）ごとに最大点を1つずつ拾う
+  const peakTaus = [], peakVals = [];
+  let tau = minLag;
+  while (tau <= maxLag && nsdf[tau] > 0) tau++; // τ=0付近の自明な山の裾をスキップ
+  while (tau <= maxLag) {
+    while (tau <= maxLag && nsdf[tau] <= 0) tau++;
+    let pTau = -1, pVal = -Infinity;
+    while (tau <= maxLag && nsdf[tau] > 0) {
+      if (nsdf[tau] > pVal) { pVal = nsdf[tau]; pTau = tau; }
+      tau++;
     }
+    if (pTau > 0) { peakTaus.push(pTau); peakVals.push(pVal); }
   }
+  if (!peakTaus.length) return null;
 
-  // フォールバック：閾値以下の谷がなければ最小値を採用（確信度は低めになる）
-  if (bestTau === -1) {
-    let minVal = Infinity;
-    for (let tau = minLag; tau <= maxLag; tau++) {
-      if (yin[tau] < minVal) { minVal = yin[tau]; bestTau = tau; }
-    }
-    if (minVal > 0.45) return null; // 信頼できない → 無視
+  let maxVal = 0;
+  for (let i = 0; i < peakVals.length; i++) if (peakVals[i] > maxVal) maxVal = peakVals[i];
+  if (maxVal < 0.5) return null; // 周期性が弱すぎる（ノイズ・打音）
+
+  // 最大ピークの90%以上の高さを持つ「最初の」ピークを基音として採用。
+  // 倍音のピークは基音のピークより低くなるため、これでオクターブ誤検出を防げる。
+  let bestTau = -1, bestVal = 0;
+  for (let i = 0; i < peakTaus.length; i++) {
+    if (peakVals[i] >= maxVal * 0.90) { bestTau = peakTaus[i]; bestVal = peakVals[i]; break; }
   }
-
   if (bestTau === -1) return null;
 
-  // オクターブ誤検出ガード：倍音が強い弦（特に低音弦）では、本来の音より
-  // 1オクターブ高い位置の谷が先に閾値を下回ることがある。
-  // 2倍の周期（=1オクターブ下）の谷が明確に深い場合は、そちらを基音として採用する。
-  if (bestTau * 2 + 2 <= maxLag && yin[bestTau] > 0.02) {
-    let t2 = bestTau * 2;
-    for (let k = bestTau * 2 - 2; k <= bestTau * 2 + 2; k++) {
-      if (yin[k] < yin[t2]) t2 = k;
-    }
-    if (yin[t2] < yin[bestTau] * 0.5) bestTau = t2;
-  }
-
-  // 放物線補間でサブサンプル精度を確保（極小値用）
+  // 放物線補間でサブサンプル精度を確保（極大値用）
   let T0 = bestTau;
   if (bestTau > minLag && bestTau < maxLag) {
-    const y1 = yin[bestTau - 1], y2 = yin[bestTau], y3 = yin[bestTau + 1];
+    const y1 = nsdf[bestTau - 1], y2 = nsdf[bestTau], y3 = nsdf[bestTau + 1];
     const denom = y1 - 2 * y2 + y3;
-    if (denom > 0) T0 = bestTau + 0.5 * (y1 - y3) / denom;
+    if (denom < 0) T0 = bestTau + 0.5 * (y1 - y3) / denom;
   }
 
-  // 確信度 = 1 − 谷の深さ。谷が深い（yin が 0 に近い）ほど確実な検出。
-  const confidence = Math.max(0, Math.min(1, 1 - yin[bestTau]));
+  const confidence = Math.max(0, Math.min(1, bestVal));
   return { freq: sampleRate / T0, confidence };
 }
 
@@ -4898,82 +4886,61 @@ function playInTuneBell() {
   });
 }
 
-// Smoothing / note lock
-// （時間ベースで管理：画面更新レートが落ちても体感が変わらないようにする）
+// Smoothing
 let smoothFreq     = null;
 let smoothCents    = null;
-let lockedSemitone = null;
-let outsideSince   = 0;   // ロック範囲外になった時刻（0=範囲内）
-const LOCK_CENTS   = 65;
-const UNLOCK_MS    = 170; // この時間連続で範囲外なら音名を切り替える
-const CONFIRM_MS   = 70;  // 初回ロックに必要な同一音の継続時間
-let pendingNote  = null;
-let pendingSince = 0;
 
-// メジアンフィルター（外れ値除去）
-const freqBuffer = [];
-const FREQ_BUF_SIZE = 5;
-function medianFreq(freq) {
-  freqBuffer.push(freq);
-  if (freqBuffer.length > FREQ_BUF_SIZE) freqBuffer.shift();
-  const s = [...freqBuffer].sort((a, b) => a - b);
-  return s[Math.floor(s.length / 2)];
-}
-function updateTunerUI(rawFreq) {
-  // ① メジアンフィルターで外れ値を除去（5フレームの中央値）
-  const mFreq = medianFreq(rawFreq);
-  // ② 指数スムージング（さらになめらかに）
-  //    入力フィルター＋確信度ゲートで生データが綺麗になったので、
-  //    以前(0.80/0.20)より少し軽くして反応を速めている。
-  smoothFreq = smoothFreq == null ? mFreq : smoothFreq * 0.72 + mFreq * 0.28;
+// ===== 表示の安定化（多数決方式）=====
+// 検出結果を1フレームごとに即表示せず、直近の検出履歴の「重み付き多数決」で音名を決める。
+// 市販チューナーと同じ発想：1〜2フレームの外れ値では表示が動かず、
+// 本当に音が変わった時だけ素早く切り替わる。
+const detHistory = [];          // {t:時刻, freq:周波数, semi:半音番号, w:重み}
+const VOTE_WINDOW_MS   = 600;   // 多数決の対象期間
+const SWITCH_RATIO     = 1.8;   // 表示中の音名から切り替えるのに必要な得票倍率
+const NEEDLE_WINDOW_MS = 250;   // 針（セント表示）に使う直近期間
+let displaySemi = null;         // 表示中の音名（A4からの半音数）
 
-  // 現在の正確なセミトーン数（連続値）
-  const exactSemi = 12 * Math.log2(smoothFreq / refA4);
-  const nearestSemi = Math.round(exactSemi);
-
+function updateTunerUI(rawFreq, clarity) {
   const tNow = performance.now();
 
-  // ノートロック：UNLOCK_MS の間ロック範囲外が続かないと音名を変えない
-  if (lockedSemitone === null) {
-    // 初回：CONFIRM_MS の間同じ音が続いたのを確認してからロック
-    if (pendingNote === nearestSemi) {
-      if (tNow - pendingSince >= CONFIRM_MS) {
-        lockedSemitone = nearestSemi;
-        outsideSince = 0;
-        smoothCents = (exactSemi - lockedSemitone) * 100;
-      }
-    } else {
-      pendingNote = nearestSemi;
-      pendingSince = tNow;
-    }
-    if (lockedSemitone === null) return;
-  } else {
-    const centsFromLocked = (exactSemi - lockedSemitone) * 100;
-    if (Math.abs(centsFromLocked) > LOCK_CENTS) {
-      if (!outsideSince) outsideSince = tNow;
-      if (tNow - outsideSince >= UNLOCK_MS) {
-        // 外れ続けた → 本当に音名が変わった
-        lockedSemitone = nearestSemi;
-        outsideSince = 0;
-        smoothCents = (exactSemi - lockedSemitone) * 100;
-      }
-      // まだ確認中：音名は変えずセントだけ更新
-      smoothCents = smoothCents == null
-        ? centsFromLocked
-        : smoothCents * 0.82 + centsFromLocked * 0.18;
-    } else {
-      // ロック範囲内：タイマーをリセット
-      outsideSince = 0;
-      smoothCents = smoothCents == null
-        ? centsFromLocked
-        : smoothCents * 0.82 + centsFromLocked * 0.18;
-    }
+  // ① 検出を履歴に追加（確信度の2乗を重みにする＝自信のある検出ほど強い票）
+  const semi = Math.round(12 * Math.log2(rawFreq / refA4));
+  detHistory.push({ t: tNow, freq: rawFreq, semi: semi, w: clarity * clarity });
+  while (detHistory.length && detHistory[0].t < tNow - VOTE_WINDOW_MS) detHistory.shift();
+
+  // ② 音名の多数決
+  const votes = new Map();
+  for (const d of detHistory) votes.set(d.semi, (votes.get(d.semi) || 0) + d.w);
+  let bestSemi = null, bestW = 0;
+  votes.forEach((v, k) => { if (v > bestW) { bestW = v; bestSemi = k; } });
+  if (bestSemi === null) return;
+
+  // ③ 表示音名の決定：現在の表示を「明確に上回った」時だけ切り替える
+  const curW = displaySemi === null ? 0 : (votes.get(displaySemi) || 0);
+  if (displaySemi === null) {
+    displaySemi = bestSemi;
+  } else if (bestSemi !== displaySemi && (curW === 0 || bestW >= curW * SWITCH_RATIO)) {
+    displaySemi = bestSemi;
+    smoothFreq = null; smoothCents = null;      // 新しい音として仕切り直し
+    inTuneSince = 0; bellFired = false;         // ベルも鳴らし直せるように
   }
+
+  // ④ 針の値：表示中の音名に属する直近の検出だけを使い、中央値→スムージング
+  const freqs = [];
+  for (const d of detHistory) {
+    if (d.semi === displaySemi && d.t >= tNow - NEEDLE_WINDOW_MS) freqs.push(d.freq);
+  }
+  if (!freqs.length) return; // 表示中の音の新しい検出がない間は表示を据え置く
+  freqs.sort((a, b) => a - b);
+  const medF = freqs[Math.floor(freqs.length / 2)];
+  smoothFreq = smoothFreq == null ? medF : smoothFreq * 0.6 + medF * 0.4;
+  const rawCents = (12 * Math.log2(smoothFreq / refA4) - displaySemi) * 100;
+  smoothCents = smoothCents == null ? rawCents : smoothCents * 0.7 + rawCents * 0.3;
   const cents = smoothCents;
 
-  // lockedSemitone から音名を計算（音名が安定する核心）
-  const noteIdx = ((lockedSemitone % 12) + 12 + 9) % 12;
-  const octave  = Math.floor(lockedSemitone / 12) + 4;
+  // displaySemi から音名を計算
+  const noteIdx = ((displaySemi % 12) + 12 + 9) % 12;
+  const octave  = Math.floor(displaySemi / 12) + 4;
   const noteName = (halfDown ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
 
   document.getElementById('tuner-note').textContent = noteName + octave;
