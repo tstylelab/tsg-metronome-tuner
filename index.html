@@ -2425,6 +2425,10 @@
                  cursor:pointer; padding:10px 20px; letter-spacing:0.03em;">
           🔄 反応が悪い時はここをタップ
         </button>
+        <div id="ios-mic-hint" style="display:none; margin-top:10px; font-size:0.78rem; color:#8a8fa3; line-height:1.6;">
+          💡 iPhoneのコツ：チューナー使用中にコントロールセンターを開き、<br>
+          「マイクモード」を「ワイドスペクトル」にすると感度が上がることがあります
+        </div>
       </div>
 
       <button class="btn-mic" id="mic-btn" onclick="toggleMic()">
@@ -4554,9 +4558,13 @@ let tunerAnimId = null;
 // 標準閾値だと検出しにくいため、検出ゲートを緩める
 const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
   (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-const TUNER_RMS_FLOOR  = isIOSDevice ? 0.006 : 0.010;
+// RMS足切りの基準値。実際の足切りラインは環境ノイズの自動計測（tunerNoiseRms）により
+// この値の0.5〜4倍の範囲で自動調整される（静かな部屋では敏感に、騒がしい場所では鈍感に）
+const TUNER_RMS_BASE   = isIOSDevice ? 0.006 : 0.010;
 const TUNER_YIN_THRESH = isIOSDevice ? 0.15  : 0.10;
 const TUNER_CONFIDENCE_MIN = isIOSDevice ? 0.75 : 0.90;
+// 環境ノイズ（無音時のRMS）の推定値。小さい方へは即追従、大きい方へはゆっくり追従する
+let tunerNoiseRms = null;
 
 async function toggleMic() {
   const btn = document.getElementById('mic-btn');
@@ -4581,6 +4589,12 @@ async function toggleMic() {
         },
         video: false,
       });
+      // 実際に適用されたマイク設定をコンソールに記録（デバッグ用・動作には影響しない）
+      try {
+        const applied = micStream.getAudioTracks()[0].getSettings();
+        console.log('[tuner] mic settings:', JSON.stringify(applied),
+          '/ sampleRate:', tunerAudioCtx.sampleRate);
+      } catch (err) {}
       const source = tunerAudioCtx.createMediaStreamSource(micStream);
       analyser = tunerAudioCtx.createAnalyser();
       analyser.fftSize = 8192;
@@ -4606,6 +4620,7 @@ async function toggleMic() {
       btn.classList.add('listening');
       btnText.textContent = 'マイクをオフにする';
       document.getElementById('reconnect-wrap').style.display = 'block';
+      if (isIOSDevice) document.getElementById('ios-mic-hint').style.display = 'block';
       detectPitch();
     } catch (e) {
       document.getElementById('tuner-status').textContent = 'マイクのアクセスが拒否されました';
@@ -4615,7 +4630,7 @@ async function toggleMic() {
     if (tunerAnimId) cancelAnimationFrame(tunerAnimId);
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     smoothFreq = null; smoothCents = null; lockedSemitone = null;
-    outsideLockCount = 0; freqBuffer.length = 0;
+    outsideSince = 0; freqBuffer.length = 0; tunerNoiseRms = null;
     if (micStream) micStream.getTracks().forEach(t => t.stop());
     if (tunerAudioCtx) tunerAudioCtx.close();
     btn.classList.remove('listening');
@@ -4642,7 +4657,7 @@ async function reconnectMic() {
   if (micStream) micStream.getTracks().forEach(t => t.stop());
   if (tunerAudioCtx) tunerAudioCtx.close();
   smoothFreq = null; smoothCents = null; lockedSemitone = null;
-  outsideLockCount = 0; freqBuffer.length = 0;
+  outsideSince = 0; freqBuffer.length = 0; tunerNoiseRms = null;
   resetTunerUI();
   // 少し待ってからマイクを再取得（OSがマイクを解放する時間を確保）
   await new Promise(r => setTimeout(r, 400));
@@ -4658,11 +4673,11 @@ async function reconnectMic() {
 
 function resetTunerUI() {
   smoothFreq = null; smoothCents = null; lockedSemitone = null;
-  outsideLockCount = 0; freqBuffer.length = 0;
-  pendingNote = null; confirmCount = 0;
-  inTuneFrames = 0; bellFired = false;
+  outsideSince = 0; freqBuffer.length = 0;
+  pendingNote = null; pendingSince = 0;
+  inTuneSince = 0; bellFired = false;
   holdUntil = 0;
-  prevRms = null; attackSkipFrames = 0;
+  prevRms = null; attackSkipUntil = 0;
   const noteEl = document.getElementById('tuner-note');
   if (noteEl) { noteEl.textContent = '—'; noteEl.style.color = ''; }
   document.getElementById('tuner-freq').textContent = '';
@@ -4686,10 +4701,11 @@ let holdUntil = 0;
 const HOLD_MS = 1000; // ホールド時間（ミリ秒）
 
 // アタックスキップ：弦を弾いた瞬間は倍音だらけで誤った音名が出やすい。
-// 音量が急上昇した直後の数フレームは表示を更新せず、波形が落ち着くのを待つ。
+// 音量が急上昇した直後の一定時間は表示を更新せず、波形が落ち着くのを待つ。
+// （フレーム数ではなく時間で管理：低電力モード等で画面更新が遅くなっても挙動が変わらない）
 let prevRms = null;
-let attackSkipFrames = 0;
-const ATTACK_SKIP = 8; // スキップするフレーム数（約130ms）
+let attackSkipUntil = 0;
+const ATTACK_SKIP_MS = 130;
 
 function detectPitch() {
   if (!tunerActive) return;
@@ -4708,23 +4724,32 @@ function detectPitch() {
   analyser.getFloatTimeDomainData(buf);
 
   // アタック検出：RMSが前フレームの2倍以上に跳ね上がったら打撃音と判断し
-  // ATTACK_SKIPフレーム分だけ表示更新をスキップして波形が落ち着くのを待つ。
+  // ATTACK_SKIP_MSの間だけ表示更新をスキップして波形が落ち着くのを待つ。
   let rmsNow = 0;
   for (let i = 0; i < buf.length; i++) rmsNow += buf[i] * buf[i];
   rmsNow = Math.sqrt(rmsNow / buf.length);
+  const nowMs = performance.now();
   if (prevRms !== null && rmsNow > prevRms * 2.0 && rmsNow > 0.03) {
-    attackSkipFrames = ATTACK_SKIP;
+    attackSkipUntil = nowMs + ATTACK_SKIP_MS;
   }
   prevRms = rmsNow;
 
-  if (attackSkipFrames > 0) {
-    attackSkipFrames--;
+  // 環境ノイズの自動計測：静かになった瞬間は即座に下がり、
+  // 音が鳴っている間はゆっくりとしか上がらない（発音をノイズと誤認しないため）
+  if (tunerNoiseRms === null || rmsNow < tunerNoiseRms) tunerNoiseRms = rmsNow;
+  else tunerNoiseRms = Math.min(tunerNoiseRms * 1.005, rmsNow);
+
+  if (nowMs < attackSkipUntil) {
     tunerAnimId = requestAnimationFrame(detectPitch);
     return;
   }
 
+  // RMS足切りライン：環境ノイズの3倍を基本に、基準値の0.5〜4倍の範囲で自動調整
+  const rmsFloor = Math.max(TUNER_RMS_BASE * 0.5,
+    Math.min(TUNER_RMS_BASE * 4, tunerNoiseRms * 3));
+
   // autoCorrelate は { freq, confidence } か null を返す（null = 検出失敗）
-  const result = autoCorrelate(buf, tunerAudioCtx.sampleRate, floorHz);
+  const result = autoCorrelate(buf, tunerAudioCtx.sampleRate, floorHz, rmsNow, rmsFloor);
 
   // 確信度ゲート：confidence が高いフレームだけ表示に反映する。
   if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= TUNER_CONFIDENCE_MIN) {
@@ -4745,20 +4770,16 @@ function detectPitch() {
 
 // 音程検出（YINアルゴリズム）
 // 引数 floorHz … 検出する最低周波数（ギター65 / ベース28 など）
+// 引数 rms / rmsFloor … 呼び出し元(detectPitch)で計算済みの音量と、自動調整済みの足切りライン
 // 戻り値 … { freq, confidence } か null（検出できないときは null）
 //   confidence … 0〜1。1に近いほど「確実にこの音」。打音やノイズだと低くなる。
 //   ※以前は周波数の数値を返していたが、確信度ゲート(detectPitch)のため
 //     オブジェクトを返す形に変更した。呼び出し側の参照に注意。
-function autoCorrelate(buf, sampleRate, floorHz) {
+function autoCorrelate(buf, sampleRate, floorHz, rms, rmsFloor) {
   const SIZE = buf.length;
 
-  // RMS（音量）チェック：小さすぎる音は無視
-  let rms = 0;
-  for (let i = 0; i < SIZE; i++) rms += buf[i] * buf[i];
-  rms = Math.sqrt(rms / SIZE);
-  // 足切りライン：これより小さい音は無視する。
-  // ゲイン5倍と組み合わせてエレキ生音など微弱な信号にも対応する。
-  if (rms < TUNER_RMS_FLOOR) return null;
+  // RMS（音量）足切り：小さすぎる音は無視（ラインは環境ノイズに応じて自動調整済み）
+  if (rms < rmsFloor) return null;
 
   // ===== YIN アルゴリズム =====
   // 解析窓 WIN：低い音ほど1周期が長いので、floorHz に応じて窓を広げる。
@@ -4808,6 +4829,17 @@ function autoCorrelate(buf, sampleRate, floorHz) {
 
   if (bestTau === -1) return null;
 
+  // オクターブ誤検出ガード：倍音が強い弦（特に低音弦）では、本来の音より
+  // 1オクターブ高い位置の谷が先に閾値を下回ることがある。
+  // 2倍の周期（=1オクターブ下）の谷が明確に深い場合は、そちらを基音として採用する。
+  if (bestTau * 2 + 2 <= maxLag && yin[bestTau] > 0.02) {
+    let t2 = bestTau * 2;
+    for (let k = bestTau * 2 - 2; k <= bestTau * 2 + 2; k++) {
+      if (yin[k] < yin[t2]) t2 = k;
+    }
+    if (yin[t2] < yin[bestTau] * 0.5) bestTau = t2;
+  }
+
   // 放物線補間でサブサンプル精度を確保（極小値用）
   let T0 = bestTau;
   if (bestTau > minLag && bestTau < maxLag) {
@@ -4845,8 +4877,8 @@ function centsOff(freq) {
 // ===== IN-TUNE ベル音 =====
 // ±5セント以内に0.5秒（約30フレーム）安定したら一度だけ鳴らす。
 // 一度鳴らした後、±10セントを超えてから戻らないと再度鳴らさない（二度鳴り防止）。
-let inTuneFrames   = 0;       // 連続でIN TUNE状態のフレーム数
-const IN_TUNE_FRAMES = 30;    // 約0.5秒（60fps想定）
+let inTuneSince    = 0;       // IN TUNE状態になった時刻（0=範囲外）
+const IN_TUNE_MS   = 500;     // この時間IN TUNEが続いたらベルを鳴らす
 let bellFired      = false;   // このロックで既に鳴らしたか
 
 function playInTuneBell() {
@@ -4867,15 +4899,16 @@ function playInTuneBell() {
 }
 
 // Smoothing / note lock
+// （時間ベースで管理：画面更新レートが落ちても体感が変わらないようにする）
 let smoothFreq     = null;
 let smoothCents    = null;
 let lockedSemitone = null;
-let outsideLockCount = 0;
-const LOCK_CENTS    = 65;
-const UNLOCK_FRAMES = 10;
-const CONFIRM_FRAMES = 4;
+let outsideSince   = 0;   // ロック範囲外になった時刻（0=範囲内）
+const LOCK_CENTS   = 65;
+const UNLOCK_MS    = 170; // この時間連続で範囲外なら音名を切り替える
+const CONFIRM_MS   = 70;  // 初回ロックに必要な同一音の継続時間
 let pendingNote  = null;
-let confirmCount = 0;
+let pendingSince = 0;
 
 // メジアンフィルター（外れ値除去）
 const freqBuffer = [];
@@ -4898,30 +4931,30 @@ function updateTunerUI(rawFreq) {
   const exactSemi = 12 * Math.log2(smoothFreq / refA4);
   const nearestSemi = Math.round(exactSemi);
 
-  // ノートロック：UNLOCK_FRAMES 連続でロック範囲外にならないと音名を変えない
+  const tNow = performance.now();
+
+  // ノートロック：UNLOCK_MS の間ロック範囲外が続かないと音名を変えない
   if (lockedSemitone === null) {
-    // 初回：CONFIRM_FRAMES フレーム連続で同じ音を確認してからロック
+    // 初回：CONFIRM_MS の間同じ音が続いたのを確認してからロック
     if (pendingNote === nearestSemi) {
-      confirmCount++;
-      if (confirmCount >= CONFIRM_FRAMES) {
+      if (tNow - pendingSince >= CONFIRM_MS) {
         lockedSemitone = nearestSemi;
-        outsideLockCount = 0;
-        confirmCount = 0;
+        outsideSince = 0;
         smoothCents = (exactSemi - lockedSemitone) * 100;
       }
     } else {
       pendingNote = nearestSemi;
-      confirmCount = 1;
+      pendingSince = tNow;
     }
     if (lockedSemitone === null) return;
   } else {
     const centsFromLocked = (exactSemi - lockedSemitone) * 100;
     if (Math.abs(centsFromLocked) > LOCK_CENTS) {
-      outsideLockCount++;
-      if (outsideLockCount >= UNLOCK_FRAMES) {
-        // 連続して外れ続けた → 本当に音名が変わった
+      if (!outsideSince) outsideSince = tNow;
+      if (tNow - outsideSince >= UNLOCK_MS) {
+        // 外れ続けた → 本当に音名が変わった
         lockedSemitone = nearestSemi;
-        outsideLockCount = 0;
+        outsideSince = 0;
         smoothCents = (exactSemi - lockedSemitone) * 100;
       }
       // まだ確認中：音名は変えずセントだけ更新
@@ -4929,8 +4962,8 @@ function updateTunerUI(rawFreq) {
         ? centsFromLocked
         : smoothCents * 0.82 + centsFromLocked * 0.18;
     } else {
-      // ロック範囲内：カウンターをリセット
-      outsideLockCount = 0;
+      // ロック範囲内：タイマーをリセット
+      outsideSince = 0;
       smoothCents = smoothCents == null
         ? centsFromLocked
         : smoothCents * 0.82 + centsFromLocked * 0.18;
@@ -4960,8 +4993,8 @@ function updateTunerUI(rawFreq) {
   if (dividerEl) dividerEl.style.display = 'block';
 
   if (absC < 5) {
-    inTuneFrames++;
-    if (inTuneFrames >= IN_TUNE_FRAMES && !bellFired) {
+    if (!inTuneSince) inTuneSince = tNow;
+    if (tNow - inTuneSince >= IN_TUNE_MS && !bellFired) {
       playInTuneBell();
       bellFired = true;
       // ピコーンと鳴った瞬間の表示を一定時間ホールドして、
@@ -4982,7 +5015,7 @@ function updateTunerUI(rawFreq) {
     if (displayEl) displayEl.className = 'tuner-note-display in-tune';
   } else if (cents < 0) {
     // ±10セント以上ずれたらカウンターリセット（次の弦で再度鳴らせるように）
-    if (absC > 10) { inTuneFrames = 0; bellFired = false; }
+    if (absC > 10) { inTuneSince = 0; bellFired = false; }
     gauge.style.left = (center + pct) + '%';
     gauge.style.width = Math.abs(pct) + '%';
     gauge.style.background = '#2176ae';
@@ -4992,7 +5025,7 @@ function updateTunerUI(rawFreq) {
     if (noteEl) noteEl.style.color = '#1a1a2e';
     if (displayEl) displayEl.className = 'tuner-note-display flat';
   } else {
-    if (absC > 10) { inTuneFrames = 0; bellFired = false; }
+    if (absC > 10) { inTuneSince = 0; bellFired = false; }
     gauge.style.left = center + '%';
     gauge.style.width = pct + '%';
     gauge.style.background = '#c0392b';
