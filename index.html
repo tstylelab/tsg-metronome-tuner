@@ -4727,7 +4727,7 @@ const HOLD_MS = 1000; // ホールド時間（ミリ秒）
 // （フレーム数ではなく時間で管理：低電力モード等で画面更新が遅くなっても挙動が変わらない）
 let prevRms = null;
 let attackSkipUntil = 0;
-const ATTACK_SKIP_MS = 130;
+const ATTACK_SKIP_MS = 100; // 130→100：MPM＋多数決が誤検出に強くなったため短縮し反応を優先
 
 function detectPitch() {
   if (!tunerActive) return;
@@ -4753,6 +4753,10 @@ function detectPitch() {
   const nowMs = performance.now();
   if (prevRms !== null && rmsNow > prevRms * 2.0 && rmsNow > 0.03) {
     attackSkipUntil = nowMs + ATTACK_SKIP_MS;
+    // 新しく弾いた＝新しい音の可能性が高いので、古い投票履歴を捨てる。
+    // これにより弦を替えた直後の音名切り替えがほぼ即座になる
+    // （同じ弦を弾き直した場合も、表示は保持されたまま新しい票で再確認されるだけなので害はない）
+    detHistory.length = 0;
   }
   prevRms = rmsNow;
 
@@ -4773,8 +4777,17 @@ function detectPitch() {
   // autoCorrelate は { freq, confidence } か null を返す（null = 検出失敗）
   const result = autoCorrelate(buf, tunerAudioCtx.sampleRate, floorHz, rmsNow, rmsFloor);
 
+  // 追跡ヒステリシス：表示中の音名と同じ音への検出は、ゲートを少し緩めて受け入れる。
+  // 弦の減衰で確信度が下がっても針が追従し続ける（市販チューナーの「粘り」を再現）。
+  // 別の音への切り替えは通常ゲートのままなので、誤った音に飛びつきやすくはならない。
+  let confGate = TUNER_CONFIDENCE_MIN;
+  if (result && displaySemi !== null &&
+      Math.round(12 * Math.log2(result.freq / refA4)) === displaySemi) {
+    confGate = TUNER_CONFIDENCE_MIN - 0.08;
+  }
+
   // 確信度ゲート：confidence が高いフレームだけ表示に反映する。
-  if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= TUNER_CONFIDENCE_MIN) {
+  if (result && result.freq > floorHz - 5 && result.freq < 1400 && result.confidence >= confGate) {
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
     updateTunerUI(result.freq, result.confidence);
   } else {
