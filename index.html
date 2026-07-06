@@ -2680,16 +2680,29 @@ function initMetroSortable() {
   });
 }
 
+let _lsWarned = false;
 function saveMetroSetlist() {
-  localStorage.setItem(METRO_LS_KEY, JSON.stringify({
-    slots: metroSlots, names: metroNames, beats: metroBeatsArr,
-    grooves: metroGroovesArr, is8thBaseArr: metroIs8thBaseArr,
-    shuffleRatios: metroShuffleArr,
-    sounds: metroSoundsArr, allAccentArr: metroAllAccentArr,
-    showPickArr: metroShowPickArr,
-    selectedSlot: metroSelectedSlot, slotCount: metroSlotCount,
-    beatMuted: metroBeatMutedArr, subMuted: metroSubMutedArr
-  }));
+  // localStorage.setItem はストレージ満杯やプライベートブラウズで例外を投げることがある。
+  // ここは編集・インポートのたびに呼ばれる保存の心臓部なので、失敗しても
+  // 処理全体を止めないよう try/catch で保護する（メモリ上の状態は保持される）。
+  try {
+    localStorage.setItem(METRO_LS_KEY, JSON.stringify({
+      slots: metroSlots, names: metroNames, beats: metroBeatsArr,
+      grooves: metroGroovesArr, is8thBaseArr: metroIs8thBaseArr,
+      shuffleRatios: metroShuffleArr,
+      sounds: metroSoundsArr, allAccentArr: metroAllAccentArr,
+      showPickArr: metroShowPickArr,
+      selectedSlot: metroSelectedSlot, slotCount: metroSlotCount,
+      beatMuted: metroBeatMutedArr, subMuted: metroSubMutedArr
+    }));
+  } catch (e) {
+    // 一度だけ警告（保存できなくても操作自体は続行できるようにする）
+    console.warn('setlist save failed:', e);
+    if (!_lsWarned) {
+      _lsWarned = true;
+      alert('設定の自動保存に失敗しました（端末の空き容量やブラウザ設定をご確認ください）。\n大切なセットリストは「保存」ボタンからファイルに書き出しておくことをおすすめします。');
+    }
+  }
 }
 
 function loadMetroSetlist() {
@@ -3144,7 +3157,7 @@ function saveMetroSetlistFileJson() {
 
 function saveMetroSetlistFileCsv() {
   const name = document.getElementById('metro-setlist-name')?.value || '';
-  const rows = ['スロット,曲名,BPM,拍子,グルーブ,サウンド,全アクセント,ピック表示,ビートミュート,サブミュート'];
+  const rows = ['スロット,曲名,BPM,拍子,グルーブ,サウンド,全アクセント,ピック表示,ビートミュート,サブミュート,シャッフル比率'];
   for (let i = 0; i < metroSlotCount; i++) {
     const bpmVal  = metroSlots[i] !== null ? metroSlots[i] : '';
     const slotName = '"' + (metroNames[i] || '').replace(/"/g, '""') + '"';
@@ -3159,7 +3172,9 @@ function saveMetroSetlistFileCsv() {
     const bmStr = (Array.isArray(bm) && bm.some(v => v)) ? '"' + JSON.stringify(bm).replace(/"/g, '""') + '"' : '';
     const sm = metroSubMutedArr[i];
     const smStr = (Array.isArray(sm) && sm.some(arr => Array.isArray(arr) && arr.some(v => v))) ? '"' + JSON.stringify(sm).replace(/"/g, '""') + '"' : '';
-    rows.push(`${i+1},${slotName},${bpmVal},${timeSig},${groove},${sound},${aa},${sp},${bmStr},${smStr}`);
+    // シャッフル比率は shuffle 系グルーブの時だけ意味を持つが、常に書き出しておく（標準67）
+    const sr = metroShuffleArr[i] || 67;
+    rows.push(`${i+1},${slotName},${bpmVal},${timeSig},${groove},${sound},${aa},${sp},${bmStr},${smStr},${sr}`);
   }
   const blob = new Blob(['﻿' + rows.join('\r\n')], { type: 'text/csv;charset=utf-8;' });
   const url = URL.createObjectURL(blob);
@@ -3224,6 +3239,11 @@ function loadMetroSetlistFileCsv(text) {
     if (c.length > 9 && (c[9] || '').trim()) {
       try { const sm = JSON.parse(c[9].trim()); if (Array.isArray(sm)) metroSubMutedArr[idx] = sm.map(r => Array.isArray(r) ? r : []); } catch(e) {}
     }
+    // シャッフル比率（列を持たない旧CSVでは 67 のまま）。スライダー範囲は51〜80
+    if (c.length > 10 && (c[10] || '').trim()) {
+      const srv = parseInt(c[10]);
+      if (!isNaN(srv) && srv >= 51 && srv <= 80) metroShuffleArr[idx] = srv;
+    }
     if (idx + 1 > maxSlot) maxSlot = idx + 1;
   }
   metroSlotCount = maxSlot <= 12 ? 12 : maxSlot <= 24 ? 24 : maxSlot <= 36 ? 36 : 48;
@@ -3266,7 +3286,8 @@ function loadMetroSetlistFile(event) {
         metroShowPickArr  = Array(48).fill(false);
         metroBeatMutedArr = Array(48).fill(null).map(()=>[]);
         metroSubMutedArr  = Array(48).fill(null).map(()=>[]);
-        if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<n) metroSlots[i]=v; });
+        // BPMは数値かつ30〜240のみ採用（それ以外・null は未設定のまま = 空スロット）
+        if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<n){ const bv=Number(v); if(Number.isFinite(bv)&&bv>=30&&bv<=240) metroSlots[i]=bv; } });
         if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<n) metroNames[i]=v||''; });
         if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<n) metroBeatsArr[i]=v||4; });
         if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<n) metroGroovesArr[i]=v||'normal'; });
@@ -3366,7 +3387,8 @@ function decodeSetlistFromHash() {
     (data.s || []).forEach(slot => {
       const idx = slot.i;
       if (typeof idx !== 'number' || idx < 0 || idx >= 48) return;
-      if (slot.b !== undefined) metroSlots[idx] = slot.b;
+      // BPMは数値かつ30〜240のみ採用（壊れた・不正な共有URL対策）
+      if (slot.b !== undefined) { const bv = Number(slot.b); if (Number.isFinite(bv) && bv >= 30 && bv <= 240) metroSlots[idx] = bv; }
       metroNames[idx]        = slot.n   || '';
       metroBeatsArr[idx]     = slot.bt  || 4;
       metroIs8thBaseArr[idx] = !!slot['8'];
