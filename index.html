@@ -2043,6 +2043,10 @@
         <div class="tip-desc">操作するたびに自動でブラウザに保存されます。リロードしても最後の状態が復元されます。右上のプルダウンでスロット数を12 / 24 / 36 / 48曲から選べます。</div>
       </div>
       <div class="tip-item">
+        <div class="tip-title red">📚 セットリストを複数保存して切り替えられます</div>
+        <div class="tip-desc">スロット一覧の上のプルダウンでリストを切り替えます。「＋新規」で「生徒さん別」「ライブ別」など名前付きのリストを作成でき、内容は操作するたびに自動保存されます。リストの名前は下の「セット名」欄でいつでも変更できます。</div>
+      </div>
+      <div class="tip-item">
         <div class="tip-title red">🖱️ BPMをダブルクリック（ダブルタップ）で直接入力</div>
         <div class="tip-desc">大きなBPM数字、またはセットリストのスロット内のBPM数字をダブルクリック（スマホ・タブレットはダブルタップ）すると数字を直接キーボード入力できます。Enterで確定、Escでキャンセル。目標BPMが決まっている時に便利です。</div>
       </div>
@@ -2326,6 +2330,19 @@
               onmouseout="this.style.background='#fff5f5'">🗑 一覧をリセット</button>
           </div>
         </div>
+        <!-- マルチセットリスト切替（縦幅を抑えるため1行のみ・パネルを開いた時だけ表示） -->
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+          <select id="metro-list-select" onchange="switchMetroList(this.value)"
+            style="flex:1;min-width:0;padding:4px 6px;border:1.5px solid #b0c0d8;border-radius:6px;
+                   background:#f0f4fa;color:#1a1a2e;font-size:0.78rem;font-weight:700;
+                   cursor:pointer;line-height:1.3;outline:none;"></select>
+          <button onclick="createMetroList()" title="新しいセットリストを作成"
+            style="padding:4px 10px;border:1.5px solid #b0c0d8;border-radius:6px;background:#f0f4fa;
+                   color:#2176ae;font-size:0.78rem;font-weight:700;cursor:pointer;line-height:1.3;white-space:nowrap;">＋新規</button>
+          <button onclick="deleteMetroList()" title="表示中のリストを削除"
+            style="padding:4px 8px;border:1.5px solid #e0b0b0;border-radius:6px;background:#fff5f5;
+                   color:#c0392b;font-size:0.78rem;font-weight:700;cursor:pointer;line-height:1.3;">🗑</button>
+        </div>
         <div class="live-slots" id="metro-slots"></div>
         <div style="margin-bottom:10px;">
           <input type="text" class="live-name-input" id="metro-slot-name"
@@ -2344,7 +2361,8 @@
         <div style="margin-top:14px; border-top:1.5px solid #eee; padding-top:14px;">
           <div class="live-slots-label" style="margin-top:0; margin-bottom:10px;">セットリスト 保存 / 読み込み</div>
           <div style="display:flex; gap:8px; margin-bottom:8px;">
-            <input type="text" id="metro-setlist-name" placeholder="セット名（任意）"
+            <input type="text" id="metro-setlist-name" placeholder="セット名（任意）" maxlength="30"
+              oninput="onSetlistNameInput(this.value)"
               style="flex:1; padding:9px 12px; border:1.5px solid #dde0e8; border-radius:7px;
                      font-size:0.88rem; color:#222; background:#f7f8fa; outline:none;">
           </div>
@@ -2613,6 +2631,11 @@ let shuffleRatio = 0.67;
 
 // ===== METRO SETLIST =====
 const METRO_LS_KEY = 'tsg-metro-setlist';
+// マルチセットリスト：名前付きリストをブラウザ内に複数保存して切り替える
+const METRO_LISTS_KEY   = 'tsg-metro-setlists';        // 名前付きリスト一覧の保存先
+const METRO_DEFAULT_KEY = 'tsg-metro-setlist-default'; // 共通（無名）リストの内容の退避先
+let metroLists = [];            // [{id, name, data(JSON文字列)}]
+let metroCurrentListId = null;  // null = 共通リスト
 let metroSlots         = Array(48).fill(null);
 let metroNames         = Array(48).fill('');
 let metroBeatsArr      = Array(48).fill(4);
@@ -2684,21 +2707,27 @@ function initMetroSortable() {
   });
 }
 
+// 現在の作業状態をJSON文字列にまとめる（localStorage保存・名前付きリスト同期の共通形式）
+function _currentSetlistPayload() {
+  return JSON.stringify({
+    slots: metroSlots, names: metroNames, beats: metroBeatsArr,
+    grooves: metroGroovesArr, is8thBaseArr: metroIs8thBaseArr,
+    shuffleRatios: metroShuffleArr,
+    sounds: metroSoundsArr, allAccentArr: metroAllAccentArr,
+    showPickArr: metroShowPickArr,
+    selectedSlot: metroSelectedSlot, slotCount: metroSlotCount,
+    beatMuted: metroBeatMutedArr, subMuted: metroSubMutedArr
+  });
+}
+
 let _lsWarned = false;
 function saveMetroSetlist() {
   // localStorage.setItem はストレージ満杯やプライベートブラウズで例外を投げることがある。
   // ここは編集・インポートのたびに呼ばれる保存の心臓部なので、失敗しても
   // 処理全体を止めないよう try/catch で保護する（メモリ上の状態は保持される）。
+  const payload = _currentSetlistPayload();
   try {
-    localStorage.setItem(METRO_LS_KEY, JSON.stringify({
-      slots: metroSlots, names: metroNames, beats: metroBeatsArr,
-      grooves: metroGroovesArr, is8thBaseArr: metroIs8thBaseArr,
-      shuffleRatios: metroShuffleArr,
-      sounds: metroSoundsArr, allAccentArr: metroAllAccentArr,
-      showPickArr: metroShowPickArr,
-      selectedSlot: metroSelectedSlot, slotCount: metroSlotCount,
-      beatMuted: metroBeatMutedArr, subMuted: metroSubMutedArr
-    }));
+    localStorage.setItem(METRO_LS_KEY, payload);
   } catch (e) {
     // 一度だけ警告（保存できなくても操作自体は続行できるようにする）
     console.warn('setlist save failed:', e);
@@ -2707,11 +2736,16 @@ function saveMetroSetlist() {
       alert('設定の自動保存に失敗しました（端末の空き容量やブラウザ設定をご確認ください）。\n大切なセットリストは「保存」ボタンからファイルに書き出しておくことをおすすめします。');
     }
   }
+  // 名前付きリストを選択中は、そのリストにも同じ内容を同期する（＝リストも常に自動保存）
+  if (metroCurrentListId !== null) {
+    const li = metroLists.find(l => l.id === metroCurrentListId);
+    if (li && li.data !== payload) { li.data = payload; saveMetroLists(); }
+  }
 }
 
-function loadMetroSetlist() {
-  try {
-    const s = JSON.parse(localStorage.getItem(METRO_LS_KEY) || 'null');
+// 保存データ（パース済みオブジェクト）を作業状態の配列へ反映する
+// ※既存値の上に書くだけなので、呼ぶ前に配列を初期化しておくこと
+function _applySetlistState(s) {
     if (!s) return;
     if (Array.isArray(s.slots))        s.slots.forEach((v,i)=>{ if(i<48) metroSlots[i]=v; });
     if (Array.isArray(s.names))        s.names.forEach((v,i)=>{ if(i<48) metroNames[i]=v||''; });
@@ -2728,7 +2762,10 @@ function loadMetroSetlist() {
     if ([12,24,36,48].includes(s.slotCount)) metroSlotCount = s.slotCount;
     // 選択スロットが表示範囲外なら先頭へ（範囲外だと選択が見えないまま自動保存が隠れスロットに走る）
     if (metroSelectedSlot >= metroSlotCount) metroSelectedSlot = 0;
-  } catch(e) {}
+}
+
+function loadMetroSetlist() {
+  try { _applySetlistState(JSON.parse(localStorage.getItem(METRO_LS_KEY) || 'null')); } catch(e) {}
 }
 
 function startInlineEditSlot(idx, nameEl) {
@@ -3118,8 +3155,132 @@ function resetMetroSetlist() {
   _applyingSlot = false;
   metroSelectedSlot = 0;
   metroSlotCount = 12;
-  try { localStorage.removeItem(METRO_LS_KEY); } catch(_) {}
+  saveMetroSetlist(); // 空の状態を保存（名前付きリスト選択中はそのリストにも反映される）
   renderMetroSlots();
+}
+
+// ===== マルチセットリスト（名前付きリストの保存・切替） =====
+function saveMetroLists() {
+  try {
+    localStorage.setItem(METRO_LISTS_KEY, JSON.stringify({ v: 1, cur: metroCurrentListId, lists: metroLists }));
+  } catch (e) { console.warn('metro lists save failed:', e); }
+}
+
+function loadMetroLists() {
+  try {
+    const s = JSON.parse(localStorage.getItem(METRO_LISTS_KEY) || 'null');
+    if (!s || !Array.isArray(s.lists)) return;
+    metroLists = s.lists.filter(l => l && typeof l.id === 'number' && typeof l.name === 'string' && typeof l.data === 'string');
+    metroCurrentListId = (typeof s.cur === 'number' && metroLists.some(l => l.id === s.cur)) ? s.cur : null;
+  } catch (e) {}
+}
+
+function renderMetroListSelect() {
+  const sel = document.getElementById('metro-list-select');
+  if (!sel) return;
+  sel.innerHTML = '';
+  const optDef = document.createElement('option');
+  optDef.value = '';
+  optDef.textContent = '📋 共通リスト';
+  sel.appendChild(optDef);
+  metroLists.forEach(l => {
+    const o = document.createElement('option');
+    o.value = String(l.id);
+    o.textContent = l.name; // textContentで入れる（リスト名にタグが含まれても無害化）
+    sel.appendChild(o);
+  });
+  sel.value = metroCurrentListId === null ? '' : String(metroCurrentListId);
+}
+
+// 全配列を初期状態に戻す（リスト切替時に前のリストの値が残らないように）
+function _resetSetlistArrays() {
+  metroSlots        = Array(48).fill(null);
+  metroNames        = Array(48).fill('');
+  metroBeatsArr     = Array(48).fill(4);
+  metroGroovesArr   = Array(48).fill('normal');
+  metroIs8thBaseArr = Array(48).fill(false);
+  metroShuffleArr   = Array(48).fill(67);
+  metroSoundsArr    = Array(48).fill('beep');
+  metroAllAccentArr = Array(48).fill(true);
+  metroShowPickArr  = Array(48).fill(false);
+  metroBeatMutedArr = Array(48).fill(null).map(() => []);
+  metroSubMutedArr  = Array(48).fill(null).map(() => []);
+  metroSelectedSlot = 0;
+  metroSlotCount    = 12;
+}
+
+// 切替後の共通処理：作業状態の保存・再描画・セット名欄の更新
+function _afterListSwitch() {
+  saveMetroLists();
+  saveMetroSetlist();
+  renderMetroListSelect();
+  renderMetroSlots();
+  applyMetroSlot(metroSelectedSlot);
+  const ni = document.getElementById('metro-setlist-name');
+  if (ni) {
+    const li = metroLists.find(l => l.id === metroCurrentListId);
+    ni.value = li ? li.name : '';
+  }
+}
+
+function switchMetroList(val) {
+  const id = val === '' ? null : parseInt(val, 10);
+  if (id === metroCurrentListId) return;
+  const target = id === null ? null : metroLists.find(l => l.id === id);
+  if (id !== null && !target) { renderMetroListSelect(); return; } // 不整合時は表示だけ戻す
+  // 表示中の内容は自動保存で反映済み。共通リストから離れる時だけ内容を退避しておく
+  if (metroCurrentListId === null) lsSet(METRO_DEFAULT_KEY, _currentSetlistPayload());
+  _resetSetlistArrays();
+  metroCurrentListId = id;
+  try {
+    const src = id === null ? localStorage.getItem(METRO_DEFAULT_KEY) : target.data;
+    _applySetlistState(JSON.parse(src || 'null'));
+  } catch (e) {}
+  _afterListSwitch();
+}
+
+function createMetroList() {
+  let name = prompt('新しいセットリスト名を入力してください\n（例：山田さん、6月ライブ）');
+  if (name === null) return;
+  name = name.trim().slice(0, 30);
+  if (!name) return;
+  const keep = confirm('今表示中の内容を新しいリストに引き継ぎますか？\n（キャンセル＝空のリストを作る）');
+  // 共通リストから離れる場合は内容を退避
+  if (metroCurrentListId === null) lsSet(METRO_DEFAULT_KEY, _currentSetlistPayload());
+  const id = metroLists.reduce((m, l) => Math.max(m, l.id), 0) + 1;
+  if (!keep) _resetSetlistArrays();
+  metroLists.push({ id, name, data: _currentSetlistPayload() });
+  metroCurrentListId = id;
+  _afterListSwitch();
+  showToast('📚 リスト「' + name + '」を作成しました');
+}
+
+function deleteMetroList() {
+  if (metroCurrentListId === null) { alert('共通リストは削除できません。\n中身を空にしたい場合は「🗑 一覧をリセット」を使ってください。'); return; }
+  const li = metroLists.find(l => l.id === metroCurrentListId);
+  if (!li) return;
+  if (!confirm('リスト「' + li.name + '」を削除しますか？\n（この操作は元に戻せません）')) return;
+  metroLists = metroLists.filter(l => l.id !== metroCurrentListId);
+  metroCurrentListId = null;
+  // 共通リストの内容に戻す
+  _resetSetlistArrays();
+  try { _applySetlistState(JSON.parse(localStorage.getItem(METRO_DEFAULT_KEY) || 'null')); } catch (e) {}
+  _afterListSwitch();
+  showToast('🗑 リストを削除しました');
+}
+
+// セット名欄の入力＝選択中の名前付きリストのリネーム（共通リスト選択中はファイル保存名にだけ使われる）
+function onSetlistNameInput(val) {
+  if (metroCurrentListId === null) return;
+  const li = metroLists.find(l => l.id === metroCurrentListId);
+  if (!li) return;
+  const v = val.trim().slice(0, 30);
+  if (!v) return; // 空のままにはしない（確定しなければ元の名前を維持）
+  li.name = v;
+  saveMetroLists();
+  const sel = document.getElementById('metro-list-select');
+  const opt = sel ? sel.querySelector('option[value="' + li.id + '"]') : null;
+  if (opt) opt.textContent = v;
 }
 
 function toggleMetroSetlist() {
@@ -3326,10 +3487,18 @@ function loadMetroSetlistFile(event) {
 }
 
 function initMetroSetlist() {
+  loadMetroLists();
   loadMetroSetlist();
   decodeSetlistFromHash();
+  renderMetroListSelect();
   renderMetroSlots();
   updateMetroExpandBtn();
+  // 名前付きリスト選択中はセット名欄にリスト名を表示
+  const ni = document.getElementById('metro-setlist-name');
+  if (ni && metroCurrentListId !== null) {
+    const li = metroLists.find(l => l.id === metroCurrentListId);
+    if (li) ni.value = li.name;
+  }
   if (metroSlots[metroSelectedSlot] !== null) {
     applyMetroSlot(metroSelectedSlot);
   }
@@ -3420,7 +3589,11 @@ function decodeSetlistFromHash() {
 
     const nameEl = document.getElementById('metro-setlist-name');
     if (nameEl && data.n) nameEl.value = data.n;
+    // 共有URLの内容は必ず「共通リスト」に取り込む
+    // （名前付きリストを選択したまま開いても、そのリストを誤って上書きしないため）
+    if (metroCurrentListId !== null) { metroCurrentListId = null; saveMetroLists(); }
     saveMetroSetlist();
+    lsSet(METRO_DEFAULT_KEY, _currentSetlistPayload()); // 共通リストの退避先も同じ内容に揃える
     history.replaceState(null, '', location.pathname + location.search);
     setTimeout(() => showToast('🔗 共有URLからセットリストを読み込みました'), 600);
     return true;
@@ -4393,6 +4566,34 @@ function flashSubDot(beat, subIndex) {
 }
 
 
+// ===== 画面スリープ防止（Wake Lock）=====
+// メトロノーム動作中・チューナー使用中はスマホの画面が自動消灯しないようにする。
+// 非対応ブラウザでは何もしない（UIはなく、完全に裏方の機能）。
+let _wakeLock = null;
+let _wakeLockPending = false;
+async function updateWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  const need = metronomeRunning || tunerActive;
+  if (need && !_wakeLock && !_wakeLockPending) {
+    _wakeLockPending = true;
+    try {
+      const wl = await navigator.wakeLock.request('screen');
+      wl.addEventListener('release', () => { if (_wakeLock === wl) _wakeLock = null; });
+      _wakeLock = wl;
+      // 取得を待っている間に停止されていたら即解放
+      if (!(metronomeRunning || tunerActive)) { try { wl.release(); } catch (e) {} _wakeLock = null; }
+    } catch (e) {} // 省電力モード等で拒否されることがある（実害なし）
+    _wakeLockPending = false;
+  } else if (!need && _wakeLock) {
+    try { _wakeLock.release(); } catch (e) {}
+    _wakeLock = null;
+  }
+}
+// タブが非表示になるとOSがWakeLockを自動解放するため、表示に戻った時に再取得する
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') updateWakeLock();
+});
+
 function toggleMetronome() {
   const btn = document.getElementById('start-btn');
   const card = document.getElementById('metro-card');
@@ -4411,6 +4612,7 @@ function toggleMetronome() {
       btn.textContent = 'STOP';
       btn.classList.add('running');
       if (card) card.classList.add('metro-running');
+      updateWakeLock();
     };
     if (ctx.state === 'suspended') {
       ctx.resume().then(_startMetro);
@@ -4430,6 +4632,7 @@ function toggleMetronome() {
     if (gapBadge) gapBadge.style.display = 'none';
     const progBadge = document.getElementById('prog-status-badge');
     if (progBadge) progBadge.style.display = 'none';
+    updateWakeLock();
   }
 }
 
@@ -4679,6 +4882,7 @@ async function toggleMic() {
       document.getElementById('reconnect-wrap').style.display = 'block';
       if (isIOSDevice) document.getElementById('ios-mic-hint').style.display = 'block';
       detectPitch();
+      updateWakeLock();
     } catch (e) {
       // 失敗時はこの回で作ったAudioContextを閉じて解放する
       // （拒否されるたびに増え続けると、ブラウザの同時AudioContext上限に達して音が出なくなる）
@@ -4697,6 +4901,7 @@ async function toggleMic() {
     btnText.textContent = 'マイクをオンにする';
     document.getElementById('reconnect-wrap').style.display = 'none';
     resetTunerUI();
+    updateWakeLock();
   }
 }
 
