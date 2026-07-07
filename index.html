@@ -2028,7 +2028,7 @@
       </div>
       <div class="tip-item">
         <div class="tip-title">3つの設定項目</div>
-        <div class="tip-desc">「間隔」：何小節ごとにBPMを上げるか（1〜8小節）。「上昇」：1回あたりの上昇幅（+1〜+10 BPM）。「目標」：最終目標BPM（40〜300）。現在のBPMが起点になります。目標BPMに達すると自動停止します。</div>
+        <div class="tip-desc">「間隔」：何小節ごとにBPMを上げるか（1〜8小節）。「上昇」：1回あたりの上昇幅（+1〜+10 BPM）。「目標」：最終目標BPM（40〜240）。現在のBPMが起点になります。目標BPMに達すると自動停止します。</div>
       </div>
     </div>
 
@@ -2498,6 +2498,10 @@
 </main>
 
 <script>
+// localStorageへの書き込みはプライベートブラウズや容量不足で例外を投げることがある。
+// 保存に失敗しても後続の処理（メトロノーム停止・マイク停止など）を止めないよう安全に書き込む
+function lsSet(key, val) { try { localStorage.setItem(key, val); } catch(_) {} }
+
 // ===== TAB =====
 function switchTab(tab) {
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
@@ -2505,7 +2509,7 @@ function switchTab(tab) {
   document.getElementById('panel-' + tab).classList.add('active');
   const tabBtn = document.querySelector(`.tab-btn[onclick="switchTab('${tab}')"]`);
   if (tabBtn) tabBtn.classList.add('active');
-  localStorage.setItem('tsg_lastTab', tab);
+  lsSet('tsg_lastTab', tab);
 
   if (tab === 'metronome' && tunerActive) toggleMic();
   if (tab === 'tuner' && metronomeRunning) toggleMetronome();
@@ -2616,7 +2620,7 @@ let metroGroovesArr    = Array(48).fill('normal');
 let metroIs8thBaseArr  = Array(48).fill(false);
 let metroShuffleArr    = Array(48).fill(67);
 let metroSoundsArr     = Array(48).fill('beep');
-let metroAllAccentArr  = Array(48).fill(false);
+let metroAllAccentArr  = Array(48).fill(true); // 既定ON（リセット時・JSON/CSV読込時の既定値と統一）
 let metroShowPickArr   = Array(48).fill(false);
 let metroBeatMutedArr  = Array(48).fill(null).map(() => []);
 let metroSubMutedArr   = Array(48).fill(null).map(() => []);
@@ -2720,8 +2724,10 @@ function loadMetroSetlist() {
     if (Array.isArray(s.showPickArr))   s.showPickArr.forEach((v,i)=>{ if(i<48) metroShowPickArr[i]=!!v; });
     if (Array.isArray(s.beatMuted))    s.beatMuted.forEach((v,i)=>{ if(i<48) metroBeatMutedArr[i]=Array.isArray(v)?v.slice():[]; });
     if (Array.isArray(s.subMuted))     s.subMuted.forEach((v,i)=>{ if(i<48) metroSubMutedArr[i]=Array.isArray(v)?v.map(r=>Array.isArray(r)?r.slice():[]):[] });
-    if (typeof s.selectedSlot==='number') metroSelectedSlot = s.selectedSlot;
+    if (typeof s.selectedSlot==='number' && s.selectedSlot>=0 && s.selectedSlot<48) metroSelectedSlot = Math.floor(s.selectedSlot);
     if ([12,24,36,48].includes(s.slotCount)) metroSlotCount = s.slotCount;
+    // 選択スロットが表示範囲外なら先頭へ（範囲外だと選択が見えないまま自動保存が隠れスロットに走る）
+    if (metroSelectedSlot >= metroSlotCount) metroSelectedSlot = 0;
   } catch(e) {}
 }
 
@@ -2741,7 +2747,7 @@ function startInlineEditSlot(idx, nameEl) {
   sel.addRange(range);
 
   function finish() {
-    const val = nameEl.textContent.trim().slice(0, 20);
+    const val = nameEl.textContent.trim().slice(0, 40); // 下段の曲名入力欄（maxlength=40）と揃える
     nameEl.textContent = val || '';
     nameEl.contentEditable = 'false';
     nameEl.style.outline = '';
@@ -2796,12 +2802,16 @@ function makeMetroSlotBtn(i) {
     + `<span class="metro-slot-num">${i+1}</span>`
     + `<span class="metro-slot-bpm" id="mslot-bpm-${i}">${bpmDisplay}</span>`
     + `</div>`
-    + `<div class="metro-slot-name" id="mslot-name-${i}">${name}</div>`
+    + `<div class="metro-slot-name" id="mslot-name-${i}"></div>`
     + `<button class="metro-slot-dup-btn" title="複製" onclick="event.stopPropagation();duplicateMetroSlot(${i})">`
     + `<svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.3">`
     + `<rect x="3.5" y="3.5" width="5.5" height="5.5" rx="1"/>`
     + `<path d="M6.5 3.5V1.5a.5.5 0 0 0-.5-.5h-4a.5.5 0 0 0-.5.5v4a.5.5 0 0 0 .5.5H3.5"/>`
     + `</svg></button>`;
+  // 曲名はHTMLとして解釈させずtextContentで入れる
+  // （共有URL・CSV/JSONファイル由来の曲名にタグが含まれていた場合のスクリプト注入防止）
+  const nameDiv = btn.querySelector('.metro-slot-name');
+  if (nameDiv) nameDiv.textContent = name;
 
   // スロットBPM ダブルクリック/ダブルタップで直接編集
   const bpmSpan = btn.querySelector('.metro-slot-bpm');
@@ -2989,6 +2999,7 @@ function autoSaveMetroSlot() {
 }
 
 function duplicateMetroSlot(i) {
+  if (metroSlots[i] === null && !metroNames[i]) return; // 空スロットの複製は何もしない
   const last = metroSlotCount - 1;
   if (metroSlots[last] !== null || metroNames[last] !== '') {
     alert(`スロットが満杯です（最大${metroSlotCount}）`);
@@ -3099,11 +3110,15 @@ function resetMetroSetlist() {
   metroShowPickArr  = Array(48).fill(false);
   metroBeatMutedArr = Array(48).fill(null).map(() => []);
   metroSubMutedArr  = Array(48).fill(null).map(() => []);
-  setAllAccent(false);
+  // autoSaveMetroSlot がリセット直後の配列に現在の設定を書き戻してしまわないようガード
+  // （ガードなしだと選択中だったスロットだけデータが残る）。All Accentの既定はON。
+  _applyingSlot = true;
+  setAllAccent(true);
   setShowPick(false);
+  _applyingSlot = false;
   metroSelectedSlot = 0;
   metroSlotCount = 12;
-  localStorage.removeItem(METRO_LS_KEY);
+  try { localStorage.removeItem(METRO_LS_KEY); } catch(_) {}
   renderMetroSlots();
 }
 
@@ -3379,7 +3394,7 @@ function decodeSetlistFromHash() {
     metroShuffleArr    = Array(48).fill(67);
     metroBeatMutedArr  = Array(48).fill(null).map(() => []);
     metroSubMutedArr   = Array(48).fill(null).map(() => []);
-    metroAllAccentArr  = Array(48).fill(false);
+    metroAllAccentArr  = Array(48).fill(true); // 未使用スロットの既定はON（アプリ既定・JSON/CSV読込と統一）
     metroShowPickArr   = Array(48).fill(false);
     metroSlotCount     = [12,24,36,48].includes(data.c) ? data.c : 12;
     metroSelectedSlot  = 0;
@@ -3387,18 +3402,20 @@ function decodeSetlistFromHash() {
     (data.s || []).forEach(slot => {
       const idx = slot.i;
       if (typeof idx !== 'number' || idx < 0 || idx >= 48) return;
-      // BPMは数値かつ30〜240のみ採用（壊れた・不正な共有URL対策）
+      // 各値は種類・範囲を検証してから採用（壊れた・改変された共有URL対策。CSV読込と同じ方針）
       if (slot.b !== undefined) { const bv = Number(slot.b); if (Number.isFinite(bv) && bv >= 30 && bv <= 240) metroSlots[idx] = bv; }
-      metroNames[idx]        = slot.n   || '';
-      metroBeatsArr[idx]     = slot.bt  || 4;
+      metroNames[idx]        = (typeof slot.n === 'string' ? slot.n : '').slice(0, 40);
+      const btv = Number(slot.bt);
+      metroBeatsArr[idx]     = (Number.isFinite(btv) && btv >= 1 && btv <= 16) ? Math.round(btv) : 4;
       metroIs8thBaseArr[idx] = !!slot['8'];
-      metroGroovesArr[idx]   = slot.g   || 'normal';
-      metroSoundsArr[idx]    = slot.sn  || 'beep';
+      metroGroovesArr[idx]   = ['normal','eighth','sixteenth','shuffle','sixteenth-shuffle'].includes(slot.g) ? slot.g : 'normal';
+      metroSoundsArr[idx]    = ['beep','wood','hihat','voice','snare'].includes(slot.sn) ? slot.sn : 'beep';
       metroAllAccentArr[idx] = !!slot.aa;
       metroShowPickArr[idx]  = !!slot.sp;
-      metroShuffleArr[idx]   = slot.sr || 67;
-      if (Array.isArray(slot.bm)) metroBeatMutedArr[idx] = slot.bm;
-      if (Array.isArray(slot.sm)) metroSubMutedArr[idx]  = slot.sm.map(r => Array.isArray(r) ? r : []);
+      const srv = Number(slot.sr);
+      metroShuffleArr[idx]   = (Number.isFinite(srv) && srv >= 51 && srv <= 80) ? Math.round(srv) : 67;
+      if (Array.isArray(slot.bm)) metroBeatMutedArr[idx] = slot.bm.slice(0, 16).map(v => !!v);
+      if (Array.isArray(slot.sm)) metroSubMutedArr[idx]  = slot.sm.slice(0, 16).map(r => Array.isArray(r) ? r.slice(0, 3).map(v => !!v) : []);
     });
 
     const nameEl = document.getElementById('metro-setlist-name');
@@ -3421,11 +3438,19 @@ function openShareModal() {
   const qrWrap = document.getElementById('share-qr-wrap');
   qrWrap.innerHTML = '';
   if (typeof QRCode !== 'undefined') {
-    _shareQrInst = new QRCode(qrWrap, {
-      text: url, width: 160, height: 160,
-      colorDark: '#1a1a2e', colorLight: '#ffffff',
-      correctLevel: QRCode.CorrectLevel.M
-    });
+    try {
+      _shareQrInst = new QRCode(qrWrap, {
+        text: url, width: 160, height: 160,
+        colorDark: '#1a1a2e', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+      });
+    } catch (err) {
+      // URLがQRコードの容量上限を超えると例外になる（曲数・曲名が多い場合）。
+      // ここで握りつぶさないとモーダル自体が開かず「共有ボタンが無反応」に見えてしまう
+      qrWrap.innerHTML = '';
+      qrWrap.style.cssText += 'font-size:0.78rem;color:#999;line-height:1.6;text-align:center;padding:0 6px;';
+      qrWrap.textContent = '曲数が多いためQRコードを表示できません。下のURLコピーをご利用ください。';
+    }
   } else {
     qrWrap.style.cssText += 'font-size:0.8rem;color:#999;';
     qrWrap.textContent = 'QRコードを読み込み中...';
@@ -3610,7 +3635,8 @@ function setProgStep(val) {
 }
 
 function setProgTarget(val) {
-  progTargetBpm = Math.max(40, Math.min(300, val));
+  // 上限はBPM本体と同じ240（240超を許すと目標に到達できず自動停止しなくなる）
+  progTargetBpm = Math.max(40, Math.min(240, val));
   const el = document.getElementById('prog-target-val');
   if (el) el.textContent = progTargetBpm;
   if (progEnabled && metronomeRunning) updateProgBadge(bpm);
@@ -3720,7 +3746,7 @@ function setShowPick(val) {
 
 function setShowScore(val) {
   showScore = !!val;
-  localStorage.setItem('tsg_showScore', showScore ? '1' : '0');
+  lsSet('tsg_showScore', showScore ? '1' : '0');
   const btn = document.getElementById('score-btn');
   if (btn) btn.classList.toggle('score-active', showScore);
   const scoreEl = document.getElementById('score-container');
@@ -3934,7 +3960,7 @@ function dismissHint(id, lsKey) {
     el.style.opacity = '0';
     setTimeout(() => el.style.display = 'none', 1000);
   }
-  localStorage.setItem(lsKey, '1');
+  lsSet(lsKey, '1');
 }
 
 function initHints() {
@@ -4456,7 +4482,9 @@ function getEffectiveStrings() {
     const freq = s.freq * Math.pow(2, shift / 12);
     const semi = Math.round(12 * Math.log2(freq / 440));
     const noteIdx = ((semi % 12) + 12 + 9) % 12;
-    const octave = Math.floor(semi / 12) + 4;
+    // オクターブ番号はCで繰り上がる（A基準でずらすと C〜G# が1つ低く表示される）
+    // A4=440Hz → MIDIノート番号 = semi + 69、オクターブ = floor(MIDI/12) - 1
+    const octave = Math.floor((semi + 69) / 12) - 1;
     const name = (halfDown ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
     return { name, octave, freq, label: s.string };
   });
@@ -4600,6 +4628,12 @@ async function toggleMic() {
       tunerAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
       if (tunerAudioCtx.state === 'suspended') tunerAudioCtx.resume();
 
+      // IN TUNEベルはメトロノーム側のAudioContextで鳴らすため、それもこの
+      // ユーザー操作（同期処理内）で作成・resumeして自動再生制限を解除しておく。
+      // これがないと、メトロノーム未使用のままチューナーだけ使った場合にベルが鳴らない
+      const bellCtx = getAudioCtx();
+      if (bellCtx.state === 'suspended') bellCtx.resume();
+
       // チューナー用のマイク取得設定。
       // ブラウザは既定で noiseSuppression / autoGainControl / echoCancellation を
       // ONにするが、これらは持続音を削ったり音量を勝手に変えたりして
@@ -4646,6 +4680,9 @@ async function toggleMic() {
       if (isIOSDevice) document.getElementById('ios-mic-hint').style.display = 'block';
       detectPitch();
     } catch (e) {
+      // 失敗時はこの回で作ったAudioContextを閉じて解放する
+      // （拒否されるたびに増え続けると、ブラウザの同時AudioContext上限に達して音が出なくなる）
+      if (tunerAudioCtx) { try { tunerAudioCtx.close(); } catch(_) {} tunerAudioCtx = null; }
       document.getElementById('tuner-status').textContent = 'マイクのアクセスが拒否されました';
     }
   } else {
@@ -4684,7 +4721,7 @@ async function reconnectMic() {
   resetTunerUI();
   // 少し待ってからマイクを再取得（OSがマイクを解放する時間を確保）
   await new Promise(r => setTimeout(r, 400));
-  toggleMic();
+  await toggleMic(); // マイク取得完了までボタンを「再接続中...」のままにする
   // ボタンを元に戻す
   if (btn) {
     btn.textContent = '🔄 反応が悪い時はここをタップ';
@@ -4729,6 +4766,9 @@ let prevRms = null;
 let attackSkipUntil = 0;
 const ATTACK_SKIP_MS = 100; // 130→100：MPM＋多数決が誤検出に強くなったため短縮し反応を優先
 
+// 解析用バッファは使い回す（毎フレーム32KBを確保し直すとGCが走り、コマ落ちの原因になる）
+let tunerBuf = null;
+
 function detectPitch() {
   if (!tunerActive) return;
 
@@ -4742,7 +4782,8 @@ function detectPitch() {
 
   const floorHz = 55; // 65→55：6弦の基音探索範囲を広げて精度改善を試みる
 
-  const buf = new Float32Array(analyser.fftSize);
+  if (!tunerBuf || tunerBuf.length !== analyser.fftSize) tunerBuf = new Float32Array(analyser.fftSize);
+  const buf = tunerBuf;
   analyser.getFloatTimeDomainData(buf);
 
   // アタック検出：RMSが前フレームの2倍以上に跳ね上がったら打撃音と判断し
@@ -4881,13 +4922,13 @@ let refA4 = parseInt(localStorage.getItem('tsg_refA4') || '440', 10);
 function adjustRefPitch(delta) {
   refA4 = Math.min(450, Math.max(430, refA4 + delta));
   document.getElementById('ref-pitch-value').textContent = refA4 + ' Hz';
-  localStorage.setItem('tsg_refA4', refA4);
+  lsSet('tsg_refA4', refA4);
 }
 
 function freqToNote(freq) {
   const semitones = Math.round(12 * Math.log2(freq / refA4));
   const noteIdx = ((semitones % 12) + 12 + 9) % 12;
-  const octave = Math.floor(semitones / 12) + 4;
+  const octave = Math.floor((semitones + 69) / 12) - 1; // オクターブはCで繰り上がる（MIDI基準）
   return { name: NOTE_NAMES[noteIdx], octave, semitones };
 }
 
@@ -4975,7 +5016,8 @@ function updateTunerUI(rawFreq, clarity) {
 
   // displaySemi から音名を計算
   const noteIdx = ((displaySemi % 12) + 12 + 9) % 12;
-  const octave  = Math.floor(displaySemi / 12) + 4;
+  // オクターブ番号はCで繰り上がる（A基準だと6弦EがE1と誤表示される。正しくはE2）
+  const octave  = Math.floor((displaySemi + 69) / 12) - 1;
   const noteName = (halfDown ? NOTE_NAMES_FLAT : NOTE_NAMES)[noteIdx];
 
   document.getElementById('tuner-note').textContent = noteName + octave;
@@ -5126,13 +5168,22 @@ document.addEventListener('keyup', function(e) {
   }
 });
 
+// キー長押し中にウィンドウのフォーカスが外れるとkeyupを取り逃がして連射が止まらなくなるため保険
+window.addEventListener('blur', stopBpmHold);
+
 // 最後に使ったタブを復元
+// ※'live'は旧バージョンのタブ名。localStorageに残っているとpanel-liveが存在せず
+//   ここでエラーになり、全パネル非表示（画面が空）になるため除外し、要素の存在も確認する
 const lastTab = localStorage.getItem('tsg_lastTab');
-if (lastTab && ['metronome','tuner','live'].includes(lastTab)) {
-  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.getElementById('panel-' + lastTab).classList.add('active');
-  document.querySelector(`.tab-btn[onclick="switchTab('${lastTab}')"]`).classList.add('active');
+if (lastTab && ['metronome','tuner'].includes(lastTab)) {
+  const lastPanel  = document.getElementById('panel-' + lastTab);
+  const lastTabBtn = document.querySelector(`.tab-btn[onclick="switchTab('${lastTab}')"]`);
+  if (lastPanel && lastTabBtn) {
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    lastPanel.classList.add('active');
+    lastTabBtn.classList.add('active');
+  }
 }
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
