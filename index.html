@@ -4673,12 +4673,21 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') updateWakeLock();
 });
 
+// 起動待ちフラグ：AudioContextのresume()を待つ間に再度STARTが押されると
+// スケジューラが二重起動し、STOPで片方しか止まらない「ゾンビクリック」が残る。
+// このフラグと_startMetro内のclearTimeoutで多重起動を防ぐ。
+let _metroStarting = false;
+
 function toggleMetronome() {
   const btn = document.getElementById('start-btn');
   const card = document.getElementById('metro-card');
-  if (!metronomeRunning) {
+  if (!metronomeRunning && !_metroStarting) {
     const ctx = getAudioCtx();
+    _metroStarting = true;
     const _startMetro = () => {
+      // resume待ちの間にSTOPされていたら起動しない
+      if (!_metroStarting) return;
+      clearTimeout(timerID); // 念のため既存のスケジューラを掃除（多重起動の保険）
       if (currentSound === 'voice' && !voiceLoaded) loadVoiceBuffers();
       if (currentSound === 'snare' && !snareLoaded) loadSnareBuffer();
       nextNoteTime = ctx.currentTime + 0.05;
@@ -4689,18 +4698,21 @@ function toggleMetronome() {
       if (progEnabled) updateProgBadge(bpm);
       scheduler();
       metronomeRunning = true;
+      _metroStarting = false;
       btn.textContent = 'STOP';
       btn.classList.add('running');
       if (card) card.classList.add('metro-running');
       updateWakeLock();
     };
     if (ctx.state === 'suspended') {
-      ctx.resume().then(_startMetro);
+      ctx.resume().then(_startMetro).catch(() => { _metroStarting = false; });
     } else {
       _startMetro();
     }
   } else {
+    _metroStarting = false;   // 起動待ちだった場合はキャンセル
     clearTimeout(timerID);
+    timerID = null;
     metronomeRunning = false;
     btn.textContent = 'START';
     btn.classList.remove('running');
