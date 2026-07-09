@@ -2033,6 +2033,18 @@
     </div>
 
     <div class="modal-section">
+      <div class="modal-section-title">📍 小節アンカー（位置確認クリック）</div>
+      <div class="tip-item">
+        <div class="tip-title red">🔔 数小節に1回だけ「1拍目」を鳴らして現在地を確認</div>
+        <div class="tip-desc">「小節アンカー」の「OFF」ボタンを押してONにすると、指定した小節数ごとに1拍目だけが必ず鳴ります。頭抜き（1拍目を消す）や裏拍だけなど複雑なパターンを練習していると「今どこを弾いているか」が分からなくなりがちですが、2小節・4小節・8小節に1回の“目印”があると、そこで自分の位置を確認し直せます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">ミュートしていても必ず鳴ります</div>
+        <div class="tip-desc">ビートドットで1拍目を消していても、また「Gap Click」の無音中でも、アンカーの1拍目だけは貫通して鳴ります。「どんな設定でも数小節に1回は頭が鳴る」と考えると分かりやすいです。完全な無音で自分を試したい時はOFFにしてください。±ボタンで1〜8小節ごとに変更できます。</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
       <div class="modal-section-title">📋 Setlist</div>
       <div class="tip-item">
         <div class="tip-title red">📝 曲ごとのBPM・拍子・グルーブをまとめて登録</div>
@@ -2298,6 +2310,23 @@
       <div id="prog-status-badge" style="display:none; margin-top:-6px; margin-bottom:10px; padding:2px 0;
            border-radius:20px; font-size:0.72rem; font-weight:700; text-align:center; border:1.5px solid;"></div>
 
+      <!-- 小節アンカー（位置確認クリック） -->
+      <div class="section-label">小節アンカー <span style="font-size:0.6rem;color:#b8bcc8;font-weight:400;letter-spacing:0.04em;text-transform:none;">（位置確認クリック）</span></div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:3px; flex-shrink:0;">
+          <button class="live-fine-btn" onclick="setAnchorEvery(anchorEveryBars-1)" style="width:22px;height:22px;font-size:0.85rem;">−</button>
+          <span id="anchor-every-val" style="font-family:'Oswald',sans-serif;font-size:0.95rem;font-weight:700;min-width:14px;text-align:center;color:#1a1a2e;">4</span>
+          <button class="live-fine-btn" onclick="setAnchorEvery(anchorEveryBars+1)" style="width:22px;height:22px;font-size:0.85rem;">+</button>
+          <span style="font-size:0.7rem;color:#555;font-weight:600;">小節ごとに1拍目を鳴らす</span>
+        </div>
+        <div style="flex:1;"></div>
+        <button id="anchor-toggle-btn" onclick="toggleAnchor()" style="
+          padding:3px 12px; border-radius:20px; border:1.5px solid #c8ccd6;
+          font-size:0.72rem; font-weight:700; cursor:pointer; flex-shrink:0;
+          background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
+          color:#777; box-shadow:0 2px 0 #b8bcc8;">OFF</button>
+      </div>
+
       <!-- Metro Setlist (折りたたみ) -->
       <button class="setlist-toggle" id="metro-setlist-toggle" onclick="toggleMetroSetlist()">
         <div class="setlist-toggle-left">
@@ -2557,6 +2586,12 @@ let progStepBpm      = 4;
 let progIntervalBars = 2;
 let progTargetBpm    = 120;
 let _progBarCount    = 0;
+
+// 小節アンカー（位置確認クリック）：N小節ごとに1拍目を必ず鳴らす。
+// ミュートパターン練習中に「今どこ？」となった時の基準点。ミュート・ギャップを貫通する。
+let anchorEnabled   = false;
+let anchorEveryBars = 4;
+let _anchorBarCount = 0;
 
 // ===== VOICE COUNT BUFFERS =====
 const voiceBuffers = {};
@@ -3815,6 +3850,36 @@ function setProgTarget(val) {
   if (progEnabled && metronomeRunning) updateProgBadge(bpm);
 }
 
+// ===== 小節アンカー（位置確認クリック） =====
+function toggleAnchor() {
+  anchorEnabled = !anchorEnabled;
+  const btn = document.getElementById('anchor-toggle-btn');
+  if (btn) {
+    if (anchorEnabled) {
+      btn.textContent = 'ON';
+      btn.style.background = 'linear-gradient(to bottom,#8e44ad,#6c3483)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#6c3483';
+      btn.style.boxShadow = '0 2px 0 #4a235a';
+    } else {
+      btn.textContent = 'OFF';
+      btn.style.background = 'linear-gradient(to bottom,#f7f8fa,#e0e3ea)';
+      btn.style.color = '#777';
+      btn.style.borderColor = '#c8ccd6';
+      btn.style.boxShadow = '0 2px 0 #b8bcc8';
+    }
+  }
+  // 再生中にONにしたら、次の1拍目からアンカーが鳴るようカウンタをリセット
+  if (metronomeRunning) _anchorBarCount = 0;
+}
+
+function setAnchorEvery(val) {
+  anchorEveryBars = Math.max(1, Math.min(8, val));
+  const el = document.getElementById('anchor-every-val');
+  if (el) el.textContent = anchorEveryBars;
+  if (metronomeRunning && anchorEnabled) _anchorBarCount = 0;
+}
+
 function setShuffleRatio(val) {
   shuffleRatio = val / 100;
   let label = '';
@@ -4470,8 +4535,22 @@ function scheduler() {
       }
     }
 
+    // 小節アンカー：N小節ごとの1拍目かどうかを判定（カウンタは1拍目でのみ進める）
+    let anchorHit = false;
+    if (anchorEnabled && beat === 0) {
+      anchorHit = (_anchorBarCount % anchorEveryBars === 0);
+      _anchorBarCount++;
+    }
+
     // メインビートを鳴らすか
-    if (!gapSilent && !beatMuted[beat]) scheduleNote(t, isAccent, beat);
+    const normalPlays = !gapSilent && !beatMuted[beat];
+    if (normalPlays) {
+      scheduleNote(t, isAccent, beat);
+    } else if (anchorHit) {
+      // 本来この1拍目は鳴らない（ミュート or ギャップ無音）が、アンカーとして必ずアクセントで鳴らす。
+      // normalPlays が false の時だけ通るので二重発音にはならない。
+      scheduleNote(t, true, 0);
+    }
 
     // 細分割音（サブミュートチェック付き）
     if (!gapSilent) {
@@ -4606,6 +4685,7 @@ function toggleMetronome() {
       currentBeat = 0;
       _gapBeatTotal = 0;
       _progBarCount = 0;
+      _anchorBarCount = 0;
       if (progEnabled) updateProgBadge(bpm);
       scheduler();
       metronomeRunning = true;
