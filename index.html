@@ -3516,18 +3516,22 @@ function loadMetroSetlistFile(event) {
         metroShowPickArr  = Array(48).fill(false);
         metroBeatMutedArr = Array(48).fill(null).map(()=>[]);
         metroSubMutedArr  = Array(48).fill(null).map(()=>[]);
-        // BPMは数値かつ30〜240のみ採用（それ以外・null は未設定のまま = 空スロット）
+        // 各値は種類・範囲を検証してから採用（CSV読込・共有URLと同じ方針）。
+        // 手編集で壊れたファイルの不正値が素通りすると、存在しない音色で
+        // メトロノームが無音化するなど「故障に見える」状態になるため
+        const _VALID_GROOVES = ['normal','eighth','sixteenth','shuffle','sixteenth-shuffle'];
+        const _VALID_SOUNDS  = ['beep','wood','hihat','voice','snare'];
         if (Array.isArray(data.slots))        data.slots.forEach((v,i)=>{ if(i<n){ const bv=Number(v); if(Number.isFinite(bv)&&bv>=30&&bv<=240) metroSlots[i]=bv; } });
-        if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<n) metroNames[i]=v||''; });
-        if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<n) metroBeatsArr[i]=v||4; });
-        if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<n) metroGroovesArr[i]=v||'normal'; });
+        if (Array.isArray(data.names))        data.names.forEach((v,i)=>{ if(i<n) metroNames[i]=(typeof v==='string'?v:'').slice(0,40); });
+        if (Array.isArray(data.beats))        data.beats.forEach((v,i)=>{ if(i<n){ const b=Number(v); metroBeatsArr[i]=(Number.isFinite(b)&&b>=1&&b<=16)?Math.round(b):4; } });
+        if (Array.isArray(data.grooves))      data.grooves.forEach((v,i)=>{ if(i<n) metroGroovesArr[i]=_VALID_GROOVES.includes(v)?v:'normal'; });
         if (Array.isArray(data.is8thBaseArr)) data.is8thBaseArr.forEach((v,i)=>{ if(i<n) metroIs8thBaseArr[i]=!!v; });
-        if (Array.isArray(data.shuffleRatios))data.shuffleRatios.forEach((v,i)=>{ if(i<n) metroShuffleArr[i]=v||67; });
-        if (Array.isArray(data.sounds))       data.sounds.forEach((v,i)=>{ if(i<n) metroSoundsArr[i]=v||'beep'; });
+        if (Array.isArray(data.shuffleRatios))data.shuffleRatios.forEach((v,i)=>{ if(i<n){ const s=Number(v); metroShuffleArr[i]=(Number.isFinite(s)&&s>=51&&s<=80)?Math.round(s):67; } });
+        if (Array.isArray(data.sounds))       data.sounds.forEach((v,i)=>{ if(i<n) metroSoundsArr[i]=_VALID_SOUNDS.includes(v)?v:'beep'; });
         if (Array.isArray(data.allAccentArr)) data.allAccentArr.forEach((v,i)=>{ if(i<n) metroAllAccentArr[i]=!!v; });
         if (Array.isArray(data.showPickArr))  data.showPickArr.forEach((v,i)=>{ if(i<n) metroShowPickArr[i]=!!v; });
-        if (Array.isArray(data.beatMuted))    data.beatMuted.forEach((v,i)=>{ if(i<n) metroBeatMutedArr[i]=Array.isArray(v)?v.slice():[]; });
-        if (Array.isArray(data.subMuted))     data.subMuted.forEach((v,i)=>{ if(i<n) metroSubMutedArr[i]=Array.isArray(v)?v.map(r=>Array.isArray(r)?r.slice():[]):[]; });
+        if (Array.isArray(data.beatMuted))    data.beatMuted.forEach((v,i)=>{ if(i<n) metroBeatMutedArr[i]=Array.isArray(v)?v.slice(0,16).map(x=>!!x):[]; });
+        if (Array.isArray(data.subMuted))     data.subMuted.forEach((v,i)=>{ if(i<n) metroSubMutedArr[i]=Array.isArray(v)?v.slice(0,16).map(r=>Array.isArray(r)?r.slice(0,3).map(x=>!!x):[]):[]; });
         if (data.name) { const ni = document.getElementById('metro-setlist-name'); if(ni) ni.value=data.name; }
         metroSelectedSlot = 0;
         saveMetroSetlist();
@@ -4527,6 +4531,13 @@ function scheduleSubNote(time, beatIdx = 0) {
 function scheduler() {
   const ctx = getAudioCtx();
   const interval = 60 / bpm;
+  // バースト防止：バックグラウンドでタイマーが間引かれている間も音声時計は進むため、
+  // 復帰時に nextNoteTime が大きく遅れていることがある。そのまま while に入ると
+  // 遅れた拍を全部「過去の時刻」で予約してしまい、一斉発音（機関銃バースト）になる。
+  // 遅れが大きい時は溜まった拍を捨てて、現在時刻から仕切り直す。
+  if (nextNoteTime < ctx.currentTime - 0.2) {
+    nextNoteTime = ctx.currentTime + 0.05;
+  }
   while (nextNoteTime < ctx.currentTime + 0.1) {
     const beat = currentBeat;
     const t = nextNoteTime;
@@ -4554,17 +4565,23 @@ function scheduler() {
 
     // Progressive Tempo: N小節ごとにBPMを上昇
     if (progEnabled && beat === 0) {
+      // 「設定した間隔の分だけ演奏し終えた小節頭か」を加算前に判定する。
+      // （従来は加算後に判定していたため、最初の1回だけ1小節早くBPMが上がっていた）
+      const _progDue = (_progBarCount > 0 && _progBarCount % progIntervalBars === 0);
       _progBarCount++;
-      if (_progBarCount % progIntervalBars === 0) {
+      if (_progDue) {
         const _pNewBpm = Math.min(bpm + progStepBpm, progTargetBpm);
         const _pIsTarget = _pNewBpm >= progTargetBpm;
+        const _pRunId = _metroRunId; // この再生セッションのID（停止→再開後の誤発火防止）
         setTimeout(() => {
-          if (!progEnabled || !metronomeRunning) return;
+          if (_pRunId !== _metroRunId || !progEnabled || !metronomeRunning) return;
           if (bpm >= progTargetBpm) return;
           _setProgBpm(_pNewBpm);
           updateProgBadge(_pNewBpm);
           if (_pIsTarget) {
-            setTimeout(() => { if (metronomeRunning) toggleMetronome(); },
+            // 目標到達の1小節後に自動停止。ただしその間に停止→再開されていたら
+            // 新しい再生を誤って止めないよう、再生セッションIDが同じ時だけ実行する
+            setTimeout(() => { if (_pRunId === _metroRunId && metronomeRunning) toggleMetronome(); },
               (60000 / _pNewBpm) * beats);
           }
         }, Math.max(0, (t - ctx.currentTime) * 1000));
@@ -4706,15 +4723,34 @@ async function updateWakeLock() {
     _wakeLock = null;
   }
 }
-// タブが非表示になるとOSがWakeLockを自動解放するため、表示に戻った時に再取得する
+// 電話・Siri割り込みやアプリ切替でOSにAudioContextを止められた後、画面に戻ってきた時に
+// 自動で再開する。特にiOSはこれがないとチューナーが沈黙したまま（故障に見える）になる。
+// 再開に失敗しても現状維持なので害はない（従来どおり手動の再接続ボタンで復旧できる）
+function resumeAudioAfterReturn() {
+  if (tunerActive && tunerAudioCtx && tunerAudioCtx.state !== 'running' && tunerAudioCtx.state !== 'closed') {
+    tunerAudioCtx.resume().catch(() => {});
+  }
+  if (metronomeRunning && audioCtx && audioCtx.state !== 'running' && audioCtx.state !== 'closed') {
+    audioCtx.resume().catch(() => {});
+  }
+}
+
+// タブが非表示になるとOSがWakeLockを自動解放するため、表示に戻った時に再取得する。
+// 合わせて、割り込みで止められたAudioContextもここで自動再開する
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') updateWakeLock();
+  if (document.visibilityState === 'visible') {
+    updateWakeLock();
+    resumeAudioAfterReturn();
+  }
 });
 
 // 起動待ちフラグ：AudioContextのresume()を待つ間に再度STARTが押されると
 // スケジューラが二重起動し、STOPで片方しか止まらない「ゾンビクリック」が残る。
 // このフラグと_startMetro内のclearTimeoutで多重起動を防ぐ。
 let _metroStarting = false;
+// 再生セッションの通し番号：前の再生が残した予約（プログレッシブの自動停止など）が
+// 停止→再開後の新しい再生を誤って止めないよう、予約時のIDと照合して無効化する
+let _metroRunId = 0;
 
 function toggleMetronome() {
   const btn = document.getElementById('start-btn');
@@ -4726,6 +4762,7 @@ function toggleMetronome() {
       // resume待ちの間にSTOPされていたら起動しない
       if (!_metroStarting) return;
       clearTimeout(timerID); // 念のため既存のスケジューラを掃除（多重起動の保険）
+      _metroRunId++;         // 新しい再生セッション開始（前回の残存予約を無効化）
       if (currentSound === 'voice' && !voiceLoaded) loadVoiceBuffers();
       if (currentSound === 'snare' && !snareLoaded) loadSnareBuffer();
       nextNoteTime = ctx.currentTime + 0.05;
@@ -4776,7 +4813,7 @@ function tapTempo() {
   if (recent.length >= 2) {
     const avg = (recent[recent.length - 1] - recent[0]) / (recent.length - 1);
     const newBpm = Math.round(60000 / avg);
-    if (newBpm >= 40 && newBpm <= 240) setBpm(newBpm);
+    if (newBpm >= 30 && newBpm <= 240) setBpm(newBpm); // 下限はBPM設定範囲(30)と統一
   }
   if (tapTimes.length === 1) setTimeout(() => { if (tapTimes.length === 1) tapTimes = []; }, 3000);
 }
