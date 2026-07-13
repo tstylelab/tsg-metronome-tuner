@@ -3198,7 +3198,14 @@ function resetMetroSetlist() {
 function saveMetroLists() {
   try {
     localStorage.setItem(METRO_LISTS_KEY, JSON.stringify({ v: 1, cur: metroCurrentListId, lists: metroLists }));
-  } catch (e) { console.warn('metro lists save failed:', e); }
+  } catch (e) {
+    // 名前付きリストの自動保存が静かに死ぬと気づけないため、一度だけ警告する
+    console.warn('metro lists save failed:', e);
+    if (!_lsWarned) {
+      _lsWarned = true;
+      alert('セットリストの自動保存に失敗しました（端末の空き容量やブラウザ設定をご確認ください）。\n大切なセットリストは「保存」ボタンからファイルに書き出しておくことをおすすめします。');
+    }
+  }
 }
 
 function loadMetroLists() {
@@ -3263,14 +3270,26 @@ function switchMetroList(val) {
   if (id === metroCurrentListId) return;
   const target = id === null ? null : metroLists.find(l => l.id === id);
   if (id !== null && !target) { renderMetroListSelect(); return; } // 不整合時は表示だけ戻す
+  // 切替先のデータを「先に」パースして確かめる。配列を空にした後でパースに失敗すると、
+  // 空の状態が自動保存で切替先リストへ書き戻され、リストの中身が消えてしまうため
+  let parsed = null;
+  try {
+    const src = id === null ? localStorage.getItem(METRO_DEFAULT_KEY) : target.data;
+    parsed = JSON.parse(src || 'null');
+  } catch (e) {
+    if (id !== null) {
+      // 名前付きリストのデータ破損：切り替え自体を中止してデータを守る
+      showToast('⚠️ このリストのデータが壊れているため切り替えを中止しました');
+      renderMetroListSelect(); // セレクタの表示を現在のリストに戻す
+      return;
+    }
+    parsed = null; // 共通リストの退避データ破損時は空から再開（他に復元元がない）
+  }
   // 表示中の内容は自動保存で反映済み。共通リストから離れる時だけ内容を退避しておく
   if (metroCurrentListId === null) lsSet(METRO_DEFAULT_KEY, _currentSetlistPayload());
   _resetSetlistArrays();
   metroCurrentListId = id;
-  try {
-    const src = id === null ? localStorage.getItem(METRO_DEFAULT_KEY) : target.data;
-    _applySetlistState(JSON.parse(src || 'null'));
-  } catch (e) {}
+  _applySetlistState(parsed);
   _afterListSwitch();
 }
 
@@ -3433,7 +3452,7 @@ function loadMetroSetlistFileCsv(text) {
     if (isNaN(idx) || idx < 0 || idx >= 48) continue;
     const bpmVal = parseInt(c[2]);
     if (!isNaN(bpmVal) && bpmVal >= 30 && bpmVal <= 240) metroSlots[idx] = bpmVal;
-    metroNames[idx] = c[1] || '';
+    metroNames[idx] = (c[1] || '').slice(0, 40); // 曲名入力欄のmaxlength(40)と揃える
     const ts = (c[3] || '4/4').trim();
     if (ts === '6/8') { metroBeatsArr[idx] = 6; metroIs8thBaseArr[idx] = true; }
     else if (ts === '7/8') { metroBeatsArr[idx] = 7; metroIs8thBaseArr[idx] = true; }
@@ -3524,6 +3543,15 @@ function loadMetroSetlistFile(event) {
 function initMetroSetlist() {
   loadMetroLists();
   loadMetroSetlist();
+  // 作業状態のキーだけが消えていた場合（部分的なデータ消去・保存失敗など）、
+  // 選択中の名前付きリストが残っていればそこから復元する。これがないと
+  // 空の作業状態が最初の自動保存でリストへ同期され、リストの中身が消える
+  let _wsMissing = false;
+  try { _wsMissing = localStorage.getItem(METRO_LS_KEY) === null; } catch (e) {}
+  if (_wsMissing && metroCurrentListId !== null) {
+    const li = metroLists.find(l => l.id === metroCurrentListId);
+    if (li) { try { _applySetlistState(JSON.parse(li.data || 'null')); } catch (e) {} }
+  }
   decodeSetlistFromHash();
   renderMetroListSelect();
   renderMetroSlots();
@@ -3587,7 +3615,10 @@ function decodeSetlistFromHash() {
     const b64 = hash.slice(3).replace(/-/g, '+').replace(/_/g, '/');
     const bytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
     const data = JSON.parse(new TextDecoder().decode(bytes));
-    if (!data || data.v !== 1) return false;
+    if (!data || data.v !== 1) {
+      setTimeout(() => showToast('⚠️ 共有URLを読み込めませんでした（形式が不明です）'), 600);
+      return false;
+    }
 
     metroSlots         = Array(48).fill(null);
     metroNames         = Array(48).fill('');
@@ -3634,6 +3665,8 @@ function decodeSetlistFromHash() {
     return true;
   } catch(e) {
     console.error('Share URL decode error:', e);
+    // 何も起きないと「壊れたURLを送ってしまった」ことに送り主も受け手も気づけないため通知する
+    setTimeout(() => showToast('⚠️ 共有URLの読み込みに失敗しました（URLが途中で切れている可能性があります）'), 600);
     return false;
   }
 }
@@ -3660,8 +3693,10 @@ function openShareModal() {
       qrWrap.textContent = '曲数が多いためQRコードを表示できません。下のURLコピーをご利用ください。';
     }
   } else {
-    qrWrap.style.cssText += 'font-size:0.8rem;color:#999;';
-    qrWrap.textContent = 'QRコードを読み込み中...';
+    // QRコードライブラリ（CDN）が読み込めていない場合。「読み込み中...」と出すと
+    // 待てば表示されるように見えてしまうため、できない旨とURLコピーの案内を出す
+    qrWrap.style.cssText += 'font-size:0.78rem;color:#999;line-height:1.6;text-align:center;padding:0 6px;';
+    qrWrap.textContent = 'QRコードを表示できませんでした（通信環境をご確認ください）。下のURLコピーはご利用いただけます。';
   }
   document.getElementById('share-modal').classList.add('open');
 }
@@ -4172,6 +4207,7 @@ let _bpmHoldTimer = null;
 let _bpmHoldStep = 0;
 
 function startBpmHold(delta) {
+  stopBpmHold(); // 既に長押し中なら止めてから開始（キー＋ボタン同時押しでタイマーが二重化し、離しても止まらなくなるのを防ぐ）
   adjustBpm(delta);  // 1回目はすぐ反応
   _bpmHoldStep = 0;
   _bpmHoldTimer = setTimeout(function repeat() {
@@ -4607,6 +4643,7 @@ function scheduler() {
 }
 
 function flashBeat(beat) {
+  if (!metronomeRunning) return; // STOP後に残っていた点灯予約が発火し、ドットが光ったまま残るのを防ぐ
   const isAccent = beat === 0;
 
   // ビートドット（全グループのメインドットのみ）
@@ -4626,6 +4663,7 @@ function flashBeat(beat) {
 }
 
 function flashSubDot(beat, subIndex) {
+  if (!metronomeRunning) return; // STOP後の残存予約による点灯を防ぐ（flashBeatと同様）
   // 全サブドットのactiveを外す
   document.querySelectorAll('.beat-sub-dot').forEach(s => s.classList.remove('active'));
   const s = document.getElementById('sdot-' + beat + '-' + subIndex);
@@ -4894,6 +4932,7 @@ function initCapoBtns() {
 }
 
 let tunerActive = false;
+let _micStarting = false; // マイク起動処理中フラグ：許可待ちの間の二度押しで二重接続（旧ストリームが解放不能になる）を防ぐ
 let micStream = null;
 let tunerAudioCtx = null;
 let analyser = null;
@@ -4915,7 +4954,8 @@ let tunerNoiseRms = null;
 async function toggleMic() {
   const btn = document.getElementById('mic-btn');
   const btnText = document.getElementById('mic-btn-text');
-  if (!tunerActive) {
+  if (!tunerActive && !_micStarting) {
+    _micStarting = true;
     try {
       // AudioContextはユーザー操作の同期処理内で作成・resumeする
       // （getUserMediaのawaitを挟んだ後だとiOSがジェスチャー起因と認識せず
@@ -4947,6 +4987,16 @@ async function toggleMic() {
         console.log('[tuner] mic settings:', JSON.stringify(applied),
           '/ sampleRate:', tunerAudioCtx.sampleRate);
       } catch (err) {}
+      // 他のアプリにマイクを奪われた・デバイスが切断された等でトラックが終了した場合は
+      // 自動でOFF状態に戻す（放置するとボタンがONのまま沈黙し、故障に見える）
+      micStream.getTracks().forEach(track => {
+        track.onended = () => {
+          if (tunerActive) {
+            toggleMic(); // OFF処理（後片付け・UI復帰）
+            document.getElementById('tuner-status').textContent = 'マイクが停止されたためオフにしました（他のアプリがマイクを使用した可能性）';
+          }
+        };
+      });
       const source = tunerAudioCtx.createMediaStreamSource(micStream);
       analyser = tunerAudioCtx.createAnalyser();
       analyser.fftSize = 8192;
@@ -4976,12 +5026,15 @@ async function toggleMic() {
       detectPitch();
       updateWakeLock();
     } catch (e) {
-      // 失敗時はこの回で作ったAudioContextを閉じて解放する
-      // （拒否されるたびに増え続けると、ブラウザの同時AudioContext上限に達して音が出なくなる）
+      // 失敗時はこの回で確保したマイクとAudioContextを解放する
+      // （ストリームの止め忘れはマイク「使用中」表示が残り続ける原因になる。
+      //   AudioContextも拒否のたびに増え続けると同時作成上限に達して音が出なくなる）
+      if (micStream) { try { micStream.getTracks().forEach(t => t.stop()); } catch(_) {} micStream = null; }
       if (tunerAudioCtx) { try { tunerAudioCtx.close(); } catch(_) {} tunerAudioCtx = null; }
-      document.getElementById('tuner-status').textContent = 'マイクのアクセスが拒否されました';
+      document.getElementById('tuner-status').textContent = 'マイクを開始できませんでした（アクセスが拒否されたか、他のアプリが使用中です）';
     }
-  } else {
+    _micStarting = false;
+  } else if (tunerActive) {
     tunerActive = false;
     if (tunerAnimId) cancelAnimationFrame(tunerAnimId);
     if (silenceTimer) { clearTimeout(silenceTimer); silenceTimer = null; }
@@ -5215,6 +5268,8 @@ function autoCorrelate(buf, sampleRate, floorHz, rms, rmsFloor) {
 }
 
 let refA4 = parseInt(localStorage.getItem('tsg_refA4') || '440', 10);
+// 保存値が壊れていた場合の保険（NaNのままだと音程計算が全滅し「NaN Hz」表示になる）
+if (!Number.isFinite(refA4) || refA4 < 430 || refA4 > 450) refA4 = 440;
 
 function adjustRefPitch(delta) {
   refA4 = Math.min(450, Math.max(430, refA4 + delta));
