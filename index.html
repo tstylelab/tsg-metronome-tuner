@@ -2176,6 +2176,18 @@
         <button class="btn btn-mute" id="mute-btn" onclick="toggleMute()" style="flex:0.6;">MUTE</button>
       </div>
 
+      <!-- Metro Setlist (折りたたみ)：ライブ中のテンポ表示用途で使いやすいよう
+           トランスポート（START/TAP/MUTE）直下に配置。BPM表示は最上部のまま。
+           パネル本体はスマホではこのボタン直下へ、PC/iPadでは右カラムへJSで配置される -->
+      <button class="setlist-toggle" id="metro-setlist-toggle" onclick="toggleMetroSetlist()" style="margin-top:10px;">
+        <div class="setlist-toggle-left">
+          <span class="setlist-toggle-icon">🎵</span>
+          <span class="setlist-toggle-label">Setlist</span>
+          <span class="setlist-toggle-sub">曲ごとのBPM・拍子・グルーブを保存</span>
+        </div>
+        <span class="setlist-toggle-arrow">▼</span>
+      </button>
+
       <div class="section-label">Sound</div>
       <div class="beat-row" style="margin-top:0;">
         <div style="display:flex;gap:6px;flex:1;">
@@ -2351,15 +2363,6 @@
           color:#777; box-shadow:0 2px 0 #b8bcc8;">OFF</button>
       </div>
 
-      <!-- Metro Setlist (折りたたみ) -->
-      <button class="setlist-toggle" id="metro-setlist-toggle" onclick="toggleMetroSetlist()">
-        <div class="setlist-toggle-left">
-          <span class="setlist-toggle-icon">🎵</span>
-          <span class="setlist-toggle-label">Setlist</span>
-          <span class="setlist-toggle-sub">曲ごとのBPM・拍子・グルーブを保存</span>
-        </div>
-        <span class="setlist-toggle-arrow">▼</span>
-      </button>
       </div><!-- /.metro-main-col -->
 
       <div id="metro-setlist-panel" style="display:none; margin-top:12px;">
@@ -3372,7 +3375,46 @@ function toggleMetroSetlist() {
   metroSetlistOpen = !metroSetlistOpen;
   panel.style.display = metroSetlistOpen ? 'block' : 'none';
   btn.classList.toggle('open', metroSetlistOpen);
+  // 開閉状態を記憶：ライブ中のテンポ表示用途では開きっぱなしで使うため、
+  // リロードしても開いた状態が復元されるようにする
+  lsSet('tsg-metro-setlist-open', metroSetlistOpen ? '1' : '0');
 }
+
+// セットリストパネルの配置切替：
+// スマホ（縦1カラム）ではトグルボタン直下（＝START/TAP/MUTEのすぐ下）に、
+// PC/iPad（768px以上）では従来どおり右カラム（.metro-main-colの隣）に配置する。
+// パネルは「main-colの内側（スマホ）⇔外側（PC）」を行き来する必要があり、
+// CSSだけでは実現できないためDOMごと移動する（イベントは要素に付いているため移動しても保持される）
+const _setlistMQ = window.matchMedia('(min-width: 768px)');
+function placeSetlistPanel() {
+  const panel  = document.getElementById('metro-setlist-panel');
+  const card   = document.getElementById('metro-card');
+  const toggle = document.getElementById('metro-setlist-toggle');
+  if (!panel || !card || !toggle) return;
+  let moved = false;
+  if (_setlistMQ.matches) {
+    // PC/iPad：カード直下（main-colの隣）へ。バナーの前に置く＝右カラムになる
+    if (panel.parentElement !== card) {
+      const banner = card.querySelector('.app-banner-section');
+      card.insertBefore(panel, banner || null);
+      moved = true;
+    }
+  } else {
+    // スマホ：トグルボタンの直後へ
+    if (panel.previousElementSibling !== toggle) {
+      toggle.insertAdjacentElement('afterend', panel);
+      moved = true;
+    }
+  }
+  // 実際に移動した時だけSortableを付け直す（スマホはスクロールでもresizeが
+  // 発火するため、毎回再初期化するとドラッグ操作を壊しかねない）
+  if (moved) initMetroSortable();
+}
+// 画面幅が768pxをまたいだ時（iPadの回転・PCのウィンドウリサイズ）に配置し直す。
+// matchMediaのchangeが発火しない環境の保険としてresizeでも呼ぶ（移動不要時は何もしない）
+if (_setlistMQ.addEventListener) _setlistMQ.addEventListener('change', placeSetlistPanel);
+else if (_setlistMQ.addListener) _setlistMQ.addListener(placeSetlistPanel); // 旧Safari用
+window.addEventListener('resize', placeSetlistPanel);
 
 function toggleSaveMenu(e) {
   e.stopPropagation();
@@ -5544,6 +5586,11 @@ function updateTunerUI(rawFreq, clarity) {
 resetMuteState();
 renderBeatDots();
 initMetroSetlist();
+placeSetlistPanel(); // 画面幅に応じてセットリストパネルを配置（スマホ:トグル直下／PC:右カラム）
+// セットリストの開閉状態を復元（ライブ用途で開きっぱなしにできるように）
+try {
+  if (localStorage.getItem('tsg-metro-setlist-open') === '1' && !metroSetlistOpen) toggleMetroSetlist();
+} catch (e) {}
 initHints();
 initCapoBtns();
 renderStringButtons();
