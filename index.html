@@ -997,7 +997,10 @@
     cursor: pointer;
     padding: 0;
     color: #888;
-    display: flex;
+    /* スマホでは非表示：スロットが小さく誤タップで複製が発動しやすいため、
+       複製はスロット一覧下の「複製」ボタン（選択中スロットに対する操作）で行う。
+       PC/iPad(768px+)ではマウス操作で誤爆しないため従来どおり表示する */
+    display: none;
     align-items: center;
     justify-content: center;
     opacity: 0.5;
@@ -1866,6 +1869,10 @@
     #metro-setlist-panel .metro-slot-num {
       font-size: 0.68rem;
     }
+    /* PC/iPad：スロット角の複製ボタンを表示（ホバーで濃くなる従来動作） */
+    .metro-slot-dup-btn {
+      display: flex;
+    }
     #metro-setlist-panel .metro-slot-bpm {
       font-size: 1.1rem;
     }
@@ -2408,6 +2415,7 @@
           <div style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
             <p style="margin:0; font-size:0.68rem; color:#777; letter-spacing:0.02em;">PC/iPad：ダブルクリックで曲名入力 ／ ドラッグで曲順を入れ替え</p>
             <div style="display:flex;gap:6px;flex-shrink:0;margin-left:8px;">
+              <button onclick="duplicateSelectedMetroSlot()" style="padding:3px 10px;font-size:0.72rem;color:#1a5f8a;background:#eef5ff;border:1px solid #a0c0e0;border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600;" title="選択中のスロットを複製して直後に挿入">複製</button>
               <button onclick="clearSelectedMetroSlot()" style="padding:3px 10px;font-size:0.72rem;color:#c0392b;background:#fff5f5;border:1px solid #e0a0a0;border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600;" title="選択中のスロットを初期状態に戻す（位置はそのまま）">スロットをリセット</button>
               <button onclick="deleteSelectedMetroSlot()" style="padding:3px 10px;font-size:0.72rem;color:#fff;background:#c0392b;border:1px solid #a93226;border-radius:4px;cursor:pointer;white-space:nowrap;font-weight:600;" title="選択中のスロットを消去して後ろを前に詰める">消去</button>
             </div>
@@ -3137,6 +3145,17 @@ function duplicateMetroSlot(i) {
   saveMetroSetlist();
   renderMetroSlots();
   if (i + 1 < metroSlotCount) selectMetroSlot(i + 1);
+}
+
+// スロット一覧下の「複製」ボタン用：選択中のスロットを複製する
+// （スマホではスロット角の複製ボタンを廃止したため、こちらが複製の入り口になる）
+function duplicateSelectedMetroSlot() {
+  const i = metroSelectedSlot;
+  if (metroSlots[i] === null && !metroNames[i]) {
+    showToast('空のスロットは複製できません');
+    return;
+  }
+  duplicateMetroSlot(i);
 }
 
 function clearSelectedMetroSlot() {
