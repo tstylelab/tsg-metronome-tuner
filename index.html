@@ -2033,6 +2033,18 @@
     </div>
 
     <div class="modal-section">
+      <div class="modal-section-title">🥁 拍カウント（1・2・3・4を重ねる）</div>
+      <div class="tip-item">
+        <div class="tip-title red">🥁 毎拍にガイド音を重ねて、拍を見失わないようにする</div>
+        <div class="tip-desc">「拍カウント」の「OFF」ボタンを押してONにすると、演奏パターンとは別の音で毎拍（1・2・3・4）にクリックが重なります。1拍目は少し高い音でアクセントになるので、どこが小節の頭かも分かります。頭抜き（1拍目を消す）や裏拍だけの複雑なパターンでも、拍が迷子にならず初心者の練習をサポートします。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">ビートミュートしていても鳴ります</div>
+        <div class="tip-desc">ビートドットで音を消したパターンでも、拍カウントの音は毎拍鳴り続けます（「Gap Click」の無音中だけは鳴りません）。ガイドが不要になったらOFFにしてください。「小節アンカー」が“数小節に1回だけ”なのに対し、拍カウントは“毎拍ずっと”鳴る、より手厚いガイドです。</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
       <div class="modal-section-title">📍 小節アンカー（位置確認クリック）</div>
       <div class="tip-item">
         <div class="tip-title red">🔔 数小節に1回だけ「1拍目」を鳴らして現在地を確認</div>
@@ -2309,6 +2321,18 @@
       </div>
       <div id="prog-status-badge" style="display:none; margin-top:-6px; margin-bottom:10px; padding:2px 0;
            border-radius:20px; font-size:0.72rem; font-weight:700; text-align:center; border:1.5px solid;"></div>
+
+      <!-- 拍カウント（1・2・3・4を重ねる） -->
+      <div class="section-label">拍カウント <span style="font-size:0.6rem;color:#b8bcc8;font-weight:400;letter-spacing:0.04em;text-transform:none;">（1・2・3・4を重ねる）</span></div>
+      <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; flex-wrap:wrap;">
+        <span style="font-size:0.7rem;color:#555;font-weight:600;flex-shrink:0;">🥁 毎拍にガイド音を重ねる（頭抜き練習の補助）</span>
+        <div style="flex:1;"></div>
+        <button id="beatcount-toggle-btn" onclick="toggleBeatCount()" style="
+          padding:3px 12px; border-radius:20px; border:1.5px solid #c8ccd6;
+          font-size:0.72rem; font-weight:700; cursor:pointer; flex-shrink:0;
+          background:linear-gradient(to bottom,#f7f8fa,#e0e3ea);
+          color:#777; box-shadow:0 2px 0 #b8bcc8;">OFF</button>
+      </div>
 
       <!-- 小節アンカー（位置確認クリック） -->
       <div class="section-label">小節アンカー <span style="font-size:0.6rem;color:#b8bcc8;font-weight:400;letter-spacing:0.04em;text-transform:none;">（位置確認クリック）</span></div>
@@ -2592,6 +2616,11 @@ let _progBarCount    = 0;
 let anchorEnabled   = false;
 let anchorEveryBars = 4;
 let _anchorBarCount = 0;
+
+// 拍カウント：毎拍(1・2・3・4)にパターン音とは別の鋭いクリックを重ねる。
+// 頭抜きの複雑なパターンでも拍が迷子にならないよう常時ガイドする（初心者向け）。
+// ビートミュートは無視して必ず鳴るが、ギャップクリックの無音中は鳴らさない。
+let beatCountOn = false;
 
 // ===== VOICE COUNT BUFFERS =====
 const voiceBuffers = {};
@@ -3919,6 +3948,43 @@ function setAnchorEvery(val) {
   if (metronomeRunning && anchorEnabled) _anchorBarCount = 0;
 }
 
+// ===== 拍カウント（1・2・3・4を重ねる） =====
+function toggleBeatCount() {
+  beatCountOn = !beatCountOn;
+  const btn = document.getElementById('beatcount-toggle-btn');
+  if (btn) {
+    if (beatCountOn) {
+      btn.textContent = 'ON';
+      btn.style.background = 'linear-gradient(to bottom,#e67e22,#ca6a17)';
+      btn.style.color = '#fff';
+      btn.style.borderColor = '#ca6a17';
+      btn.style.boxShadow = '0 2px 0 #9c5011';
+    } else {
+      btn.textContent = 'OFF';
+      btn.style.background = 'linear-gradient(to bottom,#f7f8fa,#e0e3ea)';
+      btn.style.color = '#777';
+      btn.style.borderColor = '#c8ccd6';
+      btn.style.boxShadow = '0 2px 0 #b8bcc8';
+    }
+  }
+}
+
+// 拍カウントのクリック音。パターン音とは別の鋭いトーンで拍を示す。1拍目はアクセント（高め）。
+// コンプレッサーを通すとパターン音に埋もれやすいため、音量差を保てる uncompressedOut へ直結する。
+function scheduleBeatClick(time, beatIdx) {
+  const ctx = getAudioCtx();
+  const out = uncompressedOut || masterOut;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  const isOne = (beatIdx === 0);
+  osc.type = 'triangle';
+  osc.frequency.value = isOne ? 2100 : 1500;
+  g.gain.setValueAtTime(isOne ? 0.42 : 0.26, time);
+  g.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
+  osc.connect(g); g.connect(out);
+  osc.start(time); osc.stop(time + 0.04);
+}
+
 function setShuffleRatio(val) {
   shuffleRatio = val / 100;
   let label = '';
@@ -4594,6 +4660,10 @@ function scheduler() {
       anchorHit = (_anchorBarCount % anchorEveryBars === 0);
       _anchorBarCount++;
     }
+
+    // 拍カウント：毎拍に別音色のガイドクリックを重ねる。ビートミュートは無視して必ず鳴らすが、
+    // ギャップクリックの無音中は鳴らさない（無音で自分を試すギャップの目的を壊さないため）。
+    if (beatCountOn && !gapSilent) scheduleBeatClick(t, beat);
 
     // メインビートを鳴らすか
     const normalPlays = !gapSilent && !beatMuted[beat];
