@@ -2,8 +2,16 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" type="image/png" href="images/favicon.png">
+<link rel="icon" type="image/png" sizes="64x64" href="images/favicon-64.png">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<!-- ホーム画面追加（PWA）用：アイコン・アプリ名・全画面表示・テーマ色。オフライン対応は sw.js -->
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" sizes="180x180" href="images/apple-touch-icon-180.png">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="MetroTuner">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <title>ギターチューナー＆メトロノーム【プロ監修・無料】- ギタースクールTSG</title>
 <meta name="description" content="ギターチューナー＆メトロノームが1つになったプロ監修・無料Webアプリ。スマホ対応。BPMセットリスト・ウクレレ対応。ギタースクールTSG提供。監修：杉山つよし。">
 <meta property="og:type" content="website">
@@ -2115,6 +2123,18 @@
       <div class="tip-item">
         <div class="tip-title">💡 チューニングのコツ</div>
         <div class="tip-desc">1秒おきにピッキングするとチューニングが合わせやすくなります。弾きっぱなしより、リズムよく弾き直す方が正確に反応します。</div>
+      </div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">📱 ホーム画面に追加（オフライン対応）</div>
+      <div class="tip-item">
+        <div class="tip-title red">📶 電波が無い場所でも使えます</div>
+        <div class="tip-desc">ブラウザの共有メニューから「ホーム画面に追加」すると、アプリのように全画面で起動します。一度オンラインで開いておけば必要なファイルが端末に保存されるので、地下など電波の届かない場所でもメトロノーム・チューナーが使えます。</div>
+      </div>
+      <div class="tip-item">
+        <div class="tip-title">セットリストはホーム画面版とブラウザ版で別々に保存されます</div>
+        <div class="tip-desc">iPhoneでは、ホーム画面から開いたアプリとSafariで開いたページは保存領域が別です。どちらか一方に決めて使うか、「URLで共有」で自分宛てに送って移してください。</div>
       </div>
     </div>
 
@@ -5641,6 +5661,26 @@ try {
   if (localStorage.getItem('tsg-metro-setlist-open') === '1' && !metroSetlistOpen) toggleMetroSetlist();
 } catch (e) {}
 initHints();
+
+// ===== オフライン対応（Service Worker の登録）=====
+// https（本番）と localhost でのみ登録する。file:// では動作しないため黙ってスキップ。
+// 登録に失敗しても通常どおり動く（オフライン機能が無効になるだけ）。
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('[sw] register failed:', e));
+  });
+}
+
+// ホーム画面から起動した全画面表示（スタンドアロン）では、他アプリへのバナーを別窓で開く。
+// 全画面表示には「戻る」ボタンが無く、同じ窓で遷移すると戻れなくなるため。
+(function () {
+  const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches)
+    || window.navigator.standalone === true;
+  if (standalone) {
+    document.querySelectorAll('a.img-banner-link').forEach((a) => { a.target = '_blank'; a.rel = 'noopener'; });
+  }
+})();
+
 initCapoBtns();
 renderStringButtons();
 document.getElementById('ref-pitch-value').textContent = refA4 + ' Hz';
